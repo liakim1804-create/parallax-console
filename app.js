@@ -4,14 +4,13 @@
    주의: 본 화면의 모든 사건/인물/위치/영상/통신 내용은 가상 데이터입니다.
         실제 경찰 시스템, 실제 사건, 실제 인물과 무관하며 연동되지 않습니다.
    구성: [1] 유틸  [2] 가상 데이터  [3] 상태/저장  [4] 창 관리자
-        [5] 앱 정의  [6] 알림  [7] 시뮬레이션  [8] 입력/초기화
+        [5] 앱 정의  [6] 알림  [7] 화면 테마  [8] 입력/초기화
    ========================================================================= */
 'use strict';
 
 /* ===================== [1] 유틸 ===================== */
 const CFG = {
-  KEY: 'parallax.console.v1',
-  TICK: 3200,               // 시뮬레이션 1틱 (너무 빠르지 않게)
+  KEY: 'parallax.console.v2',   // 구성 재설계로 기본 배치가 바뀌어 새 키 사용
   MAP_W: 1000, MAP_H: 680
 };
 
@@ -304,7 +303,6 @@ const SEED_MSGS = [
 /* ===================== [3] 상태 / 저장 ===================== */
 const S = {
   sel: 'A-102',              // 선택된 사건 (모든 앱이 이 값으로 동기화)
-  sim: false,                // 시뮬레이션 동작 여부
   sound: true,               // 긴급 알림음
   wins: [],                  // [{id,fx,fy,fw,fh,z,min,max}]
   focus: null,
@@ -337,7 +335,7 @@ const activeIncidents = () => INCIDENTS.filter(i => i.status !== '종료');
 function save() {
   try {
     localStorage.setItem(CFG.KEY, JSON.stringify({
-      sel: S.sel, sim: S.sim, sound: S.sound, focus: S.focus, zTop: S.zTop, lcW: S.lcW,
+      sel: S.sel, sound: S.sound, focus: S.focus, zTop: S.zTop, lcW: S.lcW,
       wins: S.wins.map(w => ({ id: w.id, fx: w.fx, fy: w.fy, fw: w.fw, fh: w.fh, z: w.z, min: w.min, max: w.max }))
     }));
   } catch (e) { /* 저장 불가 환경 무시 */ }
@@ -369,14 +367,16 @@ function load() {
 /* ===================== [4] 창 관리자 ===================== */
 const DESK = () => $('#desktop');
 const MIN_W = 260, MIN_H = 150;
+const GUTTER = 5;   // 창 사이 여백 (양쪽 합 10px)
 
 /** 기본 화면 배치: 중앙 지도 / 왼쪽 사건 목록 / 오른쪽 위 AR / 오른쪽 아래 메시지 */
 function defaultLayout() {
   return [
-    { id: 'overview',  fx: 0,     fy: 0,   fw: 0.26, fh: 1,    z: 11, min: false, max: false },
-    { id: 'map',       fx: 0.26,  fy: 0,   fw: 0.44, fh: 1,    z: 13, min: false, max: false },
-    { id: 'ar',        fx: 0.70,  fy: 0,   fw: 0.30, fh: 0.5,  z: 12, min: false, max: false },
-    { id: 'messages',  fx: 0.70,  fy: 0.5, fw: 0.30, fh: 0.5,  z: 12, min: false, max: false }
+    // 왼쪽 사건 편집 열 / 위쪽 넓은 작전 지도 / 아래 넓은 AR 영상 + 좁은 메시지 (비대칭 구성)
+    { id: 'overview',  fx: 0,     fy: 0,    fw: 0.25, fh: 1,    z: 11, min: false, max: false },
+    { id: 'map',       fx: 0.25,  fy: 0,    fw: 0.75, fh: 0.62, z: 13, min: false, max: false },
+    { id: 'ar',        fx: 0.25,  fy: 0.62, fw: 0.44, fh: 0.38, z: 12, min: false, max: false },
+    { id: 'messages',  fx: 0.69,  fy: 0.62, fw: 0.31, fh: 0.38, z: 12, min: false, max: false }
   ];
 }
 function layoutMode() {
@@ -555,9 +555,11 @@ function winChrome(app) {
       ${b('w-right', 'ic-split2', '화면 오른쪽 절반으로 (Alt+오른쪽)', 'wb-opt')}
       ${b('w-quad', 'ic-split4', '4분할 위치로 이동 (누를 때마다 사분면 변경)', 'wb-opt')}
       ${b('w-reset', 'ic-reset', '이 창 위치 초기화', 'wb-opt')}
-      ${b('w-min', 'ic-min', '최소화')}
-      ${b('w-max', 'ic-max', '최대화 / 복원 (Alt+위)')}
-      ${b('w-close', 'ic-close', '닫기', 'wb-close')}
+      <span class="win-lights">
+        ${b('w-close', 'ic-close', '닫기', 'wb-light wb-close')}
+        ${b('w-min', 'ic-dash', '최소화', 'wb-light wb-min')}
+        ${b('w-max', 'ic-expand', '최대화 / 복원 (Alt+위)', 'wb-light wb-max')}
+      </span>
     </div>
   </header>
   <div class="win-body" data-body="${app.id}"></div>
@@ -626,14 +628,14 @@ function layoutWindows() {
     }
     el.style.display = w.min ? 'none' : '';
     if (w.max) {
-      el.style.left = '0px'; el.style.top = '0px';
-      el.style.width = W + 'px'; el.style.height = H + 'px';
+      el.style.left = GUTTER + 'px'; el.style.top = GUTTER + 'px';
+      el.style.width = (W - GUTTER * 2) + 'px'; el.style.height = (H - GUTTER * 2) + 'px';
     } else {
       const ww = clamp(Math.round(w.fw * W), MIN_W, W);
       const hh = clamp(Math.round(w.fh * H), MIN_H, H);
-      el.style.left = clamp(Math.round(w.fx * W), 0, Math.max(0, W - ww)) + 'px';
-      el.style.top = clamp(Math.round(w.fy * H), 0, Math.max(0, H - hh)) + 'px';
-      el.style.width = ww + 'px'; el.style.height = hh + 'px';
+      el.style.left = (clamp(Math.round(w.fx * W), 0, Math.max(0, W - ww)) + GUTTER) + 'px';
+      el.style.top = (clamp(Math.round(w.fy * H), 0, Math.max(0, H - hh)) + GUTTER) + 'px';
+      el.style.width = (ww - GUTTER * 2) + 'px'; el.style.height = (hh - GUTTER * 2) + 'px';
     }
     el.style.zIndex = w.z;
   });
@@ -776,7 +778,7 @@ document.addEventListener('keydown', e => {
 });
 
 /* ---- 왼쪽 앱 런처 너비 조절 ---- */
-const LC_MIN = 56, LC_MAX = 340, LC_DEF = 172;
+const LC_MIN = 56, LC_MAX = 340, LC_DEF = 76;   // 아이콘 + 작은 라벨 레일
 function setLauncherWidth(px, persist) {
   S.lcW = clamp(Math.round(px), LC_MIN, LC_MAX);
   document.documentElement.style.setProperty('--lc-w', S.lcW + 'px');
@@ -893,8 +895,8 @@ document.addEventListener('pointerup', e => {
     if (gap) { Object.assign(w, gap, { max: false }); focusWin(drag.id); applyLayout(); }
     else if (zone) { snapWin(drag.id, zone); }
     else {
-      w.fx = el.offsetLeft / drag.W; w.fy = el.offsetTop / drag.H;
-      w.fw = el.offsetWidth / drag.W; w.fh = el.offsetHeight / drag.H;
+      w.fx = (el.offsetLeft - GUTTER) / drag.W; w.fy = (el.offsetTop - GUTTER) / drag.H;
+      w.fw = (el.offsetWidth + GUTTER * 2) / drag.W; w.fh = (el.offsetHeight + GUTTER * 2) / drag.H;
     }
   }
   clearSnapGhost(); drag = null; sizeClasses(); save();
@@ -940,7 +942,7 @@ function paintLauncher() {
   $('#launcherList').innerHTML = APPS.map((a, i) => {
     const open = !!winOf(a.id);
     const key = i < 9 ? String(i + 1) : i === 9 ? '0' : '-';
-    return `<li><button class="lc-btn ${open ? 'is-open' : ''}" type="button" data-act="launch" data-app="${a.id}"
+    return `<li><button class="lc-btn ${open ? 'is-open' : ''} ${S.focus === a.id ? 'is-focus' : ''}" type="button" data-act="launch" data-app="${a.id}"
       title="${esc(a.name)} - ${esc(a.desc)} (Alt+${key})" aria-pressed="${open}">
       ${icon(a.icon)}<span class="lc-t">${esc(a.name)}</span><span class="lc-num">${key}</span></button></li>`;
   }).join('');
@@ -963,15 +965,21 @@ function paintTaskbar() {
 function paintStatus() {
   const inc = curInc();
   $('#sbClockVal').textContent = nowHMS();
-  $('#sbIncident').textContent = `${inc.id} ${inc.type}`;
+  $('#sbIncident').innerHTML = `<span class="sb-no">${esc(inc.id)}</span> ${esc(inc.type)}`;
   $('#sbIncident').title = `${inc.id} ${inc.type} · ${inc.place}`;
-  $('#sbRisk').innerHTML = badge(`${riskLabel(inc.risk)} (${Math.round(inc.risk)})`, riskCls(inc.risk), prioShape(inc.priority));
+  const riskEl = $('#sbRisk');
+  riskEl.className = 'sb-risk' + (inc.risk >= 70 ? ' is-crit' : '');
+  riskEl.textContent = `위험도 ${riskLabel(inc.risk)} ${Math.round(inc.risk)}`;
   $('#sbActive').textContent = activeIncidents().length + '건';
   $('#sbStaff').textContent = OFFICERS.filter(o => activeIncidents().some(i => i.id === o.inc)).length + '명';
   const bad = OFFICERS.filter(o => o.ar === '불안정' || o.ar === '두절').length;
-  $('#sbComm').innerHTML = bad === 0 ? badge('정상', 'badge-ok') : badge(`이상 ${bad}건`, 'badge-warn', 'badge-sq');
+  const commEl = $('#sbComm');
+  commEl.className = 'sb-comm' + (bad ? ' is-warn' : '');
+  commEl.textContent = bad === 0 ? '통신 정상' : `통신 이상 ${bad}건`;
   const crit = S.alerts.filter(a => a.level === '긴급' && !a.seen).length;
-  $('#sbAlerts').innerHTML = badge(crit + '건', crit ? 'badge-crit' : 'badge-idle', crit ? 'badge-tri' : '');
+  const alertEl = $('#sbAlerts');
+  alertEl.className = crit ? 'is-crit' : '';
+  alertEl.textContent = `긴급 알림 ${crit}건`;
   $$('[data-ctx]').forEach(el => {
     const a = APPS.find(x => x.id === el.dataset.ctx);
     el.textContent = a && a.ctx ? a.ctx() : `${inc.id} ${inc.type}`;
@@ -1243,18 +1251,23 @@ function briefHTML(inc) {
       <div class="fact-m">${certBadge(x.c)}${srcChip(x.src)}<span class="dim mono">확인 시각 ${esc(x.t)}</span></div></div>`;
   const reports = S.msgs.filter(m => m.inc === inc.id && !m.mine && !m.system).slice(-4).reverse();
   return `<div class="sect ov-brief" aria-label="${esc(inc.id)} 사건 브리핑">
-    <div class="sect-h">${icon('ic-briefing', 'ic-sm')} 사건 브리핑<span class="spacer"></span>
-      <span class="dim" style="text-transform:none">확인 ${byCert('확인')} · 추정 ${byCert('추정')} · 미확인 ${byCert('미확인')}</span></div>
+    <div class="sect-h bf-head">사건 브리핑<span class="spacer"></span><span class="bf-stage">${esc(STAGE_NAMES[st.at])} ${st.at + 1}/8</span></div>
     <div class="sect-b">
-      <div class="brief-title"><span class="mono dim">${esc(inc.id)}</span><strong>${esc(inc.type)}</strong></div>
-      <div class="fact-m">
-        ${badge(inc.priority, prioCls(inc.priority), prioShape(inc.priority))}
-        ${badge('위험도 ' + riskLabel(inc.risk) + ' ' + Math.round(inc.risk), riskCls(inc.risk))}
-        ${badge('담당 ' + inc.team, 'badge-info')}
-        <span class="dim">${esc(STAGE_NAMES[st.at])} ${st.at + 1}/8</span>
-        <span class="dim detail">${esc(inc.place)}</span>
+      <div class="bf-id"><span class="bf-no">${esc(inc.id)}</span><span class="bf-name">${esc(inc.type)}</span></div>
+      <div class="bf-meta">
+        <span class="${inc.priority === '긴급' || inc.risk >= 70 ? 'bf-alert' : ''}">${esc(inc.priority)} · 위험도 ${esc(riskLabel(inc.risk))} ${Math.round(inc.risk)}</span>
+        <span>담당 ${esc(inc.team)}</span>
+        <span class="detail">${esc(inc.place)}</span>
       </div>
       <p class="brief-sum">${esc(inc.summary)}</p>
+      ${b.length ? `<div class="cert-legend">
+          <span><i class="lg seg-확인"></i>확인<b>${byCert('확인')}</b></span>
+          <span><i class="lg seg-추정"></i>추정<b>${byCert('추정')}</b></span>
+          <span><i class="lg seg-미확인"></i>미확인<b>${byCert('미확인')}</b></span>
+        </div>
+        <div class="cert-bar" role="img" aria-label="확인 ${byCert('확인')}건, 추정 ${byCert('추정')}건, 미확인 ${byCert('미확인')}건">
+          ${['확인', '추정', '미확인'].filter(k => byCert(k)).map(k => `<i class="seg-${k}" style="flex:${byCert(k)}"></i>`).join('')}
+        </div>` : ''}
       ${open ? `
         <div class="brief-sub">최초 신고 내용</div>
         <div class="brief-call">${esc(inc.call)}</div>
@@ -1312,7 +1325,7 @@ defApp({
     </div>
 
     ${sos.length ? `<div class="sect"><div class="sect-h">${icon('ic-warning', 'ic-sm')} 긴급 지원 요청</div><div class="sect-b" style="display:grid;gap:6px">
-      ${sos.map(o => `<div class="card" style="box-shadow:inset 3px 0 0 var(--crit)">
+      ${sos.map(o => `<div class="card">
         <div class="card-h"><span class="person-c">${esc(o.call)}</span><span class="card-t">${esc(o.name)}</span>
           ${badge('긴급 지원', 'badge-crit', 'badge-tri')}<span class="spacer"></span>
           <button class="btn btn-sm btn-crit" type="button" data-act="goto-officer" data-id="${o.id}">위치 확인</button></div>
@@ -1322,46 +1335,43 @@ defApp({
 
     ${briefHTML(curInc())}
 
-    <div class="sect"><div class="sect-h">${icon('ic-list', 'ic-sm')} 사건 목록<span class="spacer"></span>
-      <span class="dim detail" style="text-transform:none">행을 누르면 위 브리핑과 모든 앱이 해당 사건으로 바뀝니다</span></div>
-    <div class="toolbar">
-      <label class="field" title="사건번호·유형·위치·담당팀 검색">${icon('ic-search', 'ic-sm')}
-        <input type="search" placeholder="사건 검색" value="${esc(u.listQ)}" data-model="listQ" aria-label="사건 검색"></label>
-      <label class="field" title="긴급도 필터"><span class="dim">긴급도</span>
-        <select data-model="listPrio" aria-label="긴급도 필터">
-          ${['전체', '긴급', '주의', '일반'].map(v => `<option ${u.listPrio === v ? 'selected' : ''}>${v}</option>`).join('')}
-        </select></label>
-      <label class="field" title="상태 필터"><span class="dim">상태</span>
-        <select data-model="listStatus" aria-label="상태 필터">
-          ${statuses.map(v => `<option ${u.listStatus === v ? 'selected' : ''}>${v}</option>`).join('')}
-        </select></label>
-      <span class="spacer"></span>
-      <span class="dim">${rows.length} / ${INCIDENTS.length}건</span>
-      <button class="btn btn-sm" type="button" data-act="list-reset" title="필터 초기화">초기화</button>
-    </div>
-    ${rows.length ? `<div class="table-wrap"><table class="dtable">
-      <thead><tr>
-        <th>사건 번호</th><th>사건 유형</th><th>긴급도</th><th class="col-x">위험도</th><th class="col-x">처리 단계</th>
-        <th class="col-x">투입</th><th class="col-x">담당 팀</th><th>상태</th><th class="col-x">마지막 갱신</th>
-      </tr></thead><tbody>
-      ${rows.map(i => {
-        const st = S.stages[i.id];
-        return `<tr class="${S.sel === i.id ? 'is-sel' : ''} ${i.priority === '긴급' ? 'row-crit' : i.priority === '주의' ? 'row-warn' : ''}"
-          data-act="select-inc" data-id="${i.id}" tabindex="0" title="${esc(i.id)} ${esc(i.type)} · ${esc(i.place)} - 선택 시 모든 앱 동기화">
-        <td class="mono">${esc(i.id)}</td>
-        <td><strong>${esc(i.type)}</strong><div class="td-sub detail">${esc(i.place)} · 발생 ${esc(i.reportedAt)}</div></td>
-        <td>${badge(i.priority, prioCls(i.priority), prioShape(i.priority))}</td>
-        <td class="col-x"><div class="risk-cell">${badge(riskLabel(i.risk) + ' ' + Math.round(i.risk), riskCls(i.risk))}
-          <div class="bar ${i.risk >= 70 ? 'crit' : i.risk >= 40 ? 'warn' : ''}"><i style="width:${clamp(i.risk, 3, 100)}%"></i></div></div></td>
-        <td class="col-x">${esc(STAGE_NAMES[st.at])} <span class="dim">${st.at + 1}/8</span></td>
-        <td class="col-x">${incOfficers(i.id).length}명</td>
-        <td class="col-x">${esc(i.team)}</td>
-        <td>${badge(i.status, i.status === '종료' ? 'badge-idle' : 'badge-info')}</td>
-        <td class="mono col-x" title="${esc(i.updatedAt)} 기준">${esc(i.updatedAt)} <span class="dim">(${agoText(i.updatedAt)})</span></td>
-      </tr>`;
-      }).join('')}
-      </tbody></table></div>` : '<div class="empty-note">조건에 맞는 사건이 없습니다. 필터를 확인하십시오.</div>'}
-    </div>
+    <section class="ovx-index" aria-label="사건 목록">
+      <header class="ovx-index-h">
+        <div class="ovx-index-title">사건 목록<span class="ovx-count">${rows.length} / ${INCIDENTS.length}건</span></div>
+        <button class="btn btn-sm ovx-reset" type="button" data-act="list-reset" title="필터 초기화">초기화</button>
+        <div class="ovx-filters">
+          <label class="field ovx-search" title="사건번호·유형·위치·담당팀 검색">${icon('ic-search', 'ic-sm')}
+            <input type="search" placeholder="사건 검색" value="${esc(u.listQ)}" data-model="listQ" aria-label="사건 검색"></label>
+          <label class="field ovx-sel" title="긴급도 필터"><span class="dim">긴급도</span>
+            <select data-model="listPrio" aria-label="긴급도 필터">
+              ${['전체', '긴급', '주의', '일반'].map(v => `<option ${u.listPrio === v ? 'selected' : ''}>${v}</option>`).join('')}
+            </select></label>
+          <label class="field ovx-sel" title="상태 필터"><span class="dim">상태</span>
+            <select data-model="listStatus" aria-label="상태 필터">
+              ${statuses.map(v => `<option ${u.listStatus === v ? 'selected' : ''}>${v}</option>`).join('')}
+            </select></label>
+        </div>
+        <p class="ovx-hint detail">행을 누르면 위 브리핑과 모든 앱이 해당 사건으로 바뀝니다</p>
+      </header>
+      ${rows.length ? `<ol class="ovx-list">
+        ${rows.map(i => {
+          const st = S.stages[i.id];
+          return `<li class="ovx-row ${S.sel === i.id ? 'is-sel' : ''}" data-act="select-inc" data-id="${i.id}" tabindex="0" role="button"
+              title="${esc(i.id)} ${esc(i.type)} · ${esc(i.place)} - 선택 시 모든 앱 동기화">
+            <span class="ovx-id">${esc(i.id)}</span>
+            <span class="ovx-main">
+              <span class="ovx-type">${esc(i.type)}</span>
+              <span class="ovx-place">${esc(i.place)} · 발생 ${esc(i.reportedAt)}</span>
+            </span>
+            <span class="ovx-state">
+              <span class="ovx-prio ${i.priority === '긴급' ? 'is-crit' : ''}">${esc(i.priority)}</span>
+              <span class="ovx-status">${esc(i.status)}</span>
+            </span>
+            <span class="ovx-meta">위험도 ${riskLabel(i.risk)} ${Math.round(i.risk)} · ${esc(STAGE_NAMES[st.at])} ${st.at + 1}/8 · 투입 ${incOfficers(i.id).length}명 · ${esc(i.team)} · 마지막 갱신 ${esc(i.updatedAt)} (${agoText(i.updatedAt)})</span>
+          </li>`;
+        }).join('')}
+      </ol>` : '<div class="empty-note">조건에 맞는 사건이 없습니다. 필터를 확인하십시오.</div>'}
+    </section>
 
     <div class="sect"><div class="sect-h">${icon('ic-radio', 'ic-sm')} 통신 상태</div><div class="sect-b">
       ${comm.length ? comm.map(o => `<div class="card-row" style="margin-bottom:4px">
@@ -1381,16 +1391,16 @@ const MK = {
 };
 function mk(kind, id, x, y, label, extra = '') {
   const shape = {
-    incident: '<rect x="-7" y="-7" width="14" height="14" transform="rotate(45)" fill="#d84b4f33" stroke="#d84b4f" stroke-width="2" class="mk-ring"/>',
-    officer: '<circle r="7" fill="#46baf033" stroke="#46baf0" stroke-width="2" class="mk-ring"/><circle r="2.4" fill="#51bcec"/>',
-    vehicle: '<rect x="-9" y="-5.5" width="18" height="11" rx="2.5" fill="#51bcec26" stroke="#51bcec" stroke-width="1.8" class="mk-ring"/>',
-    cctv: '<rect x="-6" y="-5" width="12" height="10" rx="2" fill="#8a5ed926" stroke="#8a5ed9" stroke-width="1.8" class="mk-ring"/><path d="M6 -3 L13 -6 L13 4 L6 2 Z" fill="#8a5ed922" stroke="#8a5ed9" stroke-width="1.2"/>',
-    danger: '<path d="M0 -9 L9 7 L-9 7 Z" fill="#d4a64b33" stroke="#d4a64b" stroke-width="2" class="mk-ring"/><path d="M0 -3 v5" stroke="#d4a64b" stroke-width="2"/><circle cy="4.4" r="1" fill="#d4a64b"/>',
-    rally: '<path d="M-6 8 v-16 h13 l-3 4.6 3 4.6 h-13" fill="#4dac7630" stroke="#4dac76" stroke-width="1.8" class="mk-ring"/>',
-    suspect: '<circle r="9" fill="none" stroke="#db585c" stroke-width="2" stroke-dasharray="4 3" class="mk-ring"/><circle r="3" fill="#db585c"/>',
-    sent: '<path d="M0 -8 L8 6 L0 2 L-8 6 Z" fill="#d4a64b44" stroke="#d4a64b" stroke-width="1.8" class="mk-ring"/>'
+    incident: '<rect x="-7" y="-7" width="14" height="14" transform="rotate(45)" fill="#f5a7a333" stroke="#f5a7a3" stroke-width="2" class="mk-ring"/>',
+    officer: '<rect x="-8" y="-8" width="16" height="16" rx="4" fill="#111418" class="mk-ring"/><circle cy="-1.8" r="2.3" fill="#ffffff"/><path d="M-4 4.6a4 3.2 0 0 1 8 0z" fill="#ffffff"/>',
+    vehicle: '<rect x="-8" y="-8" width="16" height="16" rx="4" fill="#111418" class="mk-ring"/><rect x="-4.6" y="-2.6" width="9.2" height="5.2" rx="1.3" fill="#ffffff"/>',
+    cctv: '<rect x="-8" y="-8" width="16" height="16" rx="4" fill="#111418" class="mk-ring"/><rect x="-4.8" y="-2.8" width="6.4" height="5.2" rx="1" fill="#ffffff"/><path d="M1.8 -1.4L5 -3.2V2.6L1.8 1z" fill="#ffffff"/>',
+    danger: '<path d="M0 -9 L9 7 L-9 7 Z" fill="#fae29e33" stroke="#fae29e" stroke-width="2" class="mk-ring"/><path d="M0 -3 v5" stroke="#fae29e" stroke-width="2"/><circle cy="4.4" r="1" fill="#fae29e"/>',
+    rally: '<rect x="-8" y="-8" width="16" height="16" rx="4" fill="#111418" class="mk-ring"/><path d="M-3 4.6v-9.2h6l-1.6 2.3 1.6 2.3h-6" fill="#ffffff"/>',
+    suspect: '<circle r="9" fill="none" stroke="#c21e14" stroke-width="2" stroke-dasharray="4 3" class="mk-ring"/><circle r="3" fill="#c21e14"/>',
+    sent: '<path d="M0 -8 L8 6 L0 2 L-8 6 Z" fill="#fae29e44" stroke="#fae29e" stroke-width="1.8" class="mk-ring"/>'
   }[kind];
-  const color = { incident: '#dc5c5e', officer: '#5bbfed', vehicle: '#5bbfed', cctv: '#966fdd', danger: '#ddab51', rally: '#5cd993', suspect: '#dc5c5e', sent: '#ddab51' }[kind];
+  const color = { incident: '#d62116', officer: '#111418', vehicle: '#111418', cctv: '#111418', danger: '#4a515c', rally: '#111418', suspect: '#d62116', sent: '#4a515c' }[kind];
   return `<g class="m-hit" data-mk="${kind}" data-id="${id}" transform="translate(${x},${y})" tabindex="0" role="button"
       aria-label="${esc(MK[kind].label)} ${esc(label)}"><title>${esc(MK[kind].label)}: ${esc(label)}</title>
       ${shape}${extra}
@@ -1398,7 +1408,7 @@ function mk(kind, id, x, y, label, extra = '') {
 }
 function cityBase() {
   const VX = [140, 340, 540, 740, 900], HY = [120, 280, 440, 580];
-  let s = `<rect x="0" y="0" width="1000" height="680" fill="#07090b"/>`;
+  let s = `<rect x="0" y="0" width="1000" height="680" fill="#e9ece7"/>`;
   const xs = [0, ...VX, 1000], ys = [0, ...HY, 680];
   for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < ys.length - 1; j++) {
     const x = xs[i] + 12, y = ys[j] + 12, w = xs[i + 1] - xs[i] - 24, h = ys[j + 1] - ys[j] - 24;
@@ -1433,15 +1443,15 @@ function mapSVG() {
   if (f.cctv) incCCTVs(inc.id).forEach(c => { ov += mk('cctv', c.id, c.x, c.y, c.id); });
   if (f.vehicle) incVehicles(inc.id).forEach(v => { ov += mk('vehicle', v.id, v.x, v.y, v.label); });
   if (f.officer) incOfficers(inc.id).forEach(o => {
-    ov += mk('officer', o.id, o.x, o.y, o.call, o.sos ? '<circle r="13" fill="none" stroke="#d84b4f" stroke-width="2" stroke-dasharray="3 3"/>' : '');
+    ov += mk('officer', o.id, o.x, o.y, o.call, o.sos ? '<circle r="13" fill="none" stroke="#f5a7a3" stroke-width="2" stroke-dasharray="3 3"/>' : '');
   });
   S.txs.filter(t => t.inc === inc.id && t.point).forEach(t => { ov += mk('sent', t.id, t.point.x, t.point.y, '전송: ' + t.kind); });
   const cp = S.ui.compose.point;
-  if (cp) ov += `<g transform="translate(${cp.x},${cp.y})"><circle r="11" fill="none" stroke="#d4a64b" stroke-width="2"/><path d="M-14 0 h28 M0 -14 v28" stroke="#d4a64b" stroke-width="1.4"/><text class="mk-label" x="15" y="4" fill="#ddab51">전송 예정 위치</text></g>`;
+  if (cp) ov += `<g transform="translate(${cp.x},${cp.y})"><circle r="11" fill="none" stroke="#fae29e" stroke-width="2"/><path d="M-14 0 h28 M0 -14 v28" stroke="#fae29e" stroke-width="1.4"/><text class="mk-label" x="15" y="4" fill="#fae29e">전송 예정 위치</text></g>`;
 
   return `<svg class="map-svg" viewBox="0 0 ${CFG.MAP_W} ${CFG.MAP_H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="가상 도시 작전 지도">
     <defs><pattern id="hatchUnknown" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-      <rect width="7" height="7" fill="#9099a514"/><line x1="0" y1="0" x2="0" y2="7" stroke="#9099a555" stroke-width="2"/></pattern></defs>
+      <rect width="7" height="7" fill="#68728014"/><line x1="0" y1="0" x2="0" y2="7" stroke="#68728055" stroke-width="2"/></pattern></defs>
     ${cityBase()}${ov}</svg>`;
 }
 defApp({
@@ -1450,61 +1460,53 @@ defApp({
   ctx: () => { const i = curInc(); return `${i.id} · ${i.place}`; },
   render() {
     const inc = curInc(), f = S.ui.mapF, u = S.ui;
-    const chip = (k, t) => `<button class="chip ${f[k] ? 'is-on' : ''}" type="button" data-act="map-layer" data-k="${k}"
-      aria-pressed="${f[k]}" title="${esc(t)} 표시 켜기/끄기">${esc(t)}</button>`;
+    const cnt = { officer: incOfficers(inc.id).length + '명', vehicle: incVehicles(inc.id).length + '대', cctv: incCCTVs(inc.id).length + '개소', danger: inc.dangers.length + '개소' };
+    const layer = (k, t, sw, legendName) => `<li><button class="mapx-layer ${f[k] ? 'is-on' : ''}" type="button" data-act="map-layer" data-k="${k}"
+        aria-pressed="${f[k]}" title="${esc(legendName || t)} 표시 켜기/끄기">
+        ${sw}<span class="mapx-lt">${esc(t)}</span><span class="mapx-n">${cnt[k] || ''}</span></button></li>`;
+    const zoneSw = k => k === '확인' ? 'mk-zone-k' : k === '미확인' ? 'mk-zone-u' : 'mk-zone-c';
     return `
-    <div class="toolbar">
-      <span class="dim nowrap">표시 요소</span>
-      <div class="map-filters">
-        ${chip('incident', '사건')}${chip('officer', '경찰관')}${chip('vehicle', '순찰차')}${chip('cctv', 'CCTV')}
-        ${chip('danger', '위험 위치')}${chip('zone', '구역')}${chip('path', '이동 경로')}${chip('rally', '집결지')}
-      </div>
-      <span class="spacer"></span>
-      <button class="btn btn-sm ${u.compose.picking ? 'btn-on' : ''}" type="button" data-act="map-pick"
-        title="지도를 눌러 현장 전송용 위치를 지정합니다">${icon('ic-pin', 'ic-sm')}<span class="btn-t">위치 지정</span></button>
-    </div>
-    <div class="map-row">
+    <div class="mapx">
+      <aside class="mapx-rail" aria-label="지도 레이어와 도구">
+        <div class="mapx-group mapx-ctx">
+          <div class="mapx-k">선택 사건</div>
+          <div class="mapx-inc"><span class="mapx-inc-id">${esc(inc.id)}</span> ${esc(inc.type)}</div>
+          <div class="mapx-inc-sub">${esc(inc.place)}</div>
+          <div class="mapx-inc-state"><span class="${inc.priority === '긴급' ? 'is-crit' : ''}">${esc(inc.priority)}</span> · 위험도 ${riskLabel(inc.risk)}</div>
+        </div>
+        <div class="mapx-group">
+          <div class="mapx-k" title="범례 (아이콘 + 문자 병기)">표시 요소 · 범례</div>
+          <ul class="mapx-layers">
+            ${layer('incident', '사건', '<span class="lg-mk mk-incident"></span>', '사건 위치')}
+            ${layer('officer', '경찰관', '<span class="lg-mk mk-officer"></span>')}
+            ${layer('vehicle', '순찰차', '<span class="lg-mk mk-car"></span>')}
+            ${layer('cctv', 'CCTV', '<span class="lg-mk mk-cctv"></span>')}
+            ${layer('danger', '위험 위치', '<span class="lg-mk mk-danger"></span>')}
+            ${layer('zone', '구역', '<span class="lg-mk mk-zone-c"></span>')}
+            ${layer('path', '이동 경로', '<span class="mapx-path-sw"></span>')}
+            ${layer('rally', '집결지', '<span class="lg-mk mk-rally"></span>', '집결 위치')}
+          </ul>
+        </div>
+        <div class="mapx-group mapx-zones">
+          <div class="mapx-k">구역 현황</div>
+          ${inc.zones.length ? inc.zones.map(z => `<div class="mapx-zone"><span class="lg-mk ${zoneSw(z.kind)}"></span><span class="mapx-zk">${esc(z.kind)}</span><span>${esc(z.name)}</span></div>`).join('')
+            : '<div class="mapx-zone dim">지정된 구역 없음</div>'}
+          <div class="mapx-legend-z">
+            <span><span class="lg-mk mk-zone-k"></span>확인 가능 영역</span>
+            <span><span class="lg-mk mk-zone-u"></span>미확인 영역</span>
+            <span><span class="lg-mk mk-zone-c"></span>통제 구역</span>
+          </div>
+        </div>
+        <div class="mapx-group mapx-tools">
+          <button class="mapx-tool ${u.compose.picking ? 'is-on' : ''}" type="button" data-act="map-pick"
+            title="지도를 눌러 현장 전송용 위치를 지정합니다">${icon('ic-pin', 'ic-sm')}<span>위치 지정</span></button>
+          <div class="mapx-sent">전송 표식 ${S.txs.filter(t => t.inc === inc.id && t.point).length}개</div>
+        </div>
+      </aside>
       <div class="map-stage ${u.compose.picking ? 'is-picking' : ''}" id="mapStage">
         ${mapSVG()}
         ${u.compose.picking ? '<div class="map-pickhint">위치 지정 모드: 지도를 클릭하면 현장 정보 전송 앱에 좌표가 입력됩니다</div>' : ''}
-        <div class="map-legend">
-          <h4>범례 (아이콘 + 문자 병기)</h4>
-          <ul>
-            <li><span class="lg-mk mk-incident"></span>사건 위치</li>
-            <li><span class="lg-mk mk-officer"></span>경찰관</li>
-            <li><span class="lg-mk mk-car"></span>순찰차</li>
-            <li><span class="lg-mk mk-cctv"></span>CCTV</li>
-            <li><span class="lg-mk mk-danger"></span>위험 위치</li>
-            <li><span class="lg-mk mk-rally"></span>집결 위치</li>
-            <li><span class="lg-mk mk-zone-k"></span>확인 가능 영역</li>
-            <li><span class="lg-mk mk-zone-u"></span>미확인 영역</li>
-            <li><span class="lg-mk mk-zone-c"></span>통제 구역</li>
-          </ul>
-        </div>
       </div>
-      <aside class="map-side detail">
-        <div class="sect"><div class="sect-h">선택 사건</div><div class="sect-b">
-          <div style="font-weight:700">${esc(inc.id)} ${esc(inc.type)}</div>
-          <div class="dim" style="font-size:11.5px;margin-top:2px">${esc(inc.place)}</div>
-          <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">
-            ${badge(inc.priority, prioCls(inc.priority), prioShape(inc.priority))}
-            ${badge('위험도 ' + riskLabel(inc.risk), riskCls(inc.risk))}</div>
-        </div></div>
-        <div class="sect"><div class="sect-h">구역 현황</div><div class="sect-b" style="display:grid;gap:5px">
-          ${inc.zones.length ? inc.zones.map(z => `<div>
-            ${badge(z.kind, z.kind === '확인' ? 'badge-ok' : z.kind === '미확인' ? 'badge-idle' : 'badge-crit', z.kind === '통제' ? 'badge-tri' : '')}
-            <div style="font-size:11.5px;margin-top:2px">${esc(z.name)}</div></div>`).join('')
-            : '<span class="dim">지정된 구역 없음</span>'}
-        </div></div>
-        <div class="sect"><div class="sect-h">표시 개체</div><div class="sect-b">
-          <dl class="kv">
-            <dt>경찰관</dt><dd>${incOfficers(inc.id).length}명</dd>
-            <dt>순찰차</dt><dd>${incVehicles(inc.id).length}대</dd>
-            <dt>CCTV</dt><dd>${incCCTVs(inc.id).length}개소</dd>
-            <dt>위험 위치</dt><dd>${inc.dangers.length}개소</dd>
-            <dt>전송 표식</dt><dd>${S.txs.filter(t => t.inc === inc.id && t.point).length}개</dd>
-          </dl></div></div>
-      </aside>
     </div>`;
   },
   after(body) {
@@ -1594,7 +1596,7 @@ defApp({
       ${list.map(o => `<div class="person ${o.sos ? 'is-sos' : ''}">
         <div class="person-h">
           <span class="person-c">${esc(o.call)}</span><span class="person-n">${esc(o.name)}</span>
-          ${badge(o.state, o.state.includes('대응') ? 'badge-crit' : o.state.includes('이동') ? 'badge-info' : 'badge-idle')}
+          ${badge(o.state, o.state.includes('대응') || o.state.includes('이동') ? 'badge-info' : 'badge-idle')}
           <span class="spacer"></span>
           ${o.sos ? badge('긴급 지원 요청', 'badge-crit', 'badge-tri') : ''}
           ${arBadge(o.ar)}
@@ -1763,7 +1765,7 @@ defApp({
 
     const alertsHTML = `<div class="pane" style="display:grid;gap:6px">
       <div class="dim">긴급 알림을 닫아도 아래 기록에는 남습니다. 총 ${S.alerts.length}건.</div>
-      ${S.alerts.length ? S.alerts.map(a => `<div class="card" style="${a.level === '긴급' ? 'border-color:#6d3e40' : a.level === '중요' ? 'border-color:#63532d' : ''}">
+      ${S.alerts.length ? S.alerts.map(a => `<div class="card" style="${a.level === '긴급' ? 'border-color:#f5a7a3' : a.level === '중요' ? 'border-color:#fdf7e8' : ''}">
         <div class="card-h">${badge(a.level, a.level === '긴급' ? 'badge-crit' : a.level === '중요' ? 'badge-warn' : 'badge-info', a.level === '긴급' ? 'badge-tri' : a.level === '중요' ? 'badge-sq' : '')}
           <span class="card-t">${esc(a.title)}</span><span class="spacer"></span><span class="dim mono">${esc(a.t)}</span></div>
         <div class="card-row">${esc(a.desc)}</div>
@@ -1789,25 +1791,25 @@ defApp({
       <div class="chat-log" id="chatLog">
         ${list.length ? list.map(msgHTML).join('') : '<div class="empty-note">이 채널의 메시지가 없습니다.</div>'}
       </div>
-      <div class="chat-compose">
-        <div class="cc-row">
-          <label class="field"><span class="dim">대상</span>
+      <div class="cmx">
+        <div class="cmx-row">
+          <label class="cmx-field"><span>대상</span>
             <select data-model="chatTo" aria-label="전달 대상 선택">
               ${['현장 경찰', '후속 인력', '전체 현장 인력', ...incOfficers(inc.id).map(o => o.call)].map(v =>
                 `<option ${u.chatTo === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
             </select></label>
-          <label class="field"><span class="dim">종류</span>
+          <label class="cmx-field"><span>종류</span>
             <select data-model="chatKind" aria-label="메시지 종류">
               ${['일반', '중요', '긴급'].map(v => `<option ${u.chatKind === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
             </select></label>
-          <button class="btn btn-sm ${u.chatAtt === '위치' ? 'btn-on' : ''}" type="button" data-act="chat-att" data-v="위치" title="현재 사건 위치 첨부">${icon('ic-pin', 'ic-sm')}<span class="btn-t">위치</span></button>
-          <button class="btn btn-sm ${u.chatAtt === '이미지' ? 'btn-on' : ''}" type="button" data-act="chat-att" data-v="이미지" title="가상 이미지 첨부 모형">${icon('ic-capture', 'ic-sm')}<span class="btn-t">이미지</span></button>
+          <span class="spacer"></span>
+          <span class="cmx-att">${u.chatAtt ? '첨부: ' + esc(u.chatAtt) : '첨부 없음'}</span>
+          <button class="btn btn-sm ${u.chatAtt === '위치' ? 'btn-on' : ''}" type="button" data-act="chat-att" data-v="위치" title="현재 사건 위치 첨부" aria-label="위치 첨부">${icon('ic-pin', 'ic-sm')}<span class="btn-t">위치</span></button>
+          <button class="btn btn-sm ${u.chatAtt === '이미지' ? 'btn-on' : ''}" type="button" data-act="chat-att" data-v="이미지" title="가상 이미지 첨부 모형" aria-label="이미지 첨부">${icon('ic-capture', 'ic-sm')}<span class="btn-t">이미지</span></button>
         </div>
-        <textarea class="textarea" rows="2" placeholder="전달할 내용을 입력하십시오. 긴급 종류로 보내면 모든 앱 위에 알림이 표시됩니다."
-          data-model="chatText" aria-label="메시지 입력">${esc(u.chatText)}</textarea>
-        <div class="cc-row">
-          <span class="dim">${u.chatAtt ? '첨부: ' + esc(u.chatAtt) : '첨부 없음'}</span>
-          <span class="spacer" style="flex:1"></span>
+        <div class="cmx-row cmx-input">
+          <textarea class="textarea" rows="1" placeholder="전달할 내용을 입력하십시오. 긴급 종류로 보내면 모든 앱 위에 알림이 표시됩니다."
+            data-model="chatText" aria-label="메시지 입력">${esc(u.chatText)}</textarea>
           <button class="btn btn-sm ${u.chatKind === '긴급' ? 'btn-crit' : 'btn-primary'}" type="button" data-act="chat-send">
             ${icon('ic-send', 'ic-sm')}${u.chatKind === '긴급' ? '긴급 알림 전송' : '메시지 전송'}</button>
         </div>
@@ -1867,46 +1869,51 @@ defApp({
     const inc = curInc();
     const pool = (S.ui.arAll ? OFFICERS : incOfficers(inc.id)).filter(o => o.ar !== '미연결');
     const sel = pool.find(o => o.id === S.ui.arSel) || pool[0];
+    const caps = S.captures.filter(c => c.inc === inc.id && c.from.startsWith('AR'));
     return `
-    <div class="toolbar">
-      <span class="badge badge-info badge-no">데이터 흐름: 현장 경찰 AR 글래스 → 지휘통제실</span>
-      <span class="spacer"></span>
-      <button class="btn btn-sm ${!S.ui.arAll ? 'btn-on' : ''}" type="button" data-act="ar-scope" data-v="0">현재 사건</button>
-      <button class="btn btn-sm ${S.ui.arAll ? 'btn-on' : ''}" type="button" data-act="ar-scope" data-v="1">전체</button>
-    </div>
-    ${sel ? `<div class="viewer">
-      ${screenHTML({ id: sel.call, title: sel.name, place: `X ${Math.round(sel.x)} · Y ${Math.round(sel.y)} (가상 좌표)`,
-        at: sel.comm + ':' + pad2(rint(10, 59)), rec: sel.ar === '연결', lost: sel.ar === '두절', scene: 'alley' })}
-      <div class="viewer-meta">
-        <strong>촬영자 ${esc(sel.call)} · ${esc(sel.name)}</strong>
-        ${arBadge(sel.ar)}
-        ${badge(sel.ar === '두절' ? '녹화 중단' : '녹화 중', sel.ar === '두절' ? 'badge-crit' : 'badge-ok', sel.ar === '두절' ? 'badge-tri' : '')}
-        ${battHTML(sel.batt)}
-        <span class="dim mono detail">촬영 시각 ${esc(sel.comm)}</span>
+    <div class="arx">
+      <div class="arx-main">
+        ${sel ? `
+        ${screenHTML({ id: sel.call, title: sel.name, place: `X ${Math.round(sel.x)} · Y ${Math.round(sel.y)} (가상 좌표)`,
+          at: sel.comm + ':' + pad2(rint(10, 59)), rec: sel.ar === '연결', lost: sel.ar === '두절', scene: 'alley' })}
+        <div class="arx-bar">
+          <span class="arx-who">촬영자 ${esc(sel.call)} · ${esc(sel.name)}</span>
+          <span class="arx-st">AR ${esc(sel.ar)}</span>
+          <span class="arx-st ${sel.ar === '두절' ? 'is-crit' : ''}">${sel.ar === '두절' ? '녹화 중단' : '녹화 중'}</span>
+          ${battHTML(sel.batt)}
+          <span class="arx-st detail">촬영 시각 ${esc(sel.comm)}</span>
+          <span class="arx-acts">
+            <button class="btn btn-sm" type="button" data-act="ar-capture" data-id="${sel.id}">${icon('ic-capture', 'ic-sm')}<span class="btn-t">중요 장면 캡처</span></button>
+            <button class="btn btn-sm" type="button" data-act="goto-officer" data-id="${sel.id}">지도 위치 연결</button>
+            <button class="btn btn-sm btn-warn" type="button" data-act="ar-tx" data-id="${sel.id}">현장 전송 후보로 추가</button>
+            <button class="btn btn-sm" type="button" data-act="msg-to-officer" data-id="${sel.id}">해당 경찰관에 메시지</button>
+          </span>
+        </div>` : '<div class="empty-note arx-empty">현재 사건에 AR 글래스 연결 인원이 없습니다.</div>'}
       </div>
-      <div class="card-acts">
-        <button class="btn btn-sm" type="button" data-act="ar-capture" data-id="${sel.id}">${icon('ic-capture', 'ic-sm')}<span class="btn-t">중요 장면 캡처</span></button>
-        <button class="btn btn-sm" type="button" data-act="goto-officer" data-id="${sel.id}">지도 위치 연결</button>
-        <button class="btn btn-sm btn-warn" type="button" data-act="ar-tx" data-id="${sel.id}">현장 전송 후보로 추가</button>
-        <button class="btn btn-sm" type="button" data-act="msg-to-officer" data-id="${sel.id}">해당 경찰관에 메시지</button>
-      </div>
-    </div>` : '<div class="empty-note">현재 사건에 AR 글래스 연결 인원이 없습니다.</div>'}
-
-    <div class="sect"><div class="sect-h">경찰관별 영상 (${pool.length}회선)</div>
-      <div class="thumbs">
-        ${pool.map(o => `<button class="thumb ${sel && o.id === sel.id ? 'is-sel' : ''}" type="button" data-act="ar-sel" data-id="${o.id}"
-            title="${esc(o.call)} ${esc(o.name)} 영상 확대">
-          ${screenHTML({ id: o.call, title: '', place: '', at: o.comm, rec: o.ar === '연결', lost: o.ar === '두절', scene: 'street' })}
-          <div class="thumb-c"><div class="thumb-t">${esc(o.call)} ${esc(o.name)}</div>
-            <div class="thumb-s">${arBadge(o.ar)}<span class="mono">${esc(o.comm)}</span></div></div>
-        </button>`).join('') || '<div class="empty-note">연결된 회선 없음</div>'}
-      </div></div>
-
-    <div class="sect"><div class="sect-h">AR 캡처 기록</div><div class="sect-b" style="display:grid;gap:5px">
-      ${S.captures.filter(c => c.inc === inc.id && c.from.startsWith('AR')).map(c => `<div class="card-row">
-        ${badge(c.from, 'badge-info')}<span>${esc(c.label)}</span><span class="dim mono">${esc(c.t)}</span></div>`).join('')
-        || '<span class="dim">캡처 기록 없음</span>'}
-    </div></div>`;
+      <aside class="arx-side" aria-label="경찰관별 영상">
+        <div class="arx-side-h">
+          <span class="arx-side-t">경찰관별 영상 ${pool.length}회선</span>
+          <span class="arx-scope">
+            <button class="btn btn-sm ${!S.ui.arAll ? 'btn-on' : ''}" type="button" data-act="ar-scope" data-v="0">현재 사건</button>
+            <button class="btn btn-sm ${S.ui.arAll ? 'btn-on' : ''}" type="button" data-act="ar-scope" data-v="1">전체</button>
+          </span>
+        </div>
+        <div class="arx-flow">데이터 흐름: 현장 경찰 AR 글래스 → 지휘통제실</div>
+        <div class="arx-thumbs">
+          ${pool.map(o => `<button class="thumb ${sel && o.id === sel.id ? 'is-sel' : ''}" type="button" data-act="ar-sel" data-id="${o.id}"
+              title="${esc(o.call)} ${esc(o.name)} 영상 확대">
+            ${screenHTML({ id: o.call, title: '', place: '', at: o.comm, rec: o.ar === '연결', lost: o.ar === '두절', scene: 'street' })}
+            <div class="thumb-c"><div class="thumb-t">${esc(o.call)} ${esc(o.name)}</div>
+              <div class="thumb-s">AR ${esc(o.ar)} · <span class="mono">${esc(o.comm)}</span></div></div>
+          </button>`).join('') || '<div class="empty-note">연결된 회선 없음</div>'}
+        </div>
+        <div class="arx-caps">
+          <div class="arx-k">AR 캡처 기록</div>
+          ${caps.map(c => `<div class="arx-cap"><span>${esc(c.from)}</span> ${esc(c.label)} <span class="mono">${esc(c.t)}</span></div>`).join('')
+            || '<div class="arx-cap dim">캡처 기록 없음</div>'}
+        </div>
+      </aside>
+    </div>`;
   }
 });
 
@@ -2368,87 +2375,7 @@ document.addEventListener('focusout', e => {
   if (body && body.dataset.dirty === '1') setTimeout(() => render(body.dataset.body), 0);
 });
 
-/* ===================== [8] 시뮬레이션 ===================== */
-let simTimer = null;
-function setSim(on) {
-  S.sim = on;
-  const b = $('#btnSim');
-  b.setAttribute('aria-pressed', String(on));
-  b.classList.toggle('is-live', on);
-  b.querySelector('.sb-btn-t').textContent = on ? '시뮬레이션 동작 중' : '시뮬레이션 시작';
-  b.querySelector('use').setAttribute('href', on ? '#ic-pause' : '#ic-play');
-  clearInterval(simTimer);
-  if (on) { simTimer = setInterval(simTick, CFG.TICK); toast('ok', '시뮬레이션 시작', '가상 데이터가 주기적으로 변화합니다.'); }
-  else toast('info', '시뮬레이션 정지', '가상 데이터 변화를 멈췄습니다.');
-}
-function simTick() {
-  // 1) 경찰관 미세 이동 (항상)
-  OFFICERS.forEach(o => {
-    o.x = clamp(o.x + rnd(-6, 6), 20, CFG.MAP_W - 20);
-    o.y = clamp(o.y + rnd(-5, 5), 20, CFG.MAP_H - 20);
-    o.trail.push([Math.round(o.x), Math.round(o.y)]);
-    if (o.trail.length > 14) o.trail.shift();
-    if (Math.random() < .25) o.batt = clamp(o.batt - 1, 3, 100);
-  });
-  CCTVS.forEach(c => { if (Math.random() < .5) c.at = nowHM(); });
-
-  // 2) 이벤트 1건 발생
-  const roll = Math.random();
-  if (roll < .18) {                                   // 위험도 변동
-    const i = pick(activeIncidents());
-    const before = i.risk;
-    i.risk = clamp(Math.round(i.risk + rnd(-9, 11)), 8, 97);
-    i.updatedAt = nowHM();
-    if (before < 70 && i.risk >= 70) pushAlert('중요', '위험도 상승', `${i.id} ${i.type} 위험도가 ${riskLabel(i.risk)} 단계로 상승했습니다.`, { inc: i.id, app: 'overview' });
-  } else if (roll < .38) {                            // 신규 메시지
-    const o = pick(OFFICERS);
-    o.comm = nowHM();
-    addMsg({ inc: o.inc, from: o.call, to: '지휘통제실', text: pick([
-      '주변 인원 통제 중입니다.', '해당 구역 특이사항 없습니다.', '추가 확인이 필요합니다.',
-      '진입로 확보했습니다.', '목격자 진술 확보 중입니다.', '차량 통행 정리했습니다.']), read: false });
-    if (o.inc === S.sel) pushAlert('일반', '현장 보고 수신', `${o.call} 보고가 도착했습니다.`, { inc: o.inc, app: 'messages' });
-  } else if (roll < .48) {                            // AR 연결 상태 변화
-    const o = pick(OFFICERS.filter(x => x.ar !== '미연결'));
-    if (o) {
-      const before = o.ar;
-      o.ar = pick(['연결', '연결', '불안정', '두절']);
-      if (o.ar === '두절' && before !== '두절') pushAlert('긴급', '통신 두절', `${o.call} AR 글래스 통신이 두절되었습니다. 즉시 확인이 필요합니다.`, { inc: o.inc, app: 'field' });
-      else if (o.ar === '불안정' && before === '연결') pushAlert('중요', '통신 불안정', `${o.call} 영상 회선이 불안정합니다.`, { inc: o.inc, app: 'ar' });
-    }
-  } else if (roll < .55) {                            // 긴급 지원 요청
-    const cand = OFFICERS.filter(o => !o.sos);
-    const o = pick(cand);
-    if (o) {
-      o.sos = true; o.state = '현장 대응 중'; o.comm = nowHM();
-      o.health = { label: '확인 필요', source: '센서 감지' };
-      pushAlert('긴급', '경찰관 긴급 지원 요청', `${o.call} ${o.name} 이(가) 긴급 지원을 요청했습니다. (${o.team})`, { inc: o.inc, app: 'field' });
-      addMsg({ inc: o.inc, from: o.call, to: '지휘통제실', kind: '긴급', text: '긴급 지원 요청합니다. 단독 대응 곤란.', read: false });
-      setTimeout(() => { o.sos = false; if (winOf('field')) render('field'); if (winOf('overview')) render('overview'); }, 26000);
-    }
-  } else if (roll < .62) {                            // 새로운 위험 발견
-    const i = pick(activeIncidents());
-    const d = { x: clamp(i.x + rnd(-40, 40), 20, 980), y: clamp(i.y + rnd(-40, 40), 20, 660), label: pick(['추가 위험물 발견', '2차 위험 구간', '통행 위험 구간']), note: '현장 경찰 확인 · 자동 갱신(가상)' };
-    i.dangers.push(d); i.updatedAt = nowHM();
-    pushAlert('긴급', '새로운 위험 발견', `${i.id} ${d.label} 이(가) 지도에 추가되었습니다.`, { inc: i.id, app: 'map' });
-  } else if (roll < .70) {                            // 처리 단계 진행
-    const i = pick(activeIncidents().filter(x => S.stages[x.id].at < 6));
-    if (i) {
-      const st = S.stages[i.id]; st.at++;
-      st.log[st.at] = `${nowHM()} · ${STAGE_NAMES[st.at]} · ${i.team}`;
-      i.updatedAt = nowHM();
-      pushAlert('일반', '처리 단계 갱신', `${i.id} 단계가 '${STAGE_NAMES[st.at]}'(으)로 변경되었습니다.`, { inc: i.id, app: 'progress' });
-    }
-  } else if (roll < .76) {                            // 새로운 인력 투입
-    const i = pick(activeIncidents());
-    pushAlert('중요', '신규 인력 투입', `${i.id} 현장에 후속 1개조가 추가 투입됩니다.`, { inc: i.id, app: 'field' });
-  } else if (roll < .82) {                            // 교통 상태 변화
-    const c = pick(CCTVS);
-    c.traffic = pick(TRAFFIC_ORDER); c.at = nowHM();
-  }
-  renderAll(); paintTaskbar();
-}
-
-/* ===================== [9] 키보드 / 초기화 ===================== */
+/* ===================== [8] 키보드 / 초기화 ===================== */
 function keyHelp() {
   const rows = [
     ['Alt + 1 ~ 9', '앱 런처 1~9번 앱 열기/닫기'],
@@ -2459,7 +2386,6 @@ function keyHelp() {
     ['Shift + 방향키', '선택한 창 크기 조절'],
     ['Ctrl + Alt + 2 / 4', '전체 창 2분할 / 4분할 정리'],
     ['Alt + R', '창 위치 초기화'],
-    ['Alt + S', '시뮬레이션 시작/정지'],
     ['분할 경계 드래그', '맞닿은 창들의 분할 비율 조절 (경계 선택 후 방향키도 가능)'],
     ['런처 경계 드래그', '왼쪽 앱 런처 너비 조절 (더블클릭 시 기본값)'],
     ['Esc', '팝업·긴급 알림 닫기'],
@@ -2483,7 +2409,6 @@ document.addEventListener('keydown', e => {
     const map = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6, '8': 7, '9': 8, '0': 9, '-': 10 };
     if (map[e.key] !== undefined) { e.preventDefault(); const a = APPS[map[e.key]]; if (a) toggleApp(a.id); return; }
     if (e.key.toLowerCase() === 'r') { e.preventDefault(); resetLayout(); return; }
-    if (e.key.toLowerCase() === 's') { e.preventDefault(); setSim(!S.sim); return; }
     if (S.focus) {
       if (e.key === 'ArrowLeft') { e.preventDefault(); snapWin(S.focus, 'left'); return; }
       if (e.key === 'ArrowRight') { e.preventDefault(); snapWin(S.focus, 'right'); return; }
@@ -2534,7 +2459,6 @@ function init() {
   new ResizeObserver(() => applyLayout()).observe($('#desktop'));
   renderWindows(); renderAll(); paintUrgent(false);
 
-  $('#btnSim').addEventListener('click', () => setSim(!S.sim));
   $('#btnKeys').addEventListener('click', keyHelp);
   $('#btnSound').addEventListener('click', () => {
     S.sound = !S.sound;

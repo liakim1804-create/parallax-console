@@ -46,6 +46,8 @@
     <symbol id="ic-check" viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19.5 7"/></symbol>
     <symbol id="ic-radio" viewBox="0 0 24 24"><path d="M7.5 4.5a10 10 0 0 0 0 15M16.5 4.5a10 10 0 0 1 0 15"/><circle cx="12" cy="12" r="2.4"/></symbol>
     <symbol id="ic-pushpin" viewBox="0 0 24 24"><path class="fillnow" d="M9 3h6l-.9 6.2L17 12v2H7v-2l2.9-2.8z"/><path d="M12 14v7"/></symbol>
+    <symbol id="ic-dash" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+    <symbol id="ic-expand" viewBox="0 0 24 24"><path class="fillnow" d="M5 5h10L5 15z"/><path class="fillnow" d="M19 19H9l10-10z"/></symbol>
     <symbol id="ic-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 20c.6-3.6 3.4-5.6 7-5.6s6.4 2 7 5.6"/></symbol>
   </defs>
 </svg>
@@ -59,40 +61,24 @@
   </div>
 
   <div class="sb-metrics" id="sbMetrics">
-    <div class="sb-item" id="sbClock">
-      <span class="sb-k">현재 시각</span>
-      <span class="sb-v" id="sbClockVal">--:--:--</span>
+    <div class="sb-ctx">
+      <span class="sb-time" id="sbClock" title="현재 시각"><span class="sr">현재 시각 </span><span id="sbClockVal">--:--:--</span></span>
+      <span class="sb-incident" title="선택 사건"><span class="sr">선택 사건 </span><span id="sbIncident">선택 없음</span></span>
+      <span class="sb-risk" id="sbRisk" title="사건 위험도"></span>
     </div>
-    <div class="sb-item sb-item-wide">
-      <span class="sb-k">선택 사건</span>
-      <span class="sb-v" id="sbIncident">선택 없음</span>
+    <div class="sb-global" aria-label="전체 운영 상태">
+    <div class="sb-ops">
+      <span class="sb-op">진행 중 사건 <b id="sbActive">0건</b></span>
+      <span class="sb-op">투입 인원 <b id="sbStaff">0명</b></span>
     </div>
-    <div class="sb-item">
-      <span class="sb-k">사건 위험도</span>
-      <span class="sb-v" id="sbRisk"><span class="badge">-</span></span>
+    <div class="sb-sys">
+      <span class="sb-comm" id="sbComm" title="통신 상태"></span>
+      <span class="sb-alert" id="sbAlertItem" title="긴급 알림"><span id="sbAlerts"></span></span>
     </div>
-    <div class="sb-item">
-      <span class="sb-k">진행 중 사건</span>
-      <span class="sb-v" id="sbActive">0건</span>
-    </div>
-    <div class="sb-item">
-      <span class="sb-k">투입 인원</span>
-      <span class="sb-v" id="sbStaff">0명</span>
-    </div>
-    <div class="sb-item">
-      <span class="sb-k">통신 상태</span>
-      <span class="sb-v" id="sbComm"><span class="badge">-</span></span>
-    </div>
-    <div class="sb-item" id="sbAlertItem">
-      <span class="sb-k">긴급 알림</span>
-      <span class="sb-v" id="sbAlerts"><span class="badge">0건</span></span>
     </div>
   </div>
 
   <div class="sb-actions">
-    <button class="sb-btn" id="btnSim" type="button" title="가상 데이터 시뮬레이션 시작/정지 (Alt+S)" aria-pressed="false">
-      <svg class="ic" aria-hidden="true"><use href="#ic-play"/></svg><span class="sb-btn-t">시뮬레이션 시작</span>
-    </button>
     <button class="sb-btn" id="btnSound" type="button" title="긴급 음성 알림 켜기/끄기" aria-pressed="true">
       <svg class="ic" aria-hidden="true"><use href="#ic-sound"/></svg><span class="sb-btn-t">알림음 켜짐</span>
     </button>
