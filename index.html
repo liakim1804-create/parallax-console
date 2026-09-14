@@ -48,6 +48,8 @@
     <symbol id="ic-pushpin" viewBox="0 0 24 24"><path class="fillnow" d="M9 3h6l-.9 6.2L17 12v2H7v-2l2.9-2.8z"/><path d="M12 14v7"/></symbol>
     <symbol id="ic-dash" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
     <symbol id="ic-expand" viewBox="0 0 24 24"><path class="fillnow" d="M5 5h10L5 15z"/><path class="fillnow" d="M19 19H9l10-10z"/></symbol>
+    <symbol id="ic-moon" viewBox="0 0 24 24"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z"/></symbol>
+    <symbol id="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
     <symbol id="ic-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 20c.6-3.6 3.4-5.6 7-5.6s6.4 2 7 5.6"/></symbol>
   </defs>
 </svg>
@@ -79,6 +81,9 @@
   </div>
 
   <div class="sb-actions">
+    <button class="sb-btn" id="btnTheme" type="button" title="다크 모드로 전환 (Alt+D)" aria-pressed="false">
+      <svg class="ic" aria-hidden="true"><use href="#ic-moon"/></svg><span class="sb-btn-t">다크 모드</span>
+    </button>
     <button class="sb-btn" id="btnSound" type="button" title="긴급 음성 알림 켜기/끄기" aria-pressed="true">
       <svg class="ic" aria-hidden="true"><use href="#ic-sound"/></svg><span class="sb-btn-t">알림음 켜짐</span>
     </button>

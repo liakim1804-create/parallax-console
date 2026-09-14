@@ -303,6 +303,7 @@ const SEED_MSGS = [
 /* ===================== [3] 상태 / 저장 ===================== */
 const S = {
   sel: 'A-102',              // 선택된 사건 (모든 앱이 이 값으로 동기화)
+  theme: 'light',            // 화면 테마 (light | dark)
   sound: true,               // 긴급 알림음
   wins: [],                  // [{id,fx,fy,fw,fh,z,min,max}]
   focus: null,
@@ -335,7 +336,7 @@ const activeIncidents = () => INCIDENTS.filter(i => i.status !== '종료');
 function save() {
   try {
     localStorage.setItem(CFG.KEY, JSON.stringify({
-      sel: S.sel, sound: S.sound, focus: S.focus, zTop: S.zTop, lcW: S.lcW,
+      sel: S.sel, theme: S.theme, sound: S.sound, focus: S.focus, zTop: S.zTop, lcW: S.lcW,
       wins: S.wins.map(w => ({ id: w.id, fx: w.fx, fy: w.fy, fw: w.fw, fh: w.fh, z: w.z, min: w.min, max: w.max }))
     }));
   } catch (e) { /* 저장 불가 환경 무시 */ }
@@ -355,6 +356,7 @@ function load() {
     if (!d || !Array.isArray(d.wins)) return false;
     S.sel = INCIDENTS.some(i => i.id === d.sel) ? d.sel : S.sel;
     S.sound = d.sound !== false;
+    S.theme = d.theme === 'dark' ? 'dark' : 'light';
     S.zTop = d.zTop || 10;
     if (Number.isFinite(d.lcW)) S.lcW = clamp(d.lcW, LC_MIN, LC_MAX);
     S.wins = migrateWins(d.wins);
@@ -2375,7 +2377,23 @@ document.addEventListener('focusout', e => {
   if (body && body.dataset.dirty === '1') setTimeout(() => render(body.dataset.body), 0);
 });
 
-/* ===================== [8] 키보드 / 초기화 ===================== */
+/* ===================== [8] 화면 테마 (라이트 / 다크) ===================== */
+function applyTheme(theme, announce) {
+  S.theme = theme === 'dark' ? 'dark' : 'light';
+  const dark = S.theme === 'dark';
+  document.documentElement.dataset.theme = S.theme;
+  const btn = $('#btnTheme');
+  if (btn) {
+    btn.setAttribute('aria-pressed', String(dark));
+    btn.querySelector('.sb-btn-t').textContent = dark ? '라이트 모드' : '다크 모드';
+    btn.querySelector('use').setAttribute('href', dark ? '#ic-sun' : '#ic-moon');
+    btn.title = (dark ? '라이트 모드로 전환' : '다크 모드로 전환') + ' (Alt+D)';
+  }
+  save();
+  if (announce) toast('info', dark ? '다크 모드' : '라이트 모드', dark ? '어두운 화면으로 전환했습니다.' : '밝은 화면으로 전환했습니다.');
+}
+
+/* ===================== [9] 키보드 / 초기화 ===================== */
 function keyHelp() {
   const rows = [
     ['Alt + 1 ~ 9', '앱 런처 1~9번 앱 열기/닫기'],
@@ -2386,6 +2404,7 @@ function keyHelp() {
     ['Shift + 방향키', '선택한 창 크기 조절'],
     ['Ctrl + Alt + 2 / 4', '전체 창 2분할 / 4분할 정리'],
     ['Alt + R', '창 위치 초기화'],
+    ['Alt + D', '다크 모드 / 라이트 모드 전환'],
     ['분할 경계 드래그', '맞닿은 창들의 분할 비율 조절 (경계 선택 후 방향키도 가능)'],
     ['런처 경계 드래그', '왼쪽 앱 런처 너비 조절 (더블클릭 시 기본값)'],
     ['Esc', '팝업·긴급 알림 닫기'],
@@ -2409,6 +2428,7 @@ document.addEventListener('keydown', e => {
     const map = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6, '8': 7, '9': 8, '0': 9, '-': 10 };
     if (map[e.key] !== undefined) { e.preventDefault(); const a = APPS[map[e.key]]; if (a) toggleApp(a.id); return; }
     if (e.key.toLowerCase() === 'r') { e.preventDefault(); resetLayout(); return; }
+    if (e.key.toLowerCase() === 'd') { e.preventDefault(); applyTheme(S.theme === 'dark' ? 'light' : 'dark', true); return; }
     if (S.focus) {
       if (e.key === 'ArrowLeft') { e.preventDefault(); snapWin(S.focus, 'left'); return; }
       if (e.key === 'ArrowRight') { e.preventDefault(); snapWin(S.focus, 'right'); return; }
@@ -2459,6 +2479,8 @@ function init() {
   new ResizeObserver(() => applyLayout()).observe($('#desktop'));
   renderWindows(); renderAll(); paintUrgent(false);
 
+  $('#btnTheme').addEventListener('click', () => applyTheme(S.theme === 'dark' ? 'light' : 'dark', true));
+  applyTheme(S.theme);
   $('#btnKeys').addEventListener('click', keyHelp);
   $('#btnSound').addEventListener('click', () => {
     S.sound = !S.sound;
