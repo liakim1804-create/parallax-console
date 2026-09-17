@@ -10,8 +10,7 @@
 
 /* ===================== [1] 유틸 ===================== */
 const CFG = {
-  KEY: 'parallax.console.v2',   // 구성 재설계로 기본 배치가 바뀌어 새 키 사용
-  MAP_W: 1000, MAP_H: 680
+  KEY: 'parallax.console.v2'    // 구성 재설계로 기본 배치가 바뀌어 새 키 사용
 };
 
 const $  = (s, r = document) => r.querySelector(s);
@@ -318,11 +317,9 @@ const S = {
   handover: JSON.parse(JSON.stringify(HANDOVER)),
   ui: {
     listQ: '', listPrio: '전체', listStatus: '전체',
-    mapF: { incident: true, officer: true, vehicle: true, cctv: true, danger: true, zone: true, path: true, rally: true },
-    mapPop: null,
     cctvSel: 'C-01', arSel: 'O-11',
     chatTab: '전체', chatTo: '현장 경찰', chatKind: '일반', chatText: '', chatAtt: null,
-    compose: { step: 1, items: [], point: null, note: '', targets: [], picking: false, editing: null },
+    compose: { step: 1, items: [], note: '', targets: [], editing: null },
     hoTarget: '후속 인력(대기조)'
   }
 };
@@ -823,22 +820,6 @@ function sizeClasses() {
     el.classList.toggle('w-mid', el.clientWidth < 660);
     el.classList.toggle('w-short', el.clientHeight < 300);
   });
-  fitMapView();
-}
-/** 지도 SVG를 창 비율에 맞춰 잘라 선택 사건 주변을 채워 보여준다 (여백 제거) */
-function fitMapView() {
-  const stage = document.getElementById('mapStage'); if (!stage) return;
-  const svg = stage.querySelector('svg'); if (!svg) return;
-  const w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return;
-  const ar = w / h;
-  let vw, vh;
-  if (ar >= CFG.MAP_W / CFG.MAP_H) { vw = CFG.MAP_W; vh = vw / ar; }
-  else { vh = CFG.MAP_H; vw = vh * ar; }
-  if (vw < 560) { vw = 560; vh = vw / ar; }      // 과도한 확대 방지
-  const inc = curInc();
-  const x = vw >= CFG.MAP_W ? (CFG.MAP_W - vw) / 2 : clamp(inc.x - vw / 2, 0, CFG.MAP_W - vw);
-  const y = vh >= CFG.MAP_H ? (CFG.MAP_H - vh) / 2 : clamp(inc.y - vh / 2, 0, CFG.MAP_H - vh);
-  svg.setAttribute('viewBox', `${x.toFixed(1)} ${y.toFixed(1)} ${vw.toFixed(1)} ${vh.toFixed(1)}`);
 }
 function paintCompactSwitch() {
   const host = $('#compactSwitch'); if (host.hidden) { host.innerHTML = ''; return; }
@@ -1169,7 +1150,6 @@ function selectIncident(id, why) {
   if (!INCIDENTS.some(i => i.id === id) || S.sel === id) { if (S.sel === id) return; }
   S.sel = id;
   const inc = curInc();
-  S.ui.mapPop = null;
   const c = incCCTVs(id)[0]; if (c) S.ui.cctvSel = c.id;
   const o = incOfficers(id).find(x => x.ar === '연결') || incOfficers(id)[0]; if (o) S.ui.arSel = o.id;
   S.ui.chatTab = '전체';
@@ -1329,8 +1309,7 @@ defApp({
     ${sos.length ? `<div class="sect"><div class="sect-h">${icon('ic-warning', 'ic-sm')} 긴급 지원 요청</div><div class="sect-b" style="display:grid;gap:6px">
       ${sos.map(o => `<div class="card">
         <div class="card-h"><span class="person-c">${esc(o.call)}</span><span class="card-t">${esc(o.name)}</span>
-          ${badge('긴급 지원', 'badge-crit', 'badge-tri')}<span class="spacer"></span>
-          <button class="btn btn-sm btn-crit" type="button" data-act="goto-officer" data-id="${o.id}">위치 확인</button></div>
+          ${badge('긴급 지원', 'badge-crit', 'badge-tri')}</div>
         <div class="card-row"><span>${esc(o.team)}</span><span class="dim">·</span><span>${esc(o.task)}</span>
           <span class="dim">·</span><span>사건 ${esc(o.inc)}</span></div></div>`).join('')}
     </div></div>` : ''}
@@ -1385,202 +1364,442 @@ defApp({
 });
 
 /* ---------- 3. 작전 지도 ---------- */
-const MK = {
-  incident: { cls: 'crit', label: '사건' }, officer: { cls: 'info', label: '경찰관' },
-  vehicle: { cls: 'info', label: '순찰차' }, cctv: { cls: 'cctv', label: 'CCTV' },
-  danger: { cls: 'warn', label: '위험' }, rally: { cls: 'ok', label: '집결' },
-  suspect: { cls: 'crit', label: '용의자' }, sent: { cls: 'warn', label: '전송' }
+/* ===================== 작전 지도 (MapLibre GL) =====================
+   지도 인스턴스는 한 번만 만들어 보관한다. 앱은 창 내용을 innerHTML 로 자주 다시 그리므로
+   매번 같은 지도 요소를 새 자리에 다시 끼워 넣어 회전·기울기·확대 상태를 유지한다. */
+const MAP_MODES = [
+  { k: 'standard',  t: '기본', ic: 'ic-map' },
+  { k: 'satellite', t: '위성', ic: 'ic-globe' },   // 위성 사진 + 도로명·지명
+  { k: '3d',        t: '3D',   ic: 'ic-cube' }
+];
+const MAP_SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile';
+const MAP_LBL = 'https://basemaps.cartocdn.com/rastertiles/dark_only_labels';
+const MAPV = {
+  map: null, el: null, mode: 'standard', menu: false, me: null, busy: false,
+  side: true,                                                   // 사이드바 펼침 여부
+  q: '', results: [], hi: -1, status: 'idle', pin: null, abort: null, timer: 0,  // 장소 검색
+  layers: {}, marks: new Map(), cam: null                                        // 지도 레이어 표식 · CCTV 팝오버
 };
-function mk(kind, id, x, y, label, extra = '') {
-  const shape = {
-    incident: '<rect x="-7" y="-7" width="14" height="14" transform="rotate(45)" fill="#f5a7a333" stroke="#f5a7a3" stroke-width="2" class="mk-ring"/>',
-    officer: '<rect x="-8" y="-8" width="16" height="16" rx="4" fill="#111418" class="mk-ring"/><circle cy="-1.8" r="2.3" fill="#ffffff"/><path d="M-4 4.6a4 3.2 0 0 1 8 0z" fill="#ffffff"/>',
-    vehicle: '<rect x="-8" y="-8" width="16" height="16" rx="4" fill="#111418" class="mk-ring"/><rect x="-4.6" y="-2.6" width="9.2" height="5.2" rx="1.3" fill="#ffffff"/>',
-    cctv: '<rect x="-8" y="-8" width="16" height="16" rx="4" fill="#111418" class="mk-ring"/><rect x="-4.8" y="-2.8" width="6.4" height="5.2" rx="1" fill="#ffffff"/><path d="M1.8 -1.4L5 -3.2V2.6L1.8 1z" fill="#ffffff"/>',
-    danger: '<path d="M0 -9 L9 7 L-9 7 Z" fill="#fae29e33" stroke="#fae29e" stroke-width="2" class="mk-ring"/><path d="M0 -3 v5" stroke="#fae29e" stroke-width="2"/><circle cy="4.4" r="1" fill="#fae29e"/>',
-    rally: '<rect x="-8" y="-8" width="16" height="16" rx="4" fill="#111418" class="mk-ring"/><path d="M-3 4.6v-9.2h6l-1.6 2.3 1.6 2.3h-6" fill="#ffffff"/>',
-    suspect: '<circle r="9" fill="none" stroke="#c21e14" stroke-width="2" stroke-dasharray="4 3" class="mk-ring"/><circle r="3" fill="#c21e14"/>',
-    sent: '<path d="M0 -8 L8 6 L0 2 L-8 6 Z" fill="#fae29e44" stroke="#fae29e" stroke-width="1.8" class="mk-ring"/>'
-  }[kind];
-  const color = { incident: '#d62116', officer: '#111418', vehicle: '#111418', cctv: '#111418', danger: '#4a515c', rally: '#111418', suspect: '#d62116', sent: '#4a515c' }[kind];
-  return `<g class="m-hit" data-mk="${kind}" data-id="${id}" transform="translate(${x},${y})" tabindex="0" role="button"
-      aria-label="${esc(MK[kind].label)} ${esc(label)}"><title>${esc(MK[kind].label)}: ${esc(label)}</title>
-      ${shape}${extra}
-      <text class="mk-label" x="12" y="4" fill="${color}">${esc(label)}</text></g>`;
-}
-function cityBase() {
-  const VX = [140, 340, 540, 740, 900], HY = [120, 280, 440, 580];
-  let s = `<rect x="0" y="0" width="1000" height="680" fill="#e9ece7"/>`;
-  const xs = [0, ...VX, 1000], ys = [0, ...HY, 680];
-  for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < ys.length - 1; j++) {
-    const x = xs[i] + 12, y = ys[j] + 12, w = xs[i + 1] - xs[i] - 24, h = ys[j + 1] - ys[j] - 24;
-    if (w > 8 && h > 8) s += `<rect class="m-block ${(i + j) % 2 ? 'm-block-2' : ''}" x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/>`;
-  }
-  s += `<rect class="m-park" x="592" y="300" width="164" height="130" rx="8"/>`;
-  s += `<ellipse class="m-water" cx="712" cy="404" rx="34" ry="20"/>`;
-  s += `<path class="m-water" d="M0 640 Q 160 600 260 660 T 520 668 L 520 680 L 0 680 Z"/>`;
-  VX.forEach(x => { s += `<line class="m-road ${x === 540 ? 'm-road-major' : ''}" x1="${x}" y1="0" x2="${x}" y2="680" stroke-width="${x === 540 ? 16 : 11}"/>`; });
-  HY.forEach(y => { s += `<line class="m-road ${y === 440 ? 'm-road-major' : ''}" x1="0" y1="${y}" x2="1000" y2="${y}" stroke-width="${y === 440 ? 16 : 11}"/>`; });
-  s += `<line class="m-roadmark" x1="0" y1="440" x2="1000" y2="440"/><line class="m-roadmark" x1="540" y1="0" x2="540" y2="680"/>`;
-  const lb = [[64, 100, '하늘동'], [636, 100, '새빛로'], [556, 470, '중앙대로'], [660, 296, '한들공원'],
-    [812, 470, '서강로'], [64, 500, '미르동'], [180, 664, '물결천'], [404, 268, '중앙시장'], [860, 108, '북단 교차로']];
-  lb.forEach(([x, y, t]) => { s += `<text class="m-label" x="${x}" y="${y}">${t}</text>`; });
-  return s;
-}
-function mapSVG() {
-  const inc = curInc(), f = S.ui.mapF;
-  let ov = '';
-  if (f.zone) inc.zones.forEach((z, i) => {
-    const c = z.kind === '확인' ? 'z-known' : z.kind === '미확인' ? 'z-unknown' : 'z-control';
-    ov += `<g class="m-hit" data-mk="zone" data-id="${i}"><title>${esc(z.kind)} 영역: ${esc(z.name)}</title>
-      <polygon class="${c}" points="${z.pts}"/></g>`;
-  });
-  if (f.path) incOfficers(inc.id).forEach(o => {
-    if (o.trail.length > 1) ov += `<polyline class="m-path" points="${o.trail.map(p => p.join(',')).join(' ')}"/>`;
-  });
-  if (f.incident) ov += mk('incident', inc.id, inc.x, inc.y, `${inc.id} ${inc.type}`);
-  if (f.incident && inc.suspect) ov += mk('suspect', 'suspect', inc.suspect.x, inc.suspect.y, inc.suspect.label);
-  if (f.rally && inc.rally) ov += mk('rally', 'rally', inc.rally.x, inc.rally.y, inc.rally.label);
-  if (f.danger) inc.dangers.forEach((d, i) => { ov += mk('danger', 'D' + i, d.x, d.y, d.label); });
-  if (f.cctv) incCCTVs(inc.id).forEach(c => { ov += mk('cctv', c.id, c.x, c.y, c.id); });
-  if (f.vehicle) incVehicles(inc.id).forEach(v => { ov += mk('vehicle', v.id, v.x, v.y, v.label); });
-  if (f.officer) incOfficers(inc.id).forEach(o => {
-    ov += mk('officer', o.id, o.x, o.y, o.call, o.sos ? '<circle r="13" fill="none" stroke="#f5a7a3" stroke-width="2" stroke-dasharray="3 3"/>' : '');
-  });
-  S.txs.filter(t => t.inc === inc.id && t.point).forEach(t => { ov += mk('sent', t.id, t.point.x, t.point.y, '전송: ' + t.kind); });
-  const cp = S.ui.compose.point;
-  if (cp) ov += `<g transform="translate(${cp.x},${cp.y})"><circle r="11" fill="none" stroke="#fae29e" stroke-width="2"/><path d="M-14 0 h28 M0 -14 v28" stroke="#fae29e" stroke-width="1.4"/><text class="mk-label" x="15" y="4" fill="#fae29e">전송 예정 위치</text></g>`;
+const mapIsDark = () => document.documentElement.dataset.theme === 'dark';
 
-  return `<svg class="map-svg" viewBox="0 0 ${CFG.MAP_W} ${CFG.MAP_H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="가상 도시 작전 지도">
-    <defs><pattern id="hatchUnknown" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-      <rect width="7" height="7" fill="#68728014"/><line x1="0" y1="0" x2="0" y2="7" stroke="#68728055" stroke-width="2"/></pattern></defs>
-    ${cityBase()}${ov}</svg>`;
+function mapStyleFor(mode) {
+  if (mode === 'standard') return `https://basemaps.cartocdn.com/gl/${mapIsDark() ? 'dark-matter' : 'voyager'}-gl-style/style.json`;
+  // 위성·3D: 위성 사진 위에 도로명·지명을 얹는다
+  return {
+    version: 8,
+    sources: {
+      sat: { type: 'raster', tiles: [`${MAP_SAT}/{z}/{y}/{x}`], tileSize: 256, maxzoom: 19 },
+      lbl: { type: 'raster', tiles: [`${MAP_LBL}/{z}/{x}/{y}.png`], tileSize: 256 }
+    },
+    layers: [{ id: 'sat', type: 'raster', source: 'sat' }, { id: 'lbl', type: 'raster', source: 'lbl' }]
+  };
 }
+/** 선택지 미리보기: 서울 중심부의 실제 타일 한 장 */
+function mapThumb(mode) {
+  if (mode === 'standard') return `url(https://basemaps.cartocdn.com/${mapIsDark() ? 'dark_all' : 'rastertiles/voyager'}/12/3492/1589.png)`;
+  return `url(${MAP_LBL}/12/3492/1589.png), url(${MAP_SAT}/12/1589/3492)`;
+}
+const COMPASS_SVG = (() => {
+  let t = '';
+  for (let i = 1; i < 24; i++) {            // 0번(북쪽) 자리는 빨간 삼각형
+    const a = i * 15 * Math.PI / 180, long = i % 6 === 0, r1 = long ? 15 : 16.8, r2 = 19.4;
+    const p = r => `${(22 + r * Math.sin(a)).toFixed(2)} ${(22 - r * Math.cos(a)).toFixed(2)}`;
+    t += `<path class="mc-tick${long ? ' is-long' : ''}" d="M${p(r1)}L${p(r2)}"/>`;
+  }
+  return `<svg viewBox="0 0 44 44" aria-hidden="true">${t}<path class="mc-north" d="M22 2.4 25.2 8.4h-6.4z"/></svg>`;
+})();
+
+function initMap() {
+  MAPV.map = new maplibregl.Map({
+    container: MAPV.el, style: mapStyleFor(MAPV.mode),
+    center: [126.978, 37.5665], zoom: 12, bearing: 0, pitch: 0, maxPitch: 70,
+    attributionControl: false
+  });
+  MAPV.map.on('rotate', syncCompass);
+  MAPV.map.on('moveend', paintMapLayers);   // 확대·축소가 끝나면 묶음을 다시 계산
+  new ResizeObserver(() => MAPV.map.resize()).observe(MAPV.el);
+  // 지도 종류 선택지는 바깥을 누르거나 Esc 로 닫는다
+  document.addEventListener('pointerdown', e => {
+    if (MAPV.menu && !e.target.closest('#win-map .mmenu, #win-map [data-act="map-menu"]')) setMapMenu(false);
+  });
+  document.addEventListener('keydown', e => { if (MAPV.menu && e.key === 'Escape') setMapMenu(false); });
+}
+function syncCompass() {
+  const dial = document.querySelector('#win-map .mc-dial');
+  if (dial && MAPV.map) dial.style.transform = `rotate(${-MAPV.map.getBearing()}deg)`;
+}
+function setMapMenu(open) {
+  MAPV.menu = open;
+  const ctl = document.querySelector('#win-map .mctl'); if (!ctl) return;
+  ctl.classList.toggle('is-menu', open);
+  const b = ctl.querySelector('[data-act="map-menu"]'); if (b) b.setAttribute('aria-expanded', String(open));
+}
+function setMapMode(k) {
+  if (!MAPV.map || !MAP_MODES.some(m => m.k === k)) return;
+  const was = MAPV.mode;
+  MAPV.mode = k; MAPV.menu = false;
+  if (was !== k) MAPV.map.setStyle(mapStyleFor(k));
+  if (k === '3d') MAPV.map.easeTo({ pitch: 60, bearing: MAPV.map.getBearing() || -20, duration: 1000 });
+  else if (was === '3d') MAPV.map.easeTo({ pitch: 0, duration: 700 });
+  render('map');
+}
+function syncMapTheme() {
+  if (!MAPV.map) return;
+  if (MAPV.mode === 'standard') MAPV.map.setStyle(mapStyleFor('standard'));
+  render('map');   // 선택지 미리보기도 테마에 맞춘다
+}
+function paintLocate() {
+  const b = document.querySelector('#win-map [data-act="map-locate"]'); if (!b) return;
+  b.classList.toggle('is-busy', MAPV.busy);
+  b.classList.toggle('is-active', !!MAPV.me);
+}
+function locateMe() {
+  if (!MAPV.map || MAPV.busy) return;
+  if (!navigator.geolocation) { toast('warn', '위치 사용 불가', '이 브라우저는 위치 정보를 지원하지 않습니다.'); return; }
+  MAPV.busy = true; paintLocate();
+  navigator.geolocation.getCurrentPosition(pos => {
+    MAPV.busy = false;
+    const ll = [pos.coords.longitude, pos.coords.latitude];
+    if (!MAPV.me) {
+      const el = document.createElement('div');
+      el.className = 'me'; el.setAttribute('aria-label', '현재 위치');
+      el.innerHTML = '<span class="me-halo"></span><span class="me-dot"></span>';
+      MAPV.me = new maplibregl.Marker({ element: el }).setLngLat(ll).addTo(MAPV.map);
+    } else MAPV.me.setLngLat(ll);
+    MAPV.map.flyTo({ center: ll, zoom: Math.max(MAPV.map.getZoom(), 15), duration: 1400 });
+    paintLocate();
+  }, err => {
+    MAPV.busy = false; paintLocate();
+    toast('warn', '내 위치를 가져오지 못했습니다',
+      err.code === 1 ? '위치 권한이 거부되었습니다. 주소창 왼쪽의 사이트 설정에서 위치를 허용해 주세요.'
+        : err.code === 3 ? '위치 확인 시간이 초과되었습니다. 다시 시도해 주세요.'
+          : '현재 위치를 확인할 수 없습니다.');
+  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
+}
+/* ---- 지도 레이어: 사건 위치 · 인력·차량 · CCTV ----
+   앱의 가상 좌표(1000×680)를 서울 도심(한강 북쪽) 범위에 고정 비율로 대응시킨다. 시연용 배치이며 실제 위치가 아니다.
+   버튼을 켠 레이어만 지도에 찍고, 다시 누르면 지운다. */
+const MAP_BOX = { lon0: 126.935, lon1: 127.065, lat0: 37.603, lat1: 37.537 };
+const toLngLat = (x, y) => [
+  MAP_BOX.lon0 + (x / 1000) * (MAP_BOX.lon1 - MAP_BOX.lon0),
+  MAP_BOX.lat0 + (y / 680) * (MAP_BOX.lat1 - MAP_BOX.lat0)
+];
+const MAP_TABS = [
+  { k: 'incident', t: '사건 위치', ic: 'ic-incident', cluster: true,
+    points: () => INCIDENTS.map(i => ({ id: i.id, ll: toLngLat(i.x, i.y), glyph: 'ic-exclaim', label: `${i.id} ${i.type}` })) },
+  { k: 'unit', t: '인력·차량', ic: 'ic-unit', cluster: true,
+    points: () => [
+      ...OFFICERS.map(o => ({ id: o.id, ll: toLngLat(o.x, o.y), glyph: 'ic-officer', label: `${o.call} ${o.name}` })),
+      ...VEHICLES.map(v => ({ id: v.id, ll: toLngLat(v.x, v.y), glyph: 'ic-car', label: v.label }))
+    ] },
+  { k: 'space', t: '공간 상태', ic: 'ic-space' },     // 버튼만 (기능은 추후 구성)
+  { k: 'cctv', t: 'CCTV', ic: 'ic-cctv',
+    points: () => CCTVS.map(c => ({ id: c.id, ll: toLngLat(c.x, c.y), glyph: 'ic-cctv', label: `${c.id} ${c.name}` })) },
+  { k: 'send', t: '전송·지시', ic: 'ic-plane' },       // 버튼만
+  { k: 'history', t: '히스토리', ic: 'ic-history' }    // 버튼만
+];
+/** 사이드바에 가려지는 왼쪽 폭 (px) */
+const sideOffset = () => MAPV.side ? (document.querySelector('#win-map .mside')?.offsetWidth || 0) + 20 : 0;
+
+/** 화면에서 radius(px) 안에 모인 점들을 하나로 묶는다. 확대하면 거리가 벌어져 자연히 풀린다. */
+function clusterPoints(points, radius) {
+  const map = MAPV.map, groups = [];
+  points.forEach(p => {
+    const px = map.project(p.ll);
+    let best = null, bd = radius;
+    groups.forEach(g => { const d = Math.hypot(g.x - px.x, g.y - px.y); if (d < bd) { bd = d; best = g; } });
+    if (best) { best.items.push(p); const n = best.items.length; best.x += (px.x - best.x) / n; best.y += (px.y - best.y) / n; }
+    else groups.push({ x: px.x, y: px.y, items: [p] });
+  });
+  return groups.map(g => ({
+    items: g.items,
+    key: g.items.map(i => i.id).sort().join(','),
+    ll: g.items.length === 1 ? g.items[0].ll : map.unproject([g.x, g.y]).toArray()
+  }));
+}
+function mapMarkEl(tab, g) {
+  const n = g.items.length, one = g.items[0];
+  const wrap = document.createElement('div');   // 위치는 지도 라이브러리가 이 요소의 transform 으로 잡는다
+  wrap.style.zIndex = { incident: 3, unit: 2, cctv: 1 }[tab.k] || 1;   // 겹치면 사건이 항상 맨 위
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = `mk mk-${tab.k}${n > 1 ? ' is-cluster' + (n >= 10 ? ' is-lg' : n >= 5 ? ' is-md' : '') : ''}`;
+  b.innerHTML = n > 1 ? `<span>${n}</span>` : icon(one.glyph);
+  const label = n > 1 ? `${tab.t} ${n}건 · 눌러서 확대` : one.label;
+  b.title = label; b.setAttribute('aria-label', label);
+  b.addEventListener('click', e => { e.stopPropagation(); onMarkClick(tab, g); });
+  wrap.appendChild(b);
+  return wrap;
+}
+function onMarkClick(tab, g) {
+  const map = MAPV.map; if (!map) return;
+  if (g.items.length > 1) {   // 묶음: 한 번에 1~2.5단계만 확대해 맥락을 잃지 않게 한다 (알바몬 지도 방식)
+    const bounds = new maplibregl.LngLatBounds(g.items[0].ll, g.items[0].ll);
+    g.items.forEach(i => bounds.extend(i.ll));
+    const z0 = map.getZoom();
+    const fit = map.cameraForBounds(bounds, { padding: { left: sideOffset() + 70, right: 90, top: 70, bottom: 70 } });
+    const zoom = fit ? Math.min(Math.max(fit.zoom, z0 + 1), z0 + 2.5) : z0 + 2;
+    map.easeTo({ center: g.ll, zoom, offset: [sideOffset() / 2, 0], duration: 700 });
+    return;
+  }
+  if (tab.k === 'cctv') { openCam(g.items[0].id); return; }
+  map.flyTo({ center: g.items[0].ll, zoom: Math.max(map.getZoom() + 1.5, 15), offset: [sideOffset() / 2, 0], duration: 900 });
+}
+/** 켜진 레이어의 표식을 다시 계산해, 바뀐 것만 지우고 새로 붙인다 */
+function paintMapLayers() {
+  const map = MAPV.map; if (!map) return;
+  const want = new Map();
+  MAP_TABS.forEach(tab => {
+    if (!tab.points || !MAPV.layers[tab.k]) return;
+    const pts = tab.points();
+    const groups = tab.cluster ? clusterPoints(pts, 48) : pts.map(p => ({ items: [p], key: p.id, ll: p.ll }));
+    groups.forEach(g => want.set(`${tab.k}|${g.key}`, { tab, g }));
+  });
+  MAPV.marks.forEach((m, k) => { if (!want.has(k)) { m.remove(); MAPV.marks.delete(k); } });
+  want.forEach(({ tab, g }, k) => {
+    const m = MAPV.marks.get(k);
+    if (m) m.setLngLat(g.ll);
+    else MAPV.marks.set(k, new maplibregl.Marker({ element: mapMarkEl(tab, g) }).setLngLat(g.ll).addTo(map));
+  });
+}
+function toggleMapLayer(k) {
+  const tab = MAP_TABS.find(t => t.k === k); if (!tab || !tab.points) return;
+  MAPV.layers[k] = !MAPV.layers[k];
+  if (k === 'cctv' && !MAPV.layers[k]) closeCam();
+  const b = document.querySelector(`#win-map .mnav-btn[data-k="${k}"]`);
+  if (b) { b.classList.toggle('is-on', MAPV.layers[k]); b.setAttribute('aria-pressed', String(MAPV.layers[k])); }
+  paintMapLayers();
+}
+/** CCTV 표식을 누르면 그 자리에 영상 팝오버를 띄운다 */
+function openCam(id) {
+  const c = CCTVS.find(x => x.id === id); if (!c || !MAPV.map) return;
+  closeCam();
+  const tone = c.traffic === '통제' ? 'badge-crit' : c.traffic === '정체' ? 'badge-warn' : 'badge-ok';
+  const html = `
+    <div class="mcam">
+      <div class="mcam-h">
+        <div class="mcam-tt"><strong>${esc(c.name)}</strong><span>${esc(c.id)} · 실시간 (가상)</span></div>
+        <button class="mcam-x" type="button" data-act="map-cam-close" aria-label="닫기" title="닫기">${icon('ic-close')}</button>
+      </div>
+      ${screenHTML({ id: c.id, title: '', place: '가상 CCTV 영상 (실영상 아님)', at: c.at, rec: true, scene: c.scene })}
+      <div class="mcam-f">
+        ${badge('교통 ' + c.traffic, tone)}
+        <button class="btn btn-sm" type="button" data-act="map-cam-open" data-id="${esc(c.id)}">CCTV 앱에서 크게 보기</button>
+      </div>
+    </div>`;
+  const popup = new maplibregl.Popup({ className: 'mpop', closeButton: false, closeOnClick: true, maxWidth: 'none', offset: 24 })
+    .setLngLat(toLngLat(c.x, c.y)).setHTML(html).addTo(MAPV.map);
+  popup.on('close', () => { if (MAPV.cam === popup) MAPV.cam = null; });
+  MAPV.cam = popup;
+}
+function closeCam() {
+  if (!MAPV.cam) return;
+  const p = MAPV.cam; MAPV.cam = null; p.remove();
+}
+
+/* ---- 사이드바 ---- */
+function setMapSide(open) {
+  MAPV.side = open;
+  const x = document.querySelector('#win-map .mapx'); if (!x) return;
+  x.classList.toggle('is-side-closed', !open);
+  const b = x.querySelector('[data-act="map-side"]');
+  if (b) { b.setAttribute('aria-expanded', String(open)); b.title = open ? '사이드바 가리기' : '사이드바 보기'; }
+  const input = x.querySelector('.msearch input');
+  if (!open && input && document.activeElement === input) input.blur();
+}
+
+/* ---- 장소 검색: Photon (OpenStreetMap 데이터, 키 불필요, 입력 중 자동 검색 허용) ---- */
+function placeSub(p) {
+  const road = p.street ? p.street + (p.housenumber ? ' ' + p.housenumber : '') : '';
+  return [p.city || p.state, p.district || p.locality, road]
+    .filter((v, i, a) => v && a.indexOf(v) === i).join(' ');
+}
+function paintResults() {
+  const box = document.querySelector('#win-map .mresults'); if (!box) return;
+  const clear = document.querySelector('#win-map .msearch-clear'); if (clear) clear.hidden = !MAPV.q;
+  // 검색하는 동안에는 결과가 사이드바 내용을 대신한다 (애플 지도 방식)
+  const side = document.querySelector('#win-map .mside');
+  if (side) side.classList.toggle('is-searching', !!MAPV.q.trim() && (MAPV.results.length > 0 || MAPV.status !== 'idle'));
+  const input = document.querySelector('#win-map .msearch input');
+  if (input) input.setAttribute('aria-expanded', String(MAPV.results.length > 0));
+  if (!MAPV.q.trim()) { box.innerHTML = ''; return; }
+  if (MAPV.status === 'error') { box.innerHTML = '<div class="mres-note">검색 서버에 연결할 수 없습니다. 인터넷 연결을 확인해 주세요.</div>'; return; }
+  if (!MAPV.results.length) {
+    box.innerHTML = `<div class="mres-note">${MAPV.status === 'loading' ? '검색 중…' : MAPV.status === 'done' ? '검색 결과가 없습니다.' : ''}</div>`;
+    return;
+  }
+  box.innerHTML = MAPV.results.map((r, i) => `
+    <button class="mres${i === MAPV.hi ? ' is-hi' : ''}" type="button" role="option" aria-selected="${i === MAPV.hi}" data-act="map-place" data-i="${i}">
+      <span class="mres-t">${esc(r.name)}</span>${r.sub ? `<span class="mres-s">${esc(r.sub)}</span>` : ''}
+    </button>`).join('');
+}
+function searchPlaces(q) {
+  MAPV.q = q; MAPV.hi = -1;
+  clearTimeout(MAPV.timer);
+  if (MAPV.abort) MAPV.abort.abort();
+  if (!q.trim()) { MAPV.results = []; MAPV.status = 'idle'; paintResults(); return; }
+  MAPV.status = 'loading'; paintResults();
+  MAPV.timer = setTimeout(async () => {
+    const ctrl = MAPV.abort = new AbortController();
+    const c = MAPV.map ? MAPV.map.getCenter() : { lat: 37.5665, lng: 126.978 };   // 지금 보고 있는 곳 근처를 우선
+    // lang=default: 브라우저 언어와 상관없이 현지 표기(한글) 이름을 받는다
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q.trim())}&limit=8&lang=default&lat=${c.lat.toFixed(4)}&lon=${c.lng.toFixed(4)}`;
+    try {
+      const res = await fetch(url, { signal: ctrl.signal });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const seen = new Set();
+      MAPV.results = data.features.map(f => {
+        const p = f.properties;
+        return { name: p.name || p.street || p.city || '이름 없는 장소', sub: placeSub(p), ll: f.geometry.coordinates, ext: p.extent };
+      }).filter(r => { const k = r.name + '|' + r.sub; if (seen.has(k)) return false; seen.add(k); return true; });
+      MAPV.status = 'done';
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      MAPV.results = []; MAPV.status = 'error';
+    }
+    paintResults();
+  }, 300);
+}
+function pickPlace(i) {
+  const r = MAPV.results[i]; if (!r || !MAPV.map) return;
+  MAPV.q = r.name; MAPV.results = []; MAPV.status = 'idle'; MAPV.hi = -1;
+  const input = document.querySelector('#win-map .msearch input');
+  if (input) { input.value = r.name; input.blur(); }
+  paintResults();
+  if (!MAPV.pin) {
+    const el = document.createElement('div');
+    el.className = 'pin'; el.setAttribute('aria-label', '검색한 장소');
+    el.innerHTML = '<svg viewBox="0 0 28 36" aria-hidden="true"><path d="M14 35s11-11.3 11-20.5A11 11 0 0 0 3 14.5C3 23.7 14 35 14 35z"/><circle cx="14" cy="14.5" r="4.2"/></svg>';
+    MAPV.pin = new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat(r.ll).addTo(MAPV.map);
+  } else MAPV.pin.setLngLat(r.ll);
+  // 사이드바에 가리지 않도록, 보이는 영역의 가운데로 이동한다
+  const side = sideOffset();
+  if (r.ext) MAPV.map.fitBounds([[r.ext[0], r.ext[3]], [r.ext[2], r.ext[1]]], { padding: { left: side + 40, right: 80, top: 40, bottom: 40 }, maxZoom: 17, duration: 1200 });
+  else MAPV.map.flyTo({ center: r.ll, zoom: Math.max(MAPV.map.getZoom(), 16), offset: [side / 2, 0], duration: 1200 });
+}
+function clearSearch() {
+  if (MAPV.abort) MAPV.abort.abort();
+  clearTimeout(MAPV.timer);
+  MAPV.q = ''; MAPV.results = []; MAPV.status = 'idle'; MAPV.hi = -1;
+  if (MAPV.pin) { MAPV.pin.remove(); MAPV.pin = null; }
+  const input = document.querySelector('#win-map .msearch input');
+  if (input) { input.value = ''; input.focus(); }
+  paintResults();
+}
+function bindSearch(body) {
+  const input = $('.msearch input', body); if (!input) return;
+  input.addEventListener('input', () => searchPlaces(input.value));
+  input.addEventListener('keydown', e => {
+    const n = MAPV.results.length;
+    if (e.key === 'ArrowDown' && n) { e.preventDefault(); MAPV.hi = (MAPV.hi + 1) % n; paintResults(); }
+    else if (e.key === 'ArrowUp' && n) { e.preventDefault(); MAPV.hi = (MAPV.hi - 1 + n) % n; paintResults(); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (n) pickPlace(MAPV.hi >= 0 ? MAPV.hi : 0); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); if (MAPV.q) clearSearch(); else input.blur(); }
+  });
+}
+
+/** 나침반: 누르면 북쪽 정렬, 끌면 지도 회전 */
+function bindCompass(el) {
+  if (!el) return;
+  let drag = null;
+  const angle = e => {
+    const r = el.getBoundingClientRect();
+    return Math.atan2(e.clientX - (r.left + r.width / 2), (r.top + r.height / 2) - e.clientY) * 180 / Math.PI;
+  };
+  const north = () => MAPV.map && MAPV.map.easeTo({ bearing: 0, pitch: MAPV.mode === '3d' ? MAPV.map.getPitch() : 0, duration: 600 });
+  el.addEventListener('pointerdown', e => {
+    if (!MAPV.map) return;
+    drag = { a: angle(e), b: MAPV.map.getBearing(), x: e.clientX, y: e.clientY, moved: false };
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', e => {
+    if (!drag) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 4) return;
+    drag.moved = true; el.classList.add('is-dragging');
+    MAPV.map.setBearing(drag.b - (angle(e) - drag.a));
+  });
+  el.addEventListener('pointerup', () => {
+    if (!drag) return;
+    const click = !drag.moved; drag = null; el.classList.remove('is-dragging');
+    if (click) north();
+  });
+  el.addEventListener('pointercancel', () => { drag = null; el.classList.remove('is-dragging'); });
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); north(); } });
+}
+
 defApp({
   id: 'map', name: '작전 지도', short: '지도', icon: 'ic-map', defW: .5, defH: .72,
-  desc: '가상 도시 지도 위 사건·인력·CCTV·통제구역 표시 (실제 지도 API 미사용)',
-  ctx: () => { const i = curInc(); return `${i.id} · ${i.place}`; },
+  desc: '실제 지도 화면 · 지도 종류, 내 위치, 확대·축소, 나침반',
+  ctx: () => '서울',
   render() {
-    const inc = curInc(), f = S.ui.mapF, u = S.ui;
-    const cnt = { officer: incOfficers(inc.id).length + '명', vehicle: incVehicles(inc.id).length + '대', cctv: incCCTVs(inc.id).length + '개소', danger: inc.dangers.length + '개소' };
-    const layer = (k, t, sw, legendName) => `<li><button class="mapx-layer ${f[k] ? 'is-on' : ''}" type="button" data-act="map-layer" data-k="${k}"
-        aria-pressed="${f[k]}" title="${esc(legendName || t)} 표시 켜기/끄기">
-        ${sw}<span class="mapx-lt">${esc(t)}</span><span class="mapx-n">${cnt[k] || ''}</span></button></li>`;
-    const zoneSw = k => k === '확인' ? 'mk-zone-k' : k === '미확인' ? 'mk-zone-u' : 'mk-zone-c';
+    const cur = MAP_MODES.find(m => m.k === MAPV.mode);
+    const onImage = MAPV.mode !== 'standard';
+    const counts = { incident: INCIDENTS.length, unit: OFFICERS.length + VEHICLES.length, cctv: CCTVS.length };
+    const tabs = MAP_TABS.map(t => t.points
+      ? `<button class="mnav-btn mnav-${t.k}${MAPV.layers[t.k] ? ' is-on' : ''}" type="button" data-act="map-layer" data-k="${t.k}"
+          aria-pressed="${!!MAPV.layers[t.k]}" title="${esc(t.t)} 지도에 표시/숨기기">${icon(t.ic)}<span class="mnav-t">${esc(t.t)}</span><span class="mnav-n">${counts[t.k]}</span></button>`
+      : `<button class="mnav-btn" type="button" data-k="${t.k}">${icon(t.ic)}<span class="mnav-t">${esc(t.t)}</span></button>`).join('');
+    const opts = MAP_MODES.map((m, i) => `
+        <button class="mm-opt${m.k === MAPV.mode ? ' is-on' : ''}" type="button" role="menuitemradio"
+          aria-checked="${m.k === MAPV.mode}" data-act="map-mode" data-mode="${m.k}" style="--i:${MAP_MODES.length - 1 - i}">
+          <span class="mm-thumb${m.k === '3d' ? ' is-3d' : ''}"><i style="background-image:${mapThumb(m.k)}"></i></span>
+          <span class="mm-t">${esc(m.t)}</span>
+        </button>`).join('');
     return `
-    <div class="mapx">
-      <aside class="mapx-rail" aria-label="지도 레이어와 도구">
-        <div class="mapx-group mapx-ctx">
-          <div class="mapx-k">선택 사건</div>
-          <div class="mapx-inc"><span class="mapx-inc-id">${esc(inc.id)}</span> ${esc(inc.type)}</div>
-          <div class="mapx-inc-sub">${esc(inc.place)}</div>
-          <div class="mapx-inc-state"><span class="${inc.priority === '긴급' ? 'is-crit' : ''}">${esc(inc.priority)}</span> · 위험도 ${riskLabel(inc.risk)}</div>
+    <div class="mapx${MAPV.side ? '' : ' is-side-closed'}">
+      <div class="map-stage" id="mapStage"></div>
+      <aside class="mside" aria-label="지도 사이드바">
+        <div class="mside-head" data-drag data-win="map"></div>
+        <div class="msearch" role="search">
+          ${icon('ic-search')}
+          <input type="search" placeholder="장소, 주소 검색" value="${esc(MAPV.q)}" aria-label="장소 검색"
+            autocomplete="off" spellcheck="false" role="combobox" aria-controls="mresults" aria-expanded="false">
+          <button class="msearch-clear" type="button" data-act="map-search-clear" aria-label="검색어 지우기"${MAPV.q ? '' : ' hidden'}>${icon('ic-close')}</button>
         </div>
-        <div class="mapx-group">
-          <div class="mapx-k" title="범례 (아이콘 + 문자 병기)">표시 요소 · 범례</div>
-          <ul class="mapx-layers">
-            ${layer('incident', '사건', '<span class="lg-mk mk-incident"></span>', '사건 위치')}
-            ${layer('officer', '경찰관', '<span class="lg-mk mk-officer"></span>')}
-            ${layer('vehicle', '순찰차', '<span class="lg-mk mk-car"></span>')}
-            ${layer('cctv', 'CCTV', '<span class="lg-mk mk-cctv"></span>')}
-            ${layer('danger', '위험 위치', '<span class="lg-mk mk-danger"></span>')}
-            ${layer('zone', '구역', '<span class="lg-mk mk-zone-c"></span>')}
-            ${layer('path', '이동 경로', '<span class="mapx-path-sw"></span>')}
-            ${layer('rally', '집결지', '<span class="lg-mk mk-rally"></span>', '집결 위치')}
-          </ul>
-        </div>
-        <div class="mapx-group mapx-zones">
-          <div class="mapx-k">구역 현황</div>
-          ${inc.zones.length ? inc.zones.map(z => `<div class="mapx-zone"><span class="lg-mk ${zoneSw(z.kind)}"></span><span class="mapx-zk">${esc(z.kind)}</span><span>${esc(z.name)}</span></div>`).join('')
-            : '<div class="mapx-zone dim">지정된 구역 없음</div>'}
-          <div class="mapx-legend-z">
-            <span><span class="lg-mk mk-zone-k"></span>확인 가능 영역</span>
-            <span><span class="lg-mk mk-zone-u"></span>미확인 영역</span>
-            <span><span class="lg-mk mk-zone-c"></span>통제 구역</span>
-          </div>
-        </div>
-        <div class="mapx-group mapx-tools">
-          <button class="mapx-tool ${u.compose.picking ? 'is-on' : ''}" type="button" data-act="map-pick"
-            title="지도를 눌러 현장 전송용 위치를 지정합니다">${icon('ic-pin', 'ic-sm')}<span>위치 지정</span></button>
-          <div class="mapx-sent">전송 표식 ${S.txs.filter(t => t.inc === inc.id && t.point).length}개</div>
-        </div>
+        <div class="mresults" id="mresults" role="listbox" aria-label="검색 결과"></div>
+        <nav class="mnav" aria-label="지도 표시">
+          <div class="mnav-h">지도</div>
+          ${tabs}
+        </nav>
       </aside>
-      <div class="map-stage ${u.compose.picking ? 'is-picking' : ''}" id="mapStage">
-        ${mapSVG()}
-        ${u.compose.picking ? '<div class="map-pickhint">위치 지정 모드: 지도를 클릭하면 현장 정보 전송 앱에 좌표가 입력됩니다</div>' : ''}
+      <button class="mside-toggle" type="button" data-act="map-side" aria-expanded="${MAPV.side}"
+        title="${MAPV.side ? '사이드바 가리기' : '사이드바 보기'}" aria-label="사이드바">${icon('ic-sidebar')}</button>
+      <div class="mctl${MAPV.menu ? ' is-menu' : ''}">
+        <div class="mctl-group">
+          <button class="mctl-btn" type="button" data-act="map-menu" aria-haspopup="menu" aria-expanded="${MAPV.menu}"
+            title="지도 종류" aria-label="지도 종류 (현재: ${esc(cur.t)})">${icon(cur.ic)}</button>
+          <span class="mctl-sep" aria-hidden="true"></span>
+          <button class="mctl-btn${MAPV.me ? ' is-active' : ''}${MAPV.busy ? ' is-busy' : ''}" type="button" data-act="map-locate"
+            title="내 위치" aria-label="내 위치로 이동">${icon('ic-locate')}</button>
+        </div>
+        <div class="mctl-group">
+          <button class="mctl-btn" type="button" data-act="map-zoom-in" title="확대" aria-label="확대">${icon('ic-plus')}</button>
+          <span class="mctl-sep" aria-hidden="true"></span>
+          <button class="mctl-btn" type="button" data-act="map-zoom-out" title="축소" aria-label="축소">${icon('ic-minus')}</button>
+        </div>
+        <button class="mctl-compass" type="button" data-mctl="compass" title="누르기: 북쪽 맞추기 · 끌기: 지도 회전" aria-label="나침반">
+          <span class="mc-dial">${COMPASS_SVG}</span><span class="mc-n" aria-hidden="true">북</span>
+        </button>
+        <div class="mmenu" role="menu" aria-label="지도 종류">${opts}</div>
       </div>
+      <div class="map-attr${onImage ? ' on-image' : ''}">${onImage
+        ? '© Esri, Maxar, Earthstar Geographics · © OpenStreetMap · © CARTO'
+        : '© OpenStreetMap · © CARTO'}</div>
     </div>`;
   },
   after(body) {
-    fitMapView();
-    const pop = S.ui.mapPop; if (!pop) return;
-    const stage = $('#mapStage', body); if (!stage) return;
-    const g = stage.querySelector(`[data-mk="${pop.kind}"][data-id="${CSS.escape(pop.id)}"]`);
-    const el = document.createElement('div');
-    el.className = 'map-pop'; el.innerHTML = mapPopHTML(pop);
-    stage.appendChild(el);
-    const sr = stage.getBoundingClientRect();
-    if (g) {
-      const gr = g.getBoundingClientRect();
-      el.style.left = clamp(gr.left - sr.left + 16, 6, Math.max(6, sr.width - 240)) + 'px';
-      el.style.top = clamp(gr.top - sr.top - 8, 6, Math.max(6, sr.height - 170)) + 'px';
-    } else { el.style.left = '10px'; el.style.top = '10px'; }
+    const stage = $('#mapStage', body); if (!stage || !window.maplibregl) return;
+    if (!MAPV.el) { MAPV.el = document.createElement('div'); MAPV.el.className = 'map-canvas'; }
+    stage.appendChild(MAPV.el);
+    if (!MAPV.map) initMap(); else MAPV.map.resize();
+    syncCompass();
+    bindCompass($('[data-mctl="compass"]', body));
+    bindSearch(body);
+    paintResults();
+    paintMapLayers();
   }
 });
-function mapPopHTML(pop) {
-  const inc = curInc();
-  const wrap = (t, ic, rows, acts) => `
-    <div class="map-pop-h">${icon(ic)}<span>${esc(t)}</span><span class="spacer"></span>
-      <button class="wb" type="button" data-act="map-pop-close" aria-label="팝업 닫기" title="닫기">${icon('ic-close')}</button></div>
-    <div class="map-pop-b"><dl class="kv">${rows}</dl></div>
-    <div class="map-pop-acts">${acts || ''}</div>`;
-  const r = (k, v) => `<dt>${esc(k)}</dt><dd>${v}</dd>`;
-  if (pop.kind === 'officer') {
-    const o = OFFICERS.find(x => x.id === pop.id); if (!o) return '';
-    return wrap(`경찰관 ${o.call}`, 'ic-officer',
-      r('성명', esc(o.name)) + r('소속', esc(o.team)) + r('임무', esc(o.task)) + r('상태', esc(o.state)) +
-      r('AR', arBadge(o.ar)) + r('배터리', battHTML(o.batt)) + r('마지막 통신', `${esc(o.comm)} <span class="dim">(${agoText(o.comm)})</span>`) +
-      r('건강 상태', healthHTML(o.health)),
-      `<button class="btn btn-sm" type="button" data-act="open-ar-of" data-id="${o.id}">AR 영상 보기</button>
-       <button class="btn btn-sm" type="button" data-act="msg-to-officer" data-id="${o.id}">메시지 보내기</button>
-       <button class="btn btn-sm btn-warn" type="button" data-act="tx-target" data-id="${o.id}">전송 대상 지정</button>`);
-  }
-  if (pop.kind === 'cctv') {
-    const c = CCTVS.find(x => x.id === pop.id); if (!c) return '';
-    return wrap(`CCTV ${c.id}`, 'ic-cctv',
-      r('명칭', esc(c.name)) + r('촬영 시각', `<span class="mono">${esc(c.at)}</span>`) + r('교통 상태', badge(c.traffic, c.traffic === '통제' ? 'badge-crit' : c.traffic === '정체' ? 'badge-warn' : 'badge-ok')),
-      `<button class="btn btn-sm" type="button" data-act="open-cctv" data-id="${c.id}">CCTV 앱에서 보기</button>`);
-  }
-  if (pop.kind === 'vehicle') {
-    const v = VEHICLES.find(x => x.id === pop.id); if (!v) return '';
-    return wrap(v.label, 'ic-car', r('호출부호', esc(v.id)) + r('탑승', esc(v.crew)) + r('배속 사건', esc(v.inc)), '');
-  }
-  if (pop.kind === 'danger') {
-    const d = inc.dangers[Number(pop.id.slice(1))]; if (!d) return '';
-    return wrap('위험 위치', 'ic-warning', r('명칭', esc(d.label)) + r('내용', esc(d.note)),
-      `<button class="btn btn-sm btn-warn" type="button" data-act="tx-danger" data-x="${d.x}" data-y="${d.y}" data-label="${esc(d.label)}">현장 전송 후보로</button>`);
-  }
-  if (pop.kind === 'zone') {
-    const z = inc.zones[Number(pop.id)]; if (!z) return '';
-    return wrap(z.kind + ' 영역', 'ic-map', r('명칭', esc(z.name)) + r('구분', esc(z.kind)),
-      z.kind === '미확인' ? `<button class="btn btn-sm" type="button" data-act="ho-add-zone" data-name="${esc(z.name)}">인계 항목으로 추가</button>` : '');
-  }
-  if (pop.kind === 'incident') {
-    return wrap(`${inc.id} ${inc.type}`, 'ic-warning',
-      r('신고 위치', esc(inc.place)) + r('발생 시각', esc(inc.reportedAt)) + r('담당', esc(inc.team)) +
-      r('긴급도', badge(inc.priority, prioCls(inc.priority), prioShape(inc.priority))) + r('상태', esc(inc.status)),
-      `<button class="btn btn-sm" type="button" data-act="open-brief">브리핑 보기</button>`);
-  }
-  if (pop.kind === 'rally') return wrap('집결 위치', 'ic-flag', r('명칭', esc(inc.rally.label)) + r('용도', '후속 투입 인력 합류 지점'), '');
-  if (pop.kind === 'suspect') return wrap('용의자 최종 확인 지점', 'ic-warning', r('내용', esc(inc.suspect.note)),
-    `<button class="btn btn-sm btn-warn" type="button" data-act="tx-danger" data-x="${inc.suspect.x}" data-y="${inc.suspect.y}" data-label="용의자 최종 확인 위치">현장 전송 후보로</button>`);
-  if (pop.kind === 'sent') {
-    const t = S.txs.find(x => x.id === pop.id); if (!t) return '';
-    return wrap('전송된 정보', 'ic-send', r('종류', esc(t.kind)) + r('문구', esc(t.note)) + r('대상', esc(t.targets.join(', '))) + r('상태', esc(t.state)), '');
-  }
-  return '';
-}
-
 /* ---------- 4. 현장 인력 ---------- */
 defApp({
   id: 'field', name: '현장 인력', short: '인력', icon: 'ic-officer', defW: .36, defH: .66,
@@ -1613,7 +1832,6 @@ defApp({
           <div class="detail" style="grid-column:1/-1"><span class="pg-k">부상·건강 상태 (자동 확정 아님)</span>${healthHTML(o.health)}</div>
         </div>
         <div class="card-acts">
-          <button class="btn btn-sm" type="button" data-act="goto-officer" data-id="${o.id}">지도에서 보기</button>
           <button class="btn btn-sm" type="button" data-act="open-ar-of" data-id="${o.id}" ${o.ar === '미연결' ? 'disabled title="AR 글래스 미연결"' : ''}>AR 영상</button>
           <button class="btn btn-sm" type="button" data-act="msg-to-officer" data-id="${o.id}">메시지</button>
           <button class="btn btn-sm btn-warn" type="button" data-act="tx-target" data-id="${o.id}">전송 대상 지정</button>
@@ -1666,7 +1884,6 @@ defApp({
       <div class="card-acts">
         <button class="btn btn-sm" type="button" data-act="cctv-capture" data-id="${sel.id}">${icon('ic-capture', 'ic-sm')}<span class="btn-t">중요 장면 캡처</span></button>
         <button class="btn btn-sm btn-warn" type="button" data-act="cctv-tx" data-id="${sel.id}">현장 전송 후보로 추가</button>
-        <button class="btn btn-sm" type="button" data-act="cctv-onmap" data-id="${sel.id}">지도에서 위치 확인</button>
       </div>
     </div>` : '<div class="empty-note">표시할 CCTV가 없습니다.</div>'}
 
@@ -1886,7 +2103,6 @@ defApp({
           <span class="arx-st detail">촬영 시각 ${esc(sel.comm)}</span>
           <span class="arx-acts">
             <button class="btn btn-sm" type="button" data-act="ar-capture" data-id="${sel.id}">${icon('ic-capture', 'ic-sm')}<span class="btn-t">중요 장면 캡처</span></button>
-            <button class="btn btn-sm" type="button" data-act="goto-officer" data-id="${sel.id}">지도 위치 연결</button>
             <button class="btn btn-sm btn-warn" type="button" data-act="ar-tx" data-id="${sel.id}">현장 전송 후보로 추가</button>
             <button class="btn btn-sm" type="button" data-act="msg-to-officer" data-id="${sel.id}">해당 경찰관에 메시지</button>
           </span>
@@ -1930,7 +2146,7 @@ const TX_KINDS = [
   { k: '간단한 지시 문구', d: '짧은 텍스트 지시 (AR 하단 표시)' },
   { k: 'CCTV 주요 장면', d: '캡처한 장면을 축소 이미지로 전달' }
 ];
-const TX_STEPS = ['정보 선택', '위치 지정', '문구 편집', '대상 선택', 'AR 미리보기', '전송', '수신 확인', '수정·회수'];
+const TX_STEPS = ['정보 선택', '문구 편집', '대상 선택', 'AR 미리보기', '전송', '수신 확인', '수정·회수'];
 defApp({
   id: 'transmit', name: '현장 정보 전송', short: '전송', icon: 'ic-send', defW: .36, defH: .72,
   desc: '지휘통제실이 선별한 정보를 AR 글래스·폴더블폰으로 전달',
@@ -1940,7 +2156,7 @@ defApp({
     const targets = ['전체 현장 인력', ...new Set(incOfficers(inc.id).map(o => o.team)), ...incOfficers(inc.id).map(o => o.call), '후속 인력(대기조)'];
     const step = n => `<span class="step ${c.step === n ? 'is-on' : c.step > n ? 'is-done' : ''}"><span class="n">${n}</span>${esc(TX_STEPS[n - 1])}</span>`;
     return `
-    <div class="stepper">${[1, 2, 3, 4, 5, 6, 7, 8].map(step).join('')}</div>
+    <div class="stepper">${[1, 2, 3, 4, 5, 6, 7].map(step).join('')}</div>
 
     <div class="sect"><div class="sect-h">1단계 · 전송할 정보 선택 (복수 선택 가능)</div><div class="sect-b">
       <div class="pick-grid">
@@ -1949,18 +2165,7 @@ defApp({
           <span class="pick-t">${esc(t.k)}</span><span class="pick-d detail">${esc(t.d)}</span></span></button>`).join('')}
       </div></div></div>
 
-    <div class="sect"><div class="sect-h">2단계 · 지도에서 위치 지정</div><div class="sect-b">
-      <div class="card-row">
-        ${c.point ? badge(`지정됨 X ${Math.round(c.point.x)} · Y ${Math.round(c.point.y)}`, 'badge-ok')
-                  : badge('위치 미지정', 'badge-idle')}
-        <span class="spacer" style="flex:1"></span>
-        <button class="btn btn-sm ${c.picking ? 'btn-on' : ''}" type="button" data-act="tx-pick">${c.picking ? '위치 지정 중 (지도 클릭)' : '지도에서 위치 지정'}</button>
-        ${c.point ? '<button class="btn btn-sm" type="button" data-act="tx-clearpoint">지정 해제</button>' : ''}
-      </div>
-      <div class="dim detail" style="margin-top:5px">작전 지도 앱이 열려 있어야 지정할 수 있습니다. 지도의 위험 위치·용의자 표식을 눌러 바로 지정할 수도 있습니다.</div>
-    </div></div>
-
-    <div class="sect"><div class="sect-h">3단계 · 전달 문구 편집</div><div class="sect-b">
+    <div class="sect"><div class="sect-h">2단계 · 전달 문구 편집</div><div class="sect-b">
       <textarea class="textarea" rows="2" data-model="txNote" aria-label="전달 문구"
         placeholder="예) 후면 비상계단 난간 부식. 2인 동시 진입 금지.">${esc(c.note)}</textarea>
       <div class="card-acts">
@@ -1968,13 +2173,13 @@ defApp({
           `<button class="btn btn-sm" type="button" data-act="tx-quote" data-v="${esc(t)}">${esc(t)}</button>`).join('')}
       </div></div></div>
 
-    <div class="sect"><div class="sect-h">4단계 · 전달 대상 선택</div><div class="sect-b">
+    <div class="sect"><div class="sect-h">3단계 · 전달 대상 선택</div><div class="sect-b">
       <div class="pick-grid">
         ${targets.map(t => `<button class="pick ${c.targets.includes(t) ? 'is-on' : ''}" type="button" data-act="tx-target-toggle" data-v="${esc(t)}"
           aria-pressed="${c.targets.includes(t)}"><span class="pick-box"></span><span class="pick-t">${esc(t)}</span></button>`).join('')}
       </div></div></div>
 
-    <div class="sect"><div class="sect-h">5단계 · AR 글래스 화면 미리보기 (현장에 보이는 화면)</div><div class="sect-b">
+    <div class="sect"><div class="sect-h">4단계 · AR 글래스 화면 미리보기 (현장에 보이는 화면)</div><div class="sect-b">
       <div class="arglass">
         <div class="ar-hud">
           <span class="ar-corner" style="left:14px;top:12px">${esc(inc.id)} ${esc(inc.type)}</span>
@@ -1992,21 +2197,20 @@ defApp({
       <div class="dim detail" style="margin-top:6px">폴더블폰 전송 시 동일 내용이 목록 형태로 함께 전달됩니다 (프로토타입 모형).</div>
     </div></div>
 
-    <div class="sect"><div class="sect-h">6단계 · 전송</div><div class="sect-b">
+    <div class="sect"><div class="sect-h">5단계 · 전송</div><div class="sect-b">
       <div class="card-acts">
         <button class="btn btn-primary" type="button" data-act="tx-send"
           ${(!c.items.length || !c.targets.length) ? 'disabled title="정보와 대상을 선택해야 전송할 수 있습니다"' : ''}>
           ${icon('ic-send', 'ic-sm')}현장으로 전송</button>
         <button class="btn" type="button" data-act="tx-clear">작성 내용 지우기</button>
       </div>
-      ${(!c.items.length || !c.targets.length) ? '<div class="dim" style="margin-top:5px">1단계 정보와 4단계 대상을 선택하십시오.</div>' : ''}
+      ${(!c.items.length || !c.targets.length) ? '<div class="dim" style="margin-top:5px">1단계 정보와 3단계 대상을 선택하십시오.</div>' : ''}
     </div></div>
 
-    <div class="sect"><div class="sect-h">7~8단계 · 전송 기록 / 수신 확인 / 수정·회수</div><div class="sect-b">
+    <div class="sect"><div class="sect-h">6~7단계 · 전송 기록 / 수신 확인 / 수정·회수</div><div class="sect-b">
       <div class="sendlist">
       ${S.txs.filter(t => t.inc === inc.id).map(t => `<div class="sendrow ${t.kind.includes('위험') ? 'is-crit' : ''}">
         <div class="card-h"><span class="card-t">${esc(t.kind)}</span>
-          ${t.point ? badge(`X ${Math.round(t.point.x)} · Y ${Math.round(t.point.y)}`, 'badge-info') : badge('위치 없음', 'badge-idle')}
           <span class="spacer"></span><span class="dim mono">${esc(t.t)}</span></div>
         <div class="card-row">${esc(t.note || '(문구 없음)')}</div>
         <div class="card-row dim">대상: ${esc(t.targets.join(', '))}</div>
@@ -2099,10 +2303,9 @@ function addCapture(from, label, txCandidate) {
   S.captures.unshift(c);
   return c;
 }
-function txCandidate(kind, point, note) {
+function txCandidate(kind, note) {
   const c = S.ui.compose;
   if (!c.items.includes(kind)) c.items.push(kind);
-  if (point) c.point = point;
   if (note && !c.note) c.note = note;
   ensureOpen('transmit');
   renderAll();
@@ -2110,6 +2313,19 @@ function txCandidate(kind, point, note) {
 }
 
 const ACT = {
+  /* --- 작전 지도 조작 --- */
+  'map-menu': () => setMapMenu(!MAPV.menu),
+  'map-mode': d => setMapMode(d.mode),
+  'map-locate': () => locateMe(),
+  'map-zoom-in': () => { if (MAPV.map) MAPV.map.zoomIn({ duration: 260 }); },
+  'map-zoom-out': () => { if (MAPV.map) MAPV.map.zoomOut({ duration: 260 }); },
+  'map-side': () => setMapSide(!MAPV.side),
+  'map-place': d => pickPlace(Number(d.i)),
+  'map-search-clear': () => clearSearch(),
+  'map-layer': d => toggleMapLayer(d.k),
+  'map-cam-close': () => closeCam(),
+  'map-cam-open': d => { closeCam(); S.ui.cctvSel = d.id; ensureOpen('cctv'); render('cctv'); focusWin('cctv'); applyLayout(); },
+
   /* --- 런처 / 창 --- */
   'launch': d => toggleApp(d.app),
   'focus': d => { focusWin(d.win); applyLayout(); },
@@ -2139,18 +2355,10 @@ const ACT = {
   'alert-clear': () => { S.alerts = []; paintTaskbar(); paintStatus(); render('messages'); toast('info', '알림 기록 삭제', '알림 기록을 비웠습니다.'); },
   'modal-close': () => closeModal(),
 
-  /* --- 지도 --- */
-  'map-layer': d => { S.ui.mapF[d.k] = !S.ui.mapF[d.k]; render('map'); },
-  'map-pick': () => { S.ui.compose.picking = !S.ui.compose.picking; renderAll(); },
-  'map-pop-close': () => { S.ui.mapPop = null; render('map'); },
-  'goto-officer': d => { const o = findOfficer(d.id); if (!o) return; if (o.inc !== S.sel) selectIncident(o.inc); ensureOpen('map'); S.ui.mapPop = { kind: 'officer', id: o.id }; render('map'); focusWin('map'); applyLayout(); },
-  'open-cctv': d => { S.ui.cctvSel = d.id; ensureOpen('cctv'); render('cctv'); focusWin('cctv'); applyLayout(); },
   'open-ar-of': d => { const o = findOfficer(d.id); if (!o) return; S.ui.arSel = o.id; ensureOpen('ar'); render('ar'); focusWin('ar'); applyLayout(); },
   'msg-to-officer': d => { const o = findOfficer(d.id); if (!o) return; S.ui.chatTo = o.call; S.ui.chatTab = '전체'; ensureOpen('messages'); render('messages'); focusWin('messages'); applyLayout(); },
   'tx-target': d => { const o = findOfficer(d.id); if (!o) return; const c = S.ui.compose; if (!c.targets.includes(o.call)) c.targets.push(o.call); ensureOpen('transmit'); renderAll(); toast('info', '전송 대상 지정', `${o.call} 을(를) 전달 대상에 추가했습니다.`); },
-  'tx-danger': d => txCandidate('위험 위치', { x: Number(d.x), y: Number(d.y) }, d.label),
-  'tx-hazard': d => txCandidate('위험 위치', null, d.label),
-  'ho-add-zone': d => { const h = S.handover[S.sel]; h.push({ id: uid('H'), kind: '미확인', text: `${d.name} 확인 필요`, owner: '미지정', area: '미확인' }); ensureOpen('handover'); renderAll(); toast('info', '인계 항목 추가', `${d.name} 항목을 미확인 사항에 추가했습니다.`); },
+  'tx-hazard': d => txCandidate('위험 위치', d.label),
 
   /* --- 인력 --- */
   'field-scope': d => { S.ui.fieldAll = d.v === '1'; render('field'); },
@@ -2170,13 +2378,11 @@ const ACT = {
   'cctv-scope': d => { S.ui.cctvAll = d.v === '1'; render('cctv'); },
   'cctv-sel': d => { S.ui.cctvSel = d.id; render('cctv'); },
   'cctv-capture': d => { const c = CCTVS.find(x => x.id === d.id); addCapture('CCTV ' + c.id, `${c.name} 장면 캡처`, false); render('cctv'); toast('ok', '장면 캡처 완료', `${c.id} ${c.name} 화면을 캡처했습니다.`); },
-  'cctv-tx': d => { const c = CCTVS.find(x => x.id === d.id); addCapture('CCTV ' + c.id, `${c.name} 주요 장면`, true); txCandidate('CCTV 주요 장면', { x: c.x, y: c.y }, `${c.name} 주요 장면 확인 요망`); render('cctv'); },
-  'cctv-onmap': d => { const c = CCTVS.find(x => x.id === d.id); ensureOpen('map'); S.ui.mapPop = { kind: 'cctv', id: c.id }; render('map'); focusWin('map'); applyLayout(); },
-  'cap-tx': d => { const c = S.captures.find(x => x.id === d.id); if (!c) return; c.tx = true; txCandidate('CCTV 주요 장면', null, c.label); render('cctv'); },
+  'cctv-tx': d => { const c = CCTVS.find(x => x.id === d.id); addCapture('CCTV ' + c.id, `${c.name} 주요 장면`, true); txCandidate('CCTV 주요 장면', `${c.name} 주요 장면 확인 요망`); render('cctv'); },
+  'cap-tx': d => { const c = S.captures.find(x => x.id === d.id); if (!c) return; c.tx = true; txCandidate('CCTV 주요 장면', c.label); render('cctv'); },
 
   /* --- 브리핑 --- */
   'brief-toggle': () => { S.ui.briefOpen = !S.ui.briefOpen; render('overview'); },
-  'open-brief': () => { S.ui.briefOpen = true; ensureOpen('overview'); render('overview'); focusWin('overview'); applyLayout(); },
   'brief-print': () => {
     const inc = curInc(), b = BRIEFINGS[inc.id] || [];
     openModal(`${inc.id} 브리핑 요약본 (후속 인력 전달용)`, `
@@ -2238,24 +2444,22 @@ const ACT = {
   'ar-scope': d => { S.ui.arAll = d.v === '1'; render('ar'); },
   'ar-sel': d => { S.ui.arSel = d.id; render('ar'); },
   'ar-capture': d => { const o = findOfficer(d.id); addCapture('AR ' + o.call, `${o.call} 시점 중요 장면`, false); render('ar'); render('cctv'); toast('ok', '중요 장면 캡처', `${o.call} AR 영상 장면을 캡처했습니다.`); },
-  'ar-tx': d => { const o = findOfficer(d.id); addCapture('AR ' + o.call, `${o.call} 시점 장면`, true); txCandidate('확인 요청 구역', { x: o.x, y: o.y }, `${o.call} 시점 장면 기준 확인 요망`); render('ar'); },
+  'ar-tx': d => { const o = findOfficer(d.id); addCapture('AR ' + o.call, `${o.call} 시점 장면`, true); txCandidate('확인 요청 구역', `${o.call} 시점 장면 기준 확인 요망`); render('ar'); },
 
   /* --- 현장 정보 전송 --- */
-  'tx-item': d => { const c = S.ui.compose; const i = c.items.indexOf(d.v); i >= 0 ? c.items.splice(i, 1) : c.items.push(d.v); c.step = Math.max(c.step, 2); render('transmit'); render('map'); },
-  'tx-target-toggle': d => { const c = S.ui.compose; const i = c.targets.indexOf(d.v); i >= 0 ? c.targets.splice(i, 1) : c.targets.push(d.v); c.step = Math.max(c.step, 5); render('transmit'); },
-  'tx-pick': () => { S.ui.compose.picking = true; ensureOpen('map'); renderAll(); toast('info', '위치 지정 모드', '작전 지도에서 위치를 클릭하십시오.'); },
-  'tx-clearpoint': () => { S.ui.compose.point = null; renderAll(); },
-  'tx-quote': d => { const c = S.ui.compose; c.note = c.note ? c.note + ' ' + d.v : d.v; c.step = Math.max(c.step, 4); render('transmit'); },
-  'tx-clear': () => { S.ui.compose = { step: 1, items: [], point: null, note: '', targets: [], picking: false, editing: null }; renderAll(); },
+  'tx-item': d => { const c = S.ui.compose; const i = c.items.indexOf(d.v); i >= 0 ? c.items.splice(i, 1) : c.items.push(d.v); c.step = Math.max(c.step, 2); render('transmit'); },
+  'tx-target-toggle': d => { const c = S.ui.compose; const i = c.targets.indexOf(d.v); i >= 0 ? c.targets.splice(i, 1) : c.targets.push(d.v); c.step = Math.max(c.step, 4); render('transmit'); },
+  'tx-quote': d => { const c = S.ui.compose; c.note = c.note ? c.note + ' ' + d.v : d.v; c.step = Math.max(c.step, 3); render('transmit'); },
+  'tx-clear': () => { S.ui.compose = { step: 1, items: [], note: '', targets: [], editing: null }; renderAll(); },
   'tx-send': () => {
     const c = S.ui.compose;
     if (!c.items.length || !c.targets.length) return;
     const t = {
       id: uid('TX'), inc: S.sel, kind: c.items.join(' / '), note: c.note, targets: c.targets.slice(),
-      point: c.point ? { x: c.point.x, y: c.point.y } : null, state: '전송 중', t: nowHMS()
+      state: '전송 중', t: nowHMS()
     };
     S.txs.unshift(t);
-    c.step = 7;
+    c.step = 6;
     renderAll();
     toast('info', '전송 중', `${t.targets.join(', ')} 대상으로 정보를 전송하고 있습니다.`);
     setTimeout(() => { t.state = '수신'; if (winOf('transmit')) render('transmit'); paintStatus(); }, 1800);
@@ -2264,13 +2468,13 @@ const ACT = {
       const who = c.targets[0];
       addMsg({ from: OFFICERS.find(o => o.call === who) ? who : '현장 경찰', to: '지휘통제실', text: `전달 정보 확인했습니다: ${t.kind}`, read: false });
       pushAlert('일반', '현장 수신 확인', `${who} 이(가) 전달 정보를 확인했습니다.`, { app: 'transmit' });
-      S.ui.compose = { step: 8, items: [], point: null, note: '', targets: [], picking: false, editing: null };
+      S.ui.compose = { step: 7, items: [], note: '', targets: [], editing: null };
       renderAll();
     }, 4600);
   },
   'tx-edit': d => {
     const t = S.txs.find(x => x.id === d.id); if (!t) return;
-    S.ui.compose = { step: 3, items: t.kind.split(' / '), point: t.point, note: t.note, targets: t.targets.slice(), picking: false, editing: t.id };
+    S.ui.compose = { step: 2, items: t.kind.split(' / '), note: t.note, targets: t.targets.slice(), editing: t.id };
     S.txs = S.txs.filter(x => x.id !== t.id);
     renderAll(); toast('warn', '전송 정보 수정', '기존 전송을 회수하고 편집 상태로 불러왔습니다. 수정 후 다시 전송하십시오.');
   },
@@ -2327,21 +2531,6 @@ document.addEventListener('click', e => {
     const fn = ACT[t.dataset.act];
     if (fn) { e.preventDefault(); e.stopPropagation(); fn(t.dataset, e); return; }
   }
-  // 지도 마커 / 위치 지정
-  const mkEl = e.target.closest('[data-mk]');
-  if (mkEl) { S.ui.mapPop = { kind: mkEl.dataset.mk, id: mkEl.dataset.id }; render('map'); return; }
-  const stage = e.target.closest('#mapStage');
-  if (stage && S.ui.compose.picking) {
-    const svg = stage.querySelector('svg');
-    const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
-    const p = pt.matrixTransform(svg.getScreenCTM().inverse());
-    S.ui.compose.point = { x: clamp(p.x, 0, CFG.MAP_W), y: clamp(p.y, 0, CFG.MAP_H) };
-    S.ui.compose.picking = false;
-    S.ui.compose.step = Math.max(S.ui.compose.step, 3);
-    renderAll();
-    toast('ok', '위치 지정 완료', `X ${Math.round(p.x)} · Y ${Math.round(p.y)} 좌표를 전송 정보에 지정했습니다.`);
-    return;
-  }
   const win = e.target.closest('.win');
   if (win && S.focus !== win.dataset.win) { focusWin(win.dataset.win); applyLayout(); }
 });
@@ -2359,7 +2548,7 @@ const MODEL_MAP = { txNote: () => S.ui.compose, default: () => S.ui };
 document.addEventListener('input', e => {
   const el = e.target.closest('[data-model]'); if (!el) return;
   const k = el.dataset.model;
-  if (k === 'txNote') { S.ui.compose.note = el.value; render('map'); return; }
+  if (k === 'txNote') { S.ui.compose.note = el.value; return; }
   S.ui[k] = el.value;
   if (['listQ', 'listPrio', 'listStatus'].includes(k)) renderForce('overview');
 });
@@ -2389,6 +2578,7 @@ function applyTheme(theme, announce) {
     btn.querySelector('use').setAttribute('href', dark ? '#ic-sun' : '#ic-moon');
     btn.title = (dark ? '라이트 모드로 전환' : '다크 모드로 전환') + ' (Alt+D)';
   }
+  syncMapTheme();   // 기본 지도 스타일과 선택지 미리보기를 테마에 맞춘다
   save();
   if (announce) toast('info', dark ? '다크 모드' : '라이트 모드', dark ? '어두운 화면으로 전환했습니다.' : '밝은 화면으로 전환했습니다.');
 }

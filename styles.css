@@ -1882,23 +1882,9 @@ body{
 .mapx-inc-sub{ margin-top:2px; font-size:10.5px; color:var(--tx-3); }
 .mapx-inc-state{ margin-top:3px; font-size:11px; color:var(--tx-2); }
 .mapx-inc-state .is-crit{ color:var(--crit-tx); }
-.mapx-layers{ list-style:none; margin:0; padding:0; display:grid; gap:0; }
-.mapx-layer{
-  width:100%; display:grid; grid-template-columns:14px minmax(0,1fr) auto; align-items:center; gap:7px;
-  padding:4px 6px; border:0; border-radius:6px; background:transparent; text-align:left; font-size:11.5px; color:var(--tx-3);
-}
-.mapx-layer:hover{ background:var(--hover); color:var(--tx-2); }
-.mapx-layer.is-on{ color:var(--tx); }
-.mapx-layer:not(.is-on) .lg-mk, .mapx-layer:not(.is-on) .mapx-path-sw{ opacity:.3; }
-.mapx-layer .lg-mk{ width:10px; height:10px; justify-self:center; }
-.mapx-n{ font-size:10.5px; color:var(--tx-3); font-variant-numeric:tabular-nums; }
-.mapx-path-sw{ width:12px; height:0; justify-self:center; border-top:2px dashed var(--info); }
 .mapx-zone{ display:grid; grid-template-columns:14px auto minmax(0,1fr); align-items:baseline; gap:6px; margin:4px 0; font-size:11px; color:var(--tx-2); }
 .mapx-zone .lg-mk{ width:9px; height:9px; justify-self:center; }
 .mapx-zk{ color:var(--tx-3); }
-.mapx-legend-z{ display:grid; gap:2px; margin-top:8px; font-size:10px; color:var(--tx-3); }
-.mapx-legend-z > span{ display:flex; align-items:center; gap:6px; }
-.mapx-legend-z .lg-mk{ width:8px; height:8px; }
 .mapx-tools{ margin-top:auto; }
 .mapx-tool{
   width:100%; display:flex; align-items:center; gap:6px; padding:6px 8px;
@@ -1964,3 +1950,413 @@ body{
 .cmx-input{ flex-wrap:nowrap; }
 .cmx-input .textarea{ flex:1; height:30px; min-height:30px; padding:6px 8px; resize:none; font-size:12px; background:var(--surface); border-radius:8px; }
 .cmx-input .btn{ flex:none; }
+
+/* =========================================================================
+   애플 지도 디자인 시스템 (APPLE MAPS DESIGN SYSTEM)
+   - 색: 애플 시스템 컬러(파랑 #007AFF / 빨강 #FF3B30 / 주황 #FF9500 / 초록 #34C759)
+   - 면: 반투명 유리 + 배경 흐림, 테두리 대신 그림자로 분리
+   - 지도: 따뜻한 베이지 땅 + 흰 도로 + 맑은 파란 물 (애플 지도 표준 지도 팔레트)
+   - 글꼴: 시스템 글꼴 호출 (맥에서는 SF Pro + Apple SD Gothic Neo가 그대로 잡힘)
+   ※ 이 파일에서 가장 마지막 층. 앞의 모든 층을 덮는다.
+   ========================================================================= */
+
+/* ---------- 1) 토큰: 라이트 ---------- */
+:root{
+  --bg-0:#f2f2f7; --bg-1:#ffffff; --bg-2:#ffffff; --bg-3:#f2f2f7; --bg-4:#e5e5ea;
+  --line:rgba(60,60,67,.16); --line-soft:rgba(60,60,67,.08);
+
+  --tx:#000000; --tx-2:rgba(60,60,67,.74); --tx-3:rgba(60,60,67,.46);
+
+  --info:#007aff; --info-dim:#e6f1ff; --info-tx:#0a69d0;
+  --warn:#ff9500; --warn-dim:#fff2e2; --warn-tx:#a85e00;
+  --crit:#ff3b30; --crit-dim:#ffe9e7; --crit-tx:#d22c22;
+  --ok:#34c759;   --ok-dim:#e7f9ec;   --ok-tx:#1f8a3b;
+  --idle:#8e8e93; --focus:#007aff;
+
+  --canvas:#f2f2f7; --surface:#ffffff; --surface-2:#f2f2f7; --surface-soft:#ffffff;
+  --hover:rgba(0,0,0,.045); --divider:rgba(60,60,67,.12); --border:rgba(60,60,67,.16);
+
+  /* 유리 면 */
+  --float:rgba(255,255,255,.82);
+  --glass:rgba(255,255,255,.72);
+  --glass-2:rgba(255,255,255,.88);
+  --blur:saturate(180%) blur(30px);
+
+  --r-s:6px; --r-m:10px; --r-l:14px; --r-xl:20px;
+
+  --lift-s:0 .5px 1.5px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.05);
+  --lift-1:0 .5px 1.5px rgba(0,0,0,.06), 0 6px 20px rgba(0,0,0,.07);
+  --lift-1f:0 .5px 1.5px rgba(0,0,0,.08), 0 10px 30px rgba(0,0,0,.11);
+  --lift-2:0 1px 2px rgba(0,0,0,.10), 0 16px 44px rgba(0,0,0,.15);
+
+  --font:-apple-system, BlinkMacSystemFont, "SF Pro Text", "Apple SD Gothic Neo",
+         "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+
+  /* 지도 팔레트 (애플 지도 표준) */
+  --m-land:#f4f1e9;   /* 타일이 로드되기 전 지도 바탕색 */
+}
+
+/* ---------- 2) 토큰: 다크 ---------- */
+:root[data-theme="dark"]{
+  --bg-0:#000000; --bg-1:#1c1c1e; --bg-2:#1c1c1e; --bg-3:#2c2c2e; --bg-4:#3a3a3c;
+  --line:rgba(84,84,88,.58); --line-soft:rgba(84,84,88,.34);
+
+  --tx:#ffffff; --tx-2:rgba(235,235,245,.66); --tx-3:rgba(235,235,245,.42);
+
+  --info:#0a84ff; --info-dim:#0a84ff26; --info-tx:#6ab4ff;
+  --warn:#ff9f0a; --warn-dim:#ff9f0a26; --warn-tx:#ffc164;
+  --crit:#ff453a; --crit-dim:#ff453a26; --crit-tx:#ff8a82;
+  --ok:#30d158;   --ok-dim:#30d15826;   --ok-tx:#7ee495;
+  --idle:#8e8e93;
+
+  --canvas:#000000; --surface:#1c1c1e; --surface-2:#2c2c2e; --surface-soft:#1c1c1e;
+  --hover:rgba(255,255,255,.07); --divider:rgba(84,84,88,.42); --border:rgba(84,84,88,.58);
+
+  --float:rgba(28,28,30,.84);
+  --glass:rgba(28,28,30,.72);
+  --glass-2:rgba(44,44,46,.88);
+
+  --lift-s:0 .5px 1.5px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.4);
+  --lift-1:0 .5px 1.5px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.45);
+  --lift-1f:0 .5px 1.5px rgba(0,0,0,.6), 0 12px 32px rgba(0,0,0,.55);
+  --lift-2:0 1px 3px rgba(0,0,0,.6), 0 18px 48px rgba(0,0,0,.6);
+
+  --m-land:#1b1c1e;
+}
+
+/* ---------- 3) 바탕과 크롬: 유리로 녹이기 ---------- */
+body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:antialiased; }
+
+.statusbar{
+  background:var(--glass); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+  border-bottom:.5px solid var(--line-soft);
+}
+.sb-name{ font-weight:600; letter-spacing:-.02em; }
+.sb-btn, .sb-profile{
+  background:transparent; border:0; border-radius:999px; color:var(--tx-2);
+}
+.sb-btn:hover, .sb-profile:hover{ background:var(--hover); color:var(--tx); }
+.sb-btn[aria-pressed="true"]{ background:var(--info); color:#ffffff; }
+
+.launcher{ background:transparent; border-right:.5px solid var(--line-soft); }
+.launcher-title{ font-size:11px; font-weight:600; color:var(--tx-3); letter-spacing:.01em; }
+.lc-btn{ border-radius:10px; color:var(--tx-2); }
+.lc-btn:hover{ background:var(--hover); }
+.lc-btn.is-focus{ background:var(--info); color:#ffffff; box-shadow:none; }
+.lc-btn.is-focus .ic{ color:#ffffff; }
+
+.taskbar{
+  background:var(--glass); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+  border-top:.5px solid var(--line-soft);
+}
+.tb-app, .tb-btn{ border-radius:999px; color:var(--tx-2); }
+.tb-app:hover, .tb-btn:hover{ background:var(--hover); color:var(--tx); }
+.tb-app.is-focus{ background:var(--info); color:#ffffff; }
+.tb-count{ background:var(--crit); color:#ffffff; border-radius:999px; }
+
+/* ---------- 4) 창: 테두리 없이 그림자와 큰 모서리 ---------- */
+.win{ background:var(--surface); border:0; border-radius:var(--r-l); box-shadow:var(--lift-1); }
+.win.is-focus{ box-shadow:var(--lift-1f); }
+.win-bar, .win.is-focus .win-bar{ background:transparent; border-bottom:0; }
+.win-title{ font-size:13px; font-weight:600; letter-spacing:-.01em; color:var(--tx); }
+.win-ctx{ color:var(--tx-3); }
+.wb, .wb.wb-light, .wb.wb-close, .wb.wb-min, .wb.wb-max{ border-radius:999px; color:var(--tx-3); }
+.wb:hover, .wb.wb-light:hover{ background:var(--hover); color:var(--tx); }
+
+#win-overview, #win-overview.is-focus{ background:transparent; box-shadow:none; }
+#win-map, #win-map.is-focus{ background:var(--surface); border-radius:var(--r-l); box-shadow:var(--lift-2); overflow:hidden; }
+#win-ar, #win-ar.is-focus{ background:var(--surface); border-radius:var(--r-l); }
+#win-messages, #win-messages.is-focus{ background:var(--surface); border-radius:var(--r-l); }
+
+/* ---------- 5) 컨트롤: 알약과 둥근 사각 ---------- */
+.btn{
+  background:var(--bg-3); border:0; border-radius:999px; color:var(--info);
+  font-weight:500; letter-spacing:-.01em;
+}
+.btn:hover{ background:var(--bg-4); color:var(--info); }
+.btn-primary{ background:var(--info); border:0; color:#ffffff; }
+.btn-primary:hover{ background:#0a6cdc; border:0; color:#ffffff; }
+.btn-crit{ background:var(--crit-dim); border:0; color:var(--crit-tx); }
+.btn-crit:hover{ background:var(--crit-dim); color:var(--crit-tx); }
+.btn-warn{ background:var(--warn-dim); border:0; color:var(--warn-tx); }
+.btn-warn:hover{ background:var(--warn-dim); color:var(--warn-tx); }
+.btn-on{ background:var(--info); border:0; color:#ffffff; font-weight:600; }
+.chip{ border-radius:999px; border:.5px solid var(--line); color:var(--tx-2); }
+.chip.is-on{ background:var(--info); border-color:var(--info); color:#ffffff; font-weight:500; }
+.field, .input, .textarea{ background:var(--bg-3); border:0; border-radius:10px; }
+.field:focus-within{ box-shadow:0 0 0 3px rgba(0,122,255,.28); }
+.ovx-row.is-sel{ background:var(--info); box-shadow:none; }
+.ovx-row.is-sel .ovx-id, .ovx-row.is-sel .ovx-type,
+.ovx-row.is-sel .ovx-place, .ovx-row.is-sel .ovx-state,
+.ovx-row.is-sel .ovx-meta, .ovx-row.is-sel .ovx-status{ color:#ffffff; }
+.ovx-row.is-sel .ovx-prio.is-crit{ color:#ffd9d6; }
+
+::-webkit-scrollbar{ width:8px; height:8px; }
+::-webkit-scrollbar-thumb{ background:rgba(60,60,67,.28); border-radius:999px; border:2px solid transparent; background-clip:padding-box; }
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb{ background:rgba(235,235,245,.28); background-clip:padding-box; }
+::-webkit-scrollbar-track{ background:transparent; }
+
+/* ---------- 6) 작전 지도 (MapLibre GL) + macOS 글래스 조작 버튼 ----------
+   우측 상단 세로 배치: [지도 종류 | 내 위치] [확대 | 축소] [나침반]
+   지도 종류를 누르면 선택지가 버튼 왼쪽으로 차례로 펼쳐진다.
+   ※ 선택지를 버튼 묶음 '안'에 넣으면 backdrop-filter 가 중첩되어 유리 흐림이 깨진다. 그래서 형제로 둔다.
+   출처 표기는 타일 약관상 필수라 가장 작고 흐리게 둔다. */
+:root{
+  --mc-bg:rgba(255,255,255,.64); --mc-line:rgba(0,0,0,.09); --mc-hi:rgba(255,255,255,.75);
+  --mc-fg:rgba(0,0,0,.80); --mc-sep:rgba(0,0,0,.10); --mc-press:rgba(0,0,0,.06);
+  --mc-shadow:0 1px 2px rgba(0,0,0,.10), 0 8px 24px rgba(0,0,0,.14);
+  --mc-blur:saturate(180%) blur(24px);
+}
+:root[data-theme="dark"]{
+  --mc-bg:rgba(44,44,48,.56); --mc-line:rgba(255,255,255,.13); --mc-hi:rgba(255,255,255,.12);
+  --mc-fg:rgba(255,255,255,.92); --mc-sep:rgba(255,255,255,.14); --mc-press:rgba(255,255,255,.10);
+  --mc-shadow:0 1px 2px rgba(0,0,0,.35), 0 10px 28px rgba(0,0,0,.45);
+}
+.mapx{ position:relative; display:block; height:100%; min-height:0; }
+.mapx .map-stage{ position:absolute; inset:0; margin:0; border-radius:0; background:var(--m-land); overflow:hidden; }
+.map-canvas{ position:absolute; inset:0; }
+.maplibregl-map{ font-family:var(--font); }
+.maplibregl-canvas{ outline:none; }
+
+.map-attr{
+  position:absolute; right:6px; bottom:4px; z-index:4; pointer-events:none;
+  font-size:9px; line-height:1.4; color:var(--tx-3); opacity:.6;
+}
+.map-attr.on-image{ color:rgba(255,255,255,.85); text-shadow:0 0 3px rgba(0,0,0,.6); opacity:.8; }
+
+/* 버튼 묶음 */
+.mctl{ position:absolute; top:10px; right:10px; z-index:6; display:flex; flex-direction:column; align-items:center; gap:10px; }
+.mctl-group, .mctl-compass, .mmenu{
+  background:var(--mc-bg); backdrop-filter:var(--mc-blur); -webkit-backdrop-filter:var(--mc-blur);
+  border:.5px solid var(--mc-line); box-shadow:inset 0 .5px 0 var(--mc-hi), var(--mc-shadow);
+}
+.mctl-group{ width:44px; display:flex; flex-direction:column; align-items:center; border-radius:22px; }
+.mctl-btn{
+  width:44px; height:44px; display:grid; place-items:center; padding:0;
+  border:0; border-radius:22px; background:transparent; color:var(--mc-fg); cursor:pointer;
+  transition:background-color .15s ease, transform .15s ease;
+}
+.mctl-btn:hover, .mctl.is-menu [data-act="map-menu"]{ background:var(--mc-press); }
+.mctl-btn:active{ transform:scale(.92); }
+.mctl-btn:focus-visible, .mctl-compass:focus-visible, .mm-opt:focus-visible{ outline:2px solid var(--info); outline-offset:1px; }
+.mctl-btn .ic{ width:20px; height:20px; stroke-width:1.9; }
+.mctl-sep{ flex:none; width:24px; height:.5px; background:var(--mc-sep); }
+
+/* 내 위치: 찾는 중엔 옅게 깜빡이고, 찾으면 파랗게 채운다 */
+.mctl-btn.is-busy .ic{ animation:mc-busy 1s ease-in-out infinite; }
+.mctl-btn.is-active{ color:var(--info); }
+.mctl-btn.is-active .ic{ fill:currentColor; }
+@keyframes mc-busy{ 50%{ opacity:.35; } }
+
+/* 나침반 */
+.mctl-compass{
+  position:relative; width:44px; height:44px; padding:0; border-radius:50%;
+  color:var(--mc-fg); cursor:grab; touch-action:none;
+}
+.mctl-compass.is-dragging{ cursor:grabbing; }
+.mc-dial{ position:absolute; inset:0; transition:transform .15s linear; }
+.mctl-compass.is-dragging .mc-dial{ transition:none; }
+.mc-dial svg{ display:block; width:100%; height:100%; }
+.mc-tick{ fill:none; stroke:currentColor; stroke-width:1; stroke-linecap:round; opacity:.38; }
+.mc-tick.is-long{ stroke-width:1.2; opacity:.7; }
+.mc-north{ fill:#ff3b30; }
+.mc-n{ position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; font-size:13px; font-weight:600; letter-spacing:-.02em; }
+
+/* 지도 종류 선택지: 버튼 왼쪽으로 펼쳐진다 */
+.mmenu{
+  position:absolute; top:-6px; right:54px; display:flex; gap:8px; padding:6px;
+  border-radius:16px; transform-origin:right center;
+  opacity:0; visibility:hidden; transform:translateX(10px) scale(.96);
+  transition:opacity .2s ease, transform .32s cubic-bezier(.2,.8,.2,1), visibility 0s linear .32s;
+}
+.mctl.is-menu .mmenu{ opacity:1; visibility:visible; transform:none; transition-delay:0s; }
+.mm-opt{
+  width:76px; display:grid; justify-items:center; gap:5px; padding:0;
+  border:0; background:transparent; color:var(--mc-fg); cursor:pointer;
+  opacity:0; transform:translateX(8px);
+  transition:opacity .2s ease, transform .32s cubic-bezier(.2,.8,.2,1);
+}
+.mctl.is-menu .mm-opt{ opacity:1; transform:none; transition-delay:calc(var(--i, 0) * 45ms); }
+.mm-thumb{
+  position:relative; width:76px; height:52px; overflow:hidden; border-radius:10px;
+  box-shadow:inset 0 0 0 .5px rgba(0,0,0,.14); transition:box-shadow .15s ease;
+}
+.mm-thumb i{ position:absolute; inset:0; background-size:cover; background-position:center; }
+.mm-thumb.is-3d i{ inset:-6px -12px 0; transform:perspective(90px) rotateX(22deg); transform-origin:50% 100%; }
+.mm-opt:hover .mm-thumb{ box-shadow:inset 0 0 0 .5px rgba(0,0,0,.14), 0 0 0 2px var(--mc-sep); }
+.mm-opt.is-on .mm-thumb{ box-shadow:0 0 0 2px var(--info); }
+.mm-t{ font-size:11px; font-weight:500; letter-spacing:-.01em; }
+.mm-opt.is-on .mm-t{ color:var(--info); }
+
+/* 현재 위치 표식 */
+.me{ position:relative; width:18px; height:18px; }
+.me-halo{ position:absolute; inset:-14px; border-radius:50%; background:rgba(10,132,255,.22); animation:me-pulse 2.2s ease-out infinite; }
+.me-dot{ position:absolute; inset:0; border-radius:50%; background:#0a84ff; border:3px solid #ffffff; box-shadow:0 1px 4px rgba(0,0,0,.35); }
+@keyframes me-pulse{ 0%{ transform:scale(.45); opacity:.9; } 100%{ transform:scale(1.35); opacity:0; } }
+
+/* 좁거나 낮은 창 */
+.win.w-narrow .mm-opt, .win.w-narrow .mm-thumb{ width:60px; }
+.win.w-narrow .mm-thumb{ height:42px; }
+.win.w-short .mctl{ gap:6px; }
+.win.w-short .mctl-compass{ display:none; }
+
+/* 지도 창은 상단 탭 바를 쓰지 않는다. 창 끌기는 사이드바 상단 줄(.mside-head)이 대신한다. */
+#win-map .win-bar{ display:none; }
+
+/* ---------- 사이드바 (macOS 사이드바 참고) ---------- */
+:root{
+  --ms-bg:rgba(246,246,248,.72); --ms-blur:saturate(180%) blur(30px);
+  --ms-field:rgba(118,118,128,.12); --ms-dim:rgba(60,60,67,.6);
+  --ms-clear-bg:rgba(60,60,67,.3); --ms-clear-fg:#ffffff;
+  --ms-ease:cubic-bezier(.32,.72,0,1);
+}
+:root[data-theme="dark"]{
+  --ms-bg:rgba(36,38,44,.62);
+  --ms-field:rgba(118,118,128,.24); --ms-dim:rgba(235,235,245,.6);
+  --ms-clear-bg:rgba(235,235,245,.3); --ms-clear-fg:#1c1c1e;
+}
+.mapx{ --side-w:200px; }
+.win.w-narrow .mapx{ --side-w:157px; }
+
+.mside{
+  position:absolute; left:10px; top:10px; bottom:10px; z-index:5; width:var(--side-w);
+  display:flex; flex-direction:column; border-radius:18px;
+  background:var(--ms-bg); backdrop-filter:var(--ms-blur); -webkit-backdrop-filter:var(--ms-blur);
+  border:.5px solid var(--mc-line); box-shadow:inset 0 .5px 0 var(--mc-hi), var(--mc-shadow);
+  transition:transform .42s var(--ms-ease), opacity .3s ease, visibility 0s linear 0s;
+}
+.mapx.is-side-closed .mside{
+  transform:translateX(calc(-100% - 20px)); opacity:0; visibility:hidden;
+  transition:transform .42s var(--ms-ease), opacity .3s ease, visibility 0s linear .42s;
+}
+.mside-head{ flex:none; height:52px; }
+
+/* 사이드바 버튼: 펼치면 박스 상단 오른쪽, 접으면 지도 왼쪽 위의 작은 유리 버튼 */
+.mside-toggle{
+  position:absolute; z-index:7; top:18px; left:calc(var(--side-w) - 36px);
+  width:36px; height:36px; display:grid; place-items:center; padding:0;
+  border:.5px solid transparent; border-radius:10px; background:transparent; color:var(--mc-fg); cursor:pointer;
+  transition:left .42s var(--ms-ease), top .42s var(--ms-ease), background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.mside-toggle:hover{ background:var(--mc-press); }
+.mside-toggle:focus-visible{ outline:2px solid var(--info); outline-offset:1px; }
+.mside-toggle .ic{ width:21px; height:21px; }
+.mapx.is-side-closed .mside-toggle{
+  top:10px; left:10px; width:44px; height:44px; border-radius:22px;
+  background:var(--mc-bg); backdrop-filter:var(--mc-blur); -webkit-backdrop-filter:var(--mc-blur);
+  border-color:var(--mc-line); box-shadow:inset 0 .5px 0 var(--mc-hi), var(--mc-shadow);
+}
+
+/* 검색창 */
+.msearch{
+  flex:none; margin:0 12px; height:36px; display:flex; align-items:center; gap:6px; padding:0 7px 0 10px;
+  border-radius:10px; background:var(--ms-field); transition:box-shadow .15s ease;
+}
+.msearch:focus-within{ box-shadow:0 0 0 3px rgba(10,132,255,.35); }
+.msearch > .ic{ width:16px; height:16px; stroke-width:2; color:var(--ms-dim); }
+.msearch input{
+  flex:1; min-width:0; height:100%; padding:0; border:0; outline:0; background:transparent;
+  font:inherit; font-size:14px; letter-spacing:-.01em; color:var(--mc-fg);
+}
+.msearch input::placeholder{ color:var(--ms-dim); }
+.msearch input::-webkit-search-cancel-button{ -webkit-appearance:none; appearance:none; }
+.msearch-clear{
+  flex:none; width:18px; height:18px; display:grid; place-items:center; padding:0;
+  border:0; border-radius:50%; background:var(--ms-clear-bg); color:var(--ms-clear-fg); cursor:pointer;
+}
+.msearch-clear .ic{ width:9px; height:9px; stroke-width:3; }
+
+/* 검색 결과 */
+.mresults{ flex:none; }
+.mside.is-searching .mresults{ flex:1; min-height:0; overflow-y:auto; padding:8px 8px 12px; }
+.mres{
+  width:100%; display:grid; gap:1px; padding:7px 10px; border:0; border-radius:8px;
+  background:transparent; color:var(--mc-fg); text-align:left; cursor:pointer;
+}
+.mres:hover{ background:var(--mc-press); }
+.mres.is-hi{ background:var(--info); color:#ffffff; }
+.mres-t, .mres-s{ overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.mres-t{ font-size:13.5px; font-weight:500; letter-spacing:-.01em; }
+.mres-s{ font-size:11.5px; color:var(--ms-dim); }
+.mres.is-hi .mres-s{ color:rgba(255,255,255,.8); }
+.mres-note{ padding:8px 10px; font-size:12px; color:var(--ms-dim); }
+
+/* 검색한 장소 핀 (위치는 지도 라이브러리가 바깥 요소의 transform 으로 잡으므로 애니메이션은 안쪽 svg 에) */
+.pin{ width:28px; height:36px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+.pin svg{ display:block; width:100%; height:100%; animation:pin-drop .38s cubic-bezier(.2,.8,.2,1); transform-origin:50% 100%; }
+.pin path{ fill:#ff3b30; stroke:#ffffff; stroke-width:1.6; }
+.pin circle{ fill:#ffffff; }
+@keyframes pin-drop{ from{ transform:translateY(-16px) scale(.9); opacity:0; } }
+
+/* ---------- 사이드바 기능 버튼 ---------- */
+:root{ --mk-incident:#ff3b30; --mk-unit:#007aff; --mk-cctv:#5856d6; }
+:root[data-theme="dark"]{ --mk-incident:#ff453a; --mk-unit:#0a84ff; --mk-cctv:#5e5ce6; }
+
+.mnav{ flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:2px; padding:16px 8px 12px; }
+.mside.is-searching .mnav{ display:none; }
+.mnav-h{ padding:0 8px 6px; font-size:11px; font-weight:600; letter-spacing:.01em; color:var(--ms-dim); }
+.mnav-btn{
+  --c:var(--mc-fg);
+  width:100%; height:34px; flex:none; display:flex; align-items:center; gap:9px; padding:0 8px;
+  border:0; border-radius:8px; background:transparent; color:var(--mc-fg); text-align:left; cursor:pointer;
+  font-family:var(--font); transition:background-color .15s ease;
+}
+.mnav-btn:hover{ background:var(--mc-press); }
+.mnav-btn:active{ background:var(--mc-sep); }
+.mnav-btn:focus-visible{ outline:2px solid var(--info); outline-offset:-2px; }
+.mnav-btn .ic{ width:19px; height:19px; color:var(--c); }
+.mnav-t{ flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:13.5px; font-weight:500; letter-spacing:-.01em; }
+.mnav-n{ font-size:11.5px; color:var(--ms-dim); font-variant-numeric:tabular-nums; }
+.mnav-incident{ --c:var(--mk-incident); }
+.mnav-unit{ --c:var(--mk-unit); }
+.mnav-cctv{ --c:var(--mk-cctv); }
+/* 켜진 레이어: 해당 색으로 옅게 칠한다 */
+.mnav-btn.is-on{ background:color-mix(in srgb, var(--c) 16%, transparent); }
+.mnav-btn.is-on:hover{ background:color-mix(in srgb, var(--c) 22%, transparent); }
+.mnav-btn.is-on .mnav-n{ color:var(--c); font-weight:600; }
+
+/* ---------- 지도 표식 (애플 지도 장소 표식 참고) ----------
+   흰 테두리 원 + 흰 기호. 사건은 빨강, 인력·차량은 파랑, CCTV는 남보라 둥근 사각.
+   묶음은 같은 색 원에 개수, 바깥에 옅은 고리. */
+.mk{
+  --c:var(--mk-unit);
+  position:relative; width:28px; height:28px; display:grid; place-items:center; padding:0;
+  border:2px solid #ffffff; border-radius:50%; background:var(--c); color:#ffffff; cursor:pointer;
+  font-family:var(--font); box-shadow:0 1px 2px rgba(0,0,0,.25), 0 3px 8px rgba(0,0,0,.2);
+  animation:mk-in .24s cubic-bezier(.2,.8,.2,1); transition:transform .15s ease;
+}
+.mk:hover{ transform:scale(1.1); }
+.mk:focus-visible{ outline:2px solid var(--info); outline-offset:2px; }
+.mk .ic{ width:15px; height:15px; stroke-width:2.2; }
+.mk-incident{ --c:var(--mk-incident); }
+.mk-incident .ic{ stroke-width:3; }
+.mk-unit{ --c:var(--mk-unit); }
+.mk-cctv{ --c:var(--mk-cctv); border-radius:9px; }
+.mk.is-cluster{
+  width:34px; height:34px; font-size:13px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums;
+  box-shadow:0 0 0 5px color-mix(in srgb, var(--c) 28%, transparent), 0 2px 8px rgba(0,0,0,.25);
+}
+.mk.is-cluster.is-md{ width:40px; height:40px; font-size:14px; }
+.mk.is-cluster.is-lg{ width:46px; height:46px; font-size:15px; }
+@keyframes mk-in{ from{ transform:scale(.4); opacity:0; } }
+
+/* ---------- CCTV 영상 팝오버 ---------- */
+.mpop{ z-index:10; }   /* 표식(1~3)보다 위 */
+.mpop .maplibregl-popup-content{
+  padding:0; border-radius:14px; background:var(--ms-bg);
+  backdrop-filter:var(--ms-blur); -webkit-backdrop-filter:var(--ms-blur);
+  border:.5px solid var(--mc-line); box-shadow:inset 0 .5px 0 var(--mc-hi), var(--mc-shadow);
+}
+.mpop .maplibregl-popup-tip{ display:none; }
+.mcam{ width:280px; display:grid; gap:8px; padding:10px; color:var(--mc-fg); font-family:var(--font); }
+.mcam-h{ display:flex; align-items:flex-start; gap:8px; }
+.mcam-tt{ flex:1; min-width:0; display:grid; gap:1px; }
+.mcam-tt strong{ overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:13.5px; font-weight:600; letter-spacing:-.01em; }
+.mcam-tt span{ font-size:11.5px; color:var(--ms-dim); }
+.mcam-x{
+  flex:none; width:22px; height:22px; display:grid; place-items:center; padding:0;
+  border:0; border-radius:50%; background:var(--ms-clear-bg); color:var(--ms-clear-fg); cursor:pointer;
+}
+.mcam-x .ic{ width:10px; height:10px; stroke-width:2.8; }
+.mcam .screen{ height:158px; border-radius:10px; }
+.mcam-f{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
