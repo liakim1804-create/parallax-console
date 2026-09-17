@@ -2492,6 +2492,6 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .mchip.is-link{ background:var(--mk-incident); }
 .mchip .ic{ width:11px; height:11px; stroke-width:2.6; }
 
-/* 사이드바 아이콘은 모두 기본 글자색(라이트: 검정, 다크: 흰색)으로 통일. 켜진 버튼의 옅은 바탕색은 그대로 둔다 */
+/* 사이드바 버튼 아이콘은 기본 글자색(라이트: 검정, 다크: 흰색)으로 통일. 켜진 버튼의 옅은 바탕색은 그대로 둔다.
+   사건 상세의 줄 아이콘은 지도 표식과 같은 색(사건 빨강 · 인력·차량 파랑 · CCTV 남보라)을 쓴다 */
 .mside .mnav-btn .ic{ color:var(--mc-fg); }
-.mside .mcd-ic{ background:var(--ms-field); color:var(--mc-fg); }
