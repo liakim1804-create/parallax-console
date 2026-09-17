@@ -1658,15 +1658,15 @@ function caseLinks(d) {
 }
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
-/** 배정 관계선: 현장에 있으면 실선, 이동 중이면 점선. 묶인 신고끼리는 빨간 파선 */
+/** 배정 관계선: 인력·차량 → 신고 위치는 파란 실선, 묶인 신고끼리는 빨간 실선 */
 function paintCaseLines() {
   const map = MAPV.map; if (!map || !map.isStyleLoaded()) return;
-  ['case-link', 'case-move', 'case-here', 'case-halo'].forEach(l => map.getLayer(l) && map.removeLayer(l));
+  ['case-link', 'case-here', 'case-halo'].forEach(l => map.getLayer(l) && map.removeLayer(l));
   if (map.getSource('case')) map.removeSource('case');
   const d = MAPV.caseSel && caseData(MAPV.caseSel); if (!d) return;
   const line = (t, a, b) => ({ type: 'Feature', properties: { t }, geometry: { type: 'LineString', coordinates: [a, b] } });
   const features = [
-    ...caseLinks(d).map(l => line(l.moving ? 'move' : 'here', l.from, l.to)),
+    ...caseLinks(d).map(l => line('here', l.from, l.to)),
     ...d.reports.slice(1).map((r, i) => line('link', toLngLat(d.reports[i].x, d.reports[i].y), toLngLat(r.x, r.y)))
   ];
   map.addSource('case', { type: 'geojson', data: { type: 'FeatureCollection', features } });
@@ -1676,12 +1676,10 @@ function paintCaseLines() {
   map.addLayer({ id: 'case-halo', type: 'line', source: 'case', layout: round, paint: { 'line-color': halo, 'line-width': 7 } });
   map.addLayer({ id: 'case-here', type: 'line', source: 'case', filter: ['==', ['get', 't'], 'here'], layout: round,
     paint: { 'line-color': unit, 'line-width': 3 } });
-  map.addLayer({ id: 'case-move', type: 'line', source: 'case', filter: ['==', ['get', 't'], 'move'], layout: round,
-    paint: { 'line-color': unit, 'line-width': 3.5, 'line-dasharray': [0.1, 1.9] } });
   map.addLayer({ id: 'case-link', type: 'line', source: 'case', filter: ['==', ['get', 't'], 'link'], layout: round,
-    paint: { 'line-color': inc, 'line-width': 3, 'line-dasharray': [1.6, 1.8] } });
+    paint: { 'line-color': inc, 'line-width': 3 } });
 }
-/** 사건 표식 (묶지 않고 하나씩) + 이동 중 도착 예상 시간 · 연관 신고 표시 */
+/** 사건 표식 (묶지 않고 하나씩) + 연관 신고 표시 */
 function paintCaseMarks() {
   MAPV.fmarks.forEach(m => m.remove()); MAPV.fmarks = [];
   const map = MAPV.map, ids = caseFocusIds(); if (!map || !ids) return;
@@ -1701,7 +1699,6 @@ function paintCaseMarks() {
     MAPV.fmarks.push(new maplibregl.Marker({ element: el }).setLngLat(ll).addTo(map));
   };
   const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-  caseLinks(d).filter(l => l.moving).forEach(l => chip(mid(l.from, l.to), `${l.eta}분`));
   d.reports.slice(1).forEach((r, i) => chip(mid(toLngLat(d.reports[i].x, d.reports[i].y), toLngLat(r.x, r.y)), `${icon('ic-link')}연관 신고`, 'is-link'));
 }
 function hotMark(id) {
