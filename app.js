@@ -1601,13 +1601,18 @@ function openCam(id) {
         <button class="btn btn-sm" type="button" data-act="map-cam-open" data-id="${esc(c.id)}">CCTV 앱에서 크게 보기</button>
       </div>
     </div>`;
-  // 그 CCTV 위치로 이동한다. 영상 창이 표식 위로 뜨므로 표식을 조금 아래에 둔다
+  // 그 CCTV 위치로 이동한다. 영상 창은 항상 표식 위에 붙인다 (anchor 고정: 이동 중 화면 가장자리에서 위아래로 뒤집히며 깜빡이지 않게)
   MAPV.map.easeTo({ center: toLngLat(c.x, c.y), zoom: Math.max(MAPV.map.getZoom(), 15),
     offset: [sideOffset() / 2, 130], duration: 800 });
-  const popup = new maplibregl.Popup({ className: 'mpop', closeButton: false, closeOnClick: true, maxWidth: 'none', offset: 24 })
+  const popup = new maplibregl.Popup({ className: 'mpop is-wait', anchor: 'bottom', closeButton: false, closeOnClick: true, maxWidth: 'none', offset: 24 })
     .setLngLat(toLngLat(c.x, c.y)).setHTML(html).addTo(MAPV.map);
   popup.on('close', () => { if (MAPV.cam === popup) MAPV.cam = null; });
   MAPV.cam = popup;
+  // 지도가 다 움직인 뒤에 나타나게 한다 (이동 중에 창이 따라 미끄러지는 모습을 감춘다)
+  let shown = false;
+  const show = () => { if (shown) return; shown = true; popup.removeClassName('is-wait'); };
+  MAPV.map.once('moveend', show);
+  setTimeout(show, 1000);
 }
 function closeCam() {
   if (!MAPV.cam) return;
