@@ -2374,18 +2374,14 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .mnav::-webkit-scrollbar-track{ background:transparent; }
 .mnav::-webkit-scrollbar-thumb{ background:var(--mc-sep); border:2px solid transparent; background-clip:padding-box; border-radius:4px; }
 .mcase{ display:flex; flex-direction:column; }
-.mcase + .mnav-h{ margin-top:14px; }
-.mcase-head{ position:relative; }
-.mcase-head .mnav-btn{ padding-right:34px; }
-/* 펼치기 화살표: 줄 전체(레이어 켜기)와 따로 눌린다 (macOS 사이드바 방식) */
-.mcase-fold{
-  position:absolute; right:4px; top:5px; width:24px; height:24px; display:grid; place-items:center; padding:0;
-  border:0; border-radius:6px; background:transparent; color:var(--ms-dim); cursor:pointer;
-}
-.mcase-fold:hover{ background:var(--mc-press); color:var(--mc-fg); }
-.mcase-fold:focus-visible{ outline:2px solid var(--info); outline-offset:-1px; }
-.mcase-fold .ic{ width:13px; height:13px; stroke-width:2.4; transition:transform .25s var(--ms-ease); }
-.mcase.is-open .mcase-fold .ic{ transform:rotate(90deg); }
+/* 사건 버튼: 누르면 사건 목록이 펼쳐지고 접힌다 */
+.mcase-toggle .ic.mcase-chev{ width:12px; height:12px; stroke-width:2.4; color:var(--ms-dim); transition:transform .25s var(--ms-ease); }
+.mcase.is-open .mcase-chev{ transform:rotate(90deg); }
+
+/* 지도 표시 버튼: 사이드바 아래에 고정 */
+.mlayers{ flex:none; display:flex; flex-direction:column; gap:1px; padding:10px 8px 10px; border-top:.5px solid var(--mc-sep); }
+.mlayers .mnav-btn{ height:31px; }
+.mside.is-searching .mlayers{ display:none; }
 
 .mcase-list{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .3s var(--ms-ease); }
 .mcase.is-open .mcase-list{ grid-template-rows:1fr; }

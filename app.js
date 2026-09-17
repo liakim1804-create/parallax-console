@@ -1492,7 +1492,7 @@ const toLngLat = (x, y) => [
 ];
 const MAP_TABS = [
   { k: 'incident', t: '사건 위치', ic: 'ic-incident', cluster: true,
-    points: () => INCIDENTS.map(i => ({ id: i.id, ll: toLngLat(i.x, i.y), glyph: 'ic-exclaim', label: `${i.id} ${i.type}` })) },
+    points: () => INCIDENTS.filter(i => i.status !== '종료').map(i => ({ id: i.id, ll: toLngLat(i.x, i.y), glyph: 'ic-exclaim', label: `${i.id} ${i.type}` })) },
   { k: 'unit', t: '인력·차량', ic: 'ic-unit', cluster: true,
     points: () => [
       ...OFFICERS.map(o => ({ id: o.id, ll: toLngLat(o.x, o.y), glyph: 'ic-officer', label: `${o.call} ${o.name}` })),
@@ -1772,11 +1772,8 @@ function caseListHTML() {
   }).join('');
   return `
     <div class="mcase${MAPV.caseOpen ? ' is-open' : ''}">
-      <div class="mcase-head">
-        <button class="mnav-btn mnav-incident${MAPV.layers.incident ? ' is-on' : ''}" type="button" data-act="map-layer" data-k="incident"
-          aria-pressed="${!!MAPV.layers.incident}" title="사건 위치 지도에 표시/숨기기">${icon('ic-incident')}<span class="mnav-t">사건</span><span class="mnav-n">${CASES.length}</span></button>
-        <button class="mcase-fold" type="button" data-act="map-case-fold" aria-expanded="${MAPV.caseOpen}" title="사건 목록 펼치기/접기" aria-label="사건 목록">${icon('ic-chev-r')}</button>
-      </div>
+      <button class="mnav-btn mcase-toggle" type="button" data-act="map-case-fold" aria-expanded="${MAPV.caseOpen}" title="사건 목록 펼치기/접기">
+        ${icon('ic-briefing')}<span class="mnav-t">사건</span><span class="mnav-n">${CASES.length}</span>${icon('ic-chev-r', 'mcase-chev')}</button>
       <div class="mcase-list"><div class="mcase-in">
         ${items}
         <button class="mcase-add" type="button" title="여러 신고를 하나의 사건으로 묶기 (다음 단계에서 구성)">${icon('ic-plus')}<span>사건 묶기</span></button>
@@ -1951,8 +1948,8 @@ defApp({
     const cur = MAP_MODES.find(m => m.k === MAPV.mode);
     const onImage = MAPV.mode !== 'standard';
     const caseSel = MAPV.caseSel && caseData(MAPV.caseSel);
-    const counts = { incident: INCIDENTS.length, unit: OFFICERS.length + VEHICLES.length, cctv: CCTVS.length };
-    const tabs = MAP_TABS.filter(t => t.k !== 'incident').map(t => t.points
+    const counts = { incident: INCIDENTS.filter(i => i.status !== '종료').length, unit: OFFICERS.length + VEHICLES.length, cctv: CCTVS.length };
+    const tabs = MAP_TABS.map(t => t.points
       ? `<button class="mnav-btn mnav-${t.k}${MAPV.layers[t.k] ? ' is-on' : ''}" type="button" data-act="map-layer" data-k="${t.k}"
           aria-pressed="${!!MAPV.layers[t.k]}" title="${esc(t.t)} 지도에 표시/숨기기">${icon(t.ic)}<span class="mnav-t">${esc(t.t)}</span><span class="mnav-n">${counts[t.k]}</span></button>`
       : `<button class="mnav-btn" type="button" data-k="${t.k}">${icon(t.ic)}<span class="mnav-t">${esc(t.t)}</span></button>`).join('');
@@ -1974,11 +1971,12 @@ defApp({
           <button class="msearch-clear" type="button" data-act="map-search-clear" aria-label="검색어 지우기"${MAPV.q ? '' : ' hidden'}>${icon('ic-close')}</button>
         </div>
         <div class="mresults" id="mresults" role="listbox" aria-label="검색 결과"></div>
-        <nav class="mnav${MAPV.navDir ? ' is-' + MAPV.navDir : ''}" aria-label="지도 표시">
-          ${caseSel ? caseDetailHTML(caseSel) : `
-          ${caseListHTML()}
+        <nav class="mnav${MAPV.navDir ? ' is-' + MAPV.navDir : ''}" aria-label="사건">
+          ${caseSel ? caseDetailHTML(caseSel) : caseListHTML()}
+        </nav>
+        <nav class="mlayers" aria-label="지도 표시">
           <div class="mnav-h">지도</div>
-          ${tabs}`}
+          ${tabs}
         </nav>
       </aside>
       <button class="mside-toggle" type="button" data-act="map-side" aria-expanded="${MAPV.side}"
@@ -2553,7 +2551,7 @@ const ACT = {
     MAPV.caseOpen = !MAPV.caseOpen;
     const box = document.querySelector('#win-map .mcase'); if (!box) return;
     box.classList.toggle('is-open', MAPV.caseOpen);
-    box.querySelector('.mcase-fold').setAttribute('aria-expanded', String(MAPV.caseOpen));
+    box.querySelector('.mcase-toggle').setAttribute('aria-expanded', String(MAPV.caseOpen));
   },
   'map-case': d => openCase(d.id),
   'map-case-back': () => closeCase(),
