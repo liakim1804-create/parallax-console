@@ -1396,9 +1396,17 @@ function mapStyleFor(mode) {
   };
 }
 /** 선택지 미리보기: 서울 중심부의 실제 타일 한 장 */
+// CARTO 래스터 바탕 타일은 키 없이 쓰면 워터마크가 찍히므로, 바탕은 Esri 타일을 쓰고 지명만 CARTO 에서 겹친다
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services';
 function mapThumb(mode) {
-  if (mode === 'standard') return `url(https://basemaps.cartocdn.com/${mapIsDark() ? 'dark_all' : 'rastertiles/voyager'}/12/3492/1589.png)`;
-  return `url(${MAP_LBL}/12/3492/1589.png), url(${MAP_SAT}/12/1589/3492)`;
+  const z = 12, x = 3492, y = 1586;   // 서울시청 일대 타일 한 장
+  if (mode === 'standard') {
+    const dark = mapIsDark();
+    const base = `${ESRI}/Canvas/World_${dark ? 'Dark' : 'Light'}_Gray_Base/MapServer/tile/${z}/${y}/${x}`;
+    const lbl = `https://basemaps.cartocdn.com/rastertiles/${dark ? 'dark' : 'voyager'}_only_labels/${z}/${x}/${y}.png`;
+    return `url(${lbl}), url(${base})`;
+  }
+  return `url(${MAP_LBL}/${z}/${x}/${y}.png), url(${MAP_SAT}/${z}/${y}/${x})`;
 }
 const COMPASS_SVG = (() => {
   let t = '';
@@ -1445,7 +1453,7 @@ function setMapMode(k) {
   const was = MAPV.mode;
   MAPV.mode = k; MAPV.menu = false;
   if (was !== k) MAPV.map.setStyle(mapStyleFor(k));
-  if (k === '3d') MAPV.map.easeTo({ pitch: 60, bearing: MAPV.map.getBearing() || -20, duration: 1000 });
+  if (k === '3d') MAPV.map.easeTo({ pitch: 60, duration: 1000 });   // 기울이기만 하고 방향(나침반)은 그대로 둔다
   else if (was === '3d') MAPV.map.easeTo({ pitch: 0, duration: 700 });
   render('map');
 }
