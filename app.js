@@ -1379,7 +1379,7 @@ const MAPV = {
   side: true,                                                   // 사이드바 펼침 여부
   q: '', results: [], hi: -1, status: 'idle', pin: null, abort: null, timer: 0,  // 장소 검색
   layers: {}, marks: new Map(), cam: null,                                       // 지도 레이어 표식 · CCTV 팝오버
-  caseOpen: true, caseSel: null, navDir: null, fmarks: []                        // 사건 목록 펼침 · 선택한 사건 · 사건 표식
+  caseOpen: true, caseSel: null, rowSel: null, navDir: null, fmarks: []                      // 사건 목록 펼침 · 선택한 사건 · 사건 표식
 };
 const mapIsDark = () => document.documentElement.dataset.theme === 'dark';
 
@@ -1548,11 +1548,13 @@ function onMarkClick(tab, g) {
     map.easeTo({ center: g.ll, zoom, offset: [sideOffset() / 2, 0], duration: 700 });
     return;
   }
-  if (tab.k === 'cctv') { openCam(g.items[0].id); return; }
-  if (tab.k === 'incident') {   // 사건 표식을 누르면 그 신고가 속한 사건을 연다
-    const c = caseOfReport(g.items[0].id);
-    if (c && c.id !== MAPV.caseSel) { openCase(c.id); return; }
-  }
+  // 사건에 속한 표식(신고·인력·차량·CCTV)을 누르면 사이드바에 그 사건 상세를 펼치고 해당 줄을 선택한다
+  const id = g.items[0].id;
+  const c = caseOfItem(id), opening = !!c && c.id !== MAPV.caseSel;
+  if (opening) openCase(c.id, id, tab.k !== 'cctv');   // 새로 열 때는 사건 전체가 보이게 맞춘다 (CCTV는 영상 위치로)
+  else if (c) { if (!MAPV.side) setMapSide(true); selectCaseRow(id); }
+  if (tab.k === 'cctv') { openCam(id); return; }
+  if (opening) return;
   map.flyTo({ center: g.items[0].ll, zoom: Math.max(map.getZoom() + 1.5, 15), offset: [sideOffset() / 2, 0], duration: 900 });
 }
 /** 켜진 레이어의 표식을 다시 계산해, 바뀐 것만 지우고 새로 붙인다 */
@@ -1628,6 +1630,12 @@ const PRI_TONE = { 긴급: 'crit', 주의: 'warn', 일반: 'idle' };
 const MOVE_KMH = 30;   // 이동 중 도착 예상 시간 계산용 평균 속도 (가상)
 
 const caseOfReport = rid => CASES.find(c => c.reports.includes(rid));
+/** 신고·경찰관·차량·CCTV id → 속한 사건 */
+function caseOfItem(id) {
+  if (INCIDENTS.some(i => i.id === id)) return caseOfReport(id);
+  const u = [...OFFICERS, ...VEHICLES, ...CCTVS].find(x => x.id === id);
+  return u ? caseOfReport(u.inc) : null;
+}
 function caseData(id) {
   const c = CASES.find(x => x.id === id); if (!c) return null;
   const reports = c.reports.map(r => INCIDENTS.find(i => i.id === r)).filter(Boolean);
@@ -1702,7 +1710,16 @@ function paintCaseMarks() {
   d.reports.slice(1).forEach((r, i) => chip(mid(toLngLat(d.reports[i].x, d.reports[i].y), toLngLat(r.x, r.y)), `${icon('ic-link')}연관 신고`, 'is-link'));
 }
 function hotMark(id) {
-  MAPV.fmarks.forEach(m => { const el = m.getElement(); if (el.dataset.fid) el.classList.toggle('is-hot', el.dataset.fid === id); });
+  const t = id || MAPV.rowSel;   // 가리키는 줄이 없으면 선택한 줄의 표식을 강조해 둔다
+  MAPV.fmarks.forEach(m => { const el = m.getElement(); if (el.dataset.fid) el.classList.toggle('is-hot', el.dataset.fid === t); });
+}
+/** 사건 상세에서 한 줄을 선택 상태로 두고, 보이도록 스크롤하고, 지도 표식을 강조 */
+function selectCaseRow(id) {
+  MAPV.rowSel = id || null;
+  document.querySelectorAll('#win-map .mcd-row').forEach(r => r.classList.toggle('is-sel', r.dataset.id === MAPV.rowSel));
+  const row = MAPV.rowSel && document.querySelector(`#win-map .mcd-row[data-id="${MAPV.rowSel}"]`);
+  if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  hotMark(null);
 }
 function fitCase() {
   const map = MAPV.map, d = MAPV.caseSel && caseData(MAPV.caseSel); if (!map || !d) return;
@@ -1710,21 +1727,27 @@ function fitCase() {
   const b = new maplibregl.LngLatBounds(pts[0], pts[0]); pts.forEach(p => b.extend(p));
   map.fitBounds(b, { padding: { left: sideOffset() + 60, right: 90, top: 70, bottom: 70 }, maxZoom: 16, duration: 900 });
 }
-function openCase(id) {
+/** 사건 상세 열기. rowId 를 주면 그 줄을 선택해 둔다 (지도 표식을 눌러 열 때) */
+function openCase(id, rowId = null, fit = true) {
   if (!caseData(id)) return;
   closeCam();
-  MAPV.caseSel = id; MAPV.navDir = 'in'; MAPV.side = true;
+  MAPV.caseSel = id; MAPV.navDir = 'in'; MAPV.side = true; MAPV.rowSel = null;
+  // 검색 결과가 사이드바를 덮고 있으면 걷어 낸다
+  if (MAPV.results.length || MAPV.status !== 'idle') { MAPV.results = []; MAPV.status = 'idle'; MAPV.hi = -1; }
   render('map');
-  paintCaseLines(); paintCaseMarks(); paintMapLayers(); fitCase();
+  paintCaseLines(); paintCaseMarks(); paintMapLayers();
+  if (fit) fitCase();
+  if (rowId) selectCaseRow(rowId);
 }
 function closeCase() {
-  MAPV.caseSel = null; MAPV.navDir = 'out';
+  MAPV.caseSel = null; MAPV.navDir = 'out'; MAPV.rowSel = null;
   render('map');
   paintCaseLines(); paintCaseMarks(); paintMapLayers();
 }
 /** 사건 상세에서 줄을 누르면: CCTV는 영상, 나머지는 그 위치로 이동 */
 function goCaseItem(kind, id) {
   const map = MAPV.map; if (!map) return;
+  selectCaseRow(id);
   if (kind === 'cctv') { openCam(id); return; }
   const u = [...INCIDENTS, ...OFFICERS, ...VEHICLES].find(x => x.id === id); if (!u) return;
   map.flyTo({ center: toLngLat(u.x, u.y), zoom: Math.max(map.getZoom(), 16), offset: [sideOffset() / 2, 0], duration: 900 });
@@ -1757,7 +1780,7 @@ function caseListHTML() {
 }
 function caseDetailHTML(d) {
   const row = (kind, fid, glyph, title, sub, end = '') => `
-    <button class="mcd-row mcd-${kind}" type="button" data-act="map-case-go" data-kind="${kind}" data-id="${fid}" data-fid="${fid}">
+    <button class="mcd-row mcd-${kind}${MAPV.rowSel === fid ? ' is-sel' : ''}" type="button" data-act="map-case-go" data-kind="${kind}" data-id="${fid}" data-fid="${fid}">
       <span class="mcd-ic">${icon(glyph)}</span>
       <span class="mcd-tx"><span class="mcd-t">${esc(title)}</span><span class="mcd-s">${esc(sub)}</span></span>${end}
     </button>`;

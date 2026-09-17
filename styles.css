@@ -2454,6 +2454,9 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .mcd-row:hover{ background:var(--mc-press); }
 .mcd-row:active{ background:var(--mc-sep); }
 .mcd-row:focus-visible{ outline:2px solid var(--info); outline-offset:-2px; }
+/* 지도 표식이나 줄을 눌러 선택한 항목 */
+.mcd-row.is-sel{ background:color-mix(in srgb, var(--c) 16%, transparent); }
+.mcd-row.is-sel .mcd-t{ font-weight:600; }
 .mcd-incident{ --c:var(--mk-incident); }
 .mcd-cctv{ --c:var(--mk-cctv); }
 .mcd-ic{ flex:none; width:24px; height:24px; display:grid; place-items:center; border-radius:50%; background:var(--c); color:#ffffff; }
