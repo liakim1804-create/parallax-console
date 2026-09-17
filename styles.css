@@ -2366,6 +2366,11 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 :root[data-theme="dark"]{ --pri-crit:#ff453a; --pri-warn:#ff9f0a; --pri-idle:#98989d; }
 .pri-crit{ --p:var(--pri-crit); } .pri-warn{ --p:var(--pri-warn); } .pri-idle{ --p:var(--pri-idle); }
 
+/* 스크롤바 자리를 항상 비워 둔다: 목록을 펼치고 접을 때 스크롤바가 생겼다 사라지며 버튼 폭이 바뀌지 않게 */
+.mnav{ scrollbar-gutter:stable; padding-right:0; }
+.mnav::-webkit-scrollbar{ width:8px; }
+.mnav::-webkit-scrollbar-track{ background:transparent; }
+.mnav::-webkit-scrollbar-thumb{ background:var(--mc-sep); border:2px solid transparent; background-clip:padding-box; border-radius:4px; }
 .mcase{ display:flex; flex-direction:column; }
 .mcase + .mnav-h{ margin-top:14px; }
 .mcase-head{ position:relative; }

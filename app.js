@@ -1599,6 +1599,9 @@ function openCam(id) {
         <button class="btn btn-sm" type="button" data-act="map-cam-open" data-id="${esc(c.id)}">CCTV 앱에서 크게 보기</button>
       </div>
     </div>`;
+  // 그 CCTV 위치로 이동한다. 영상 창이 표식 위로 뜨므로 표식을 조금 아래에 둔다
+  MAPV.map.easeTo({ center: toLngLat(c.x, c.y), zoom: Math.max(MAPV.map.getZoom(), 15),
+    offset: [sideOffset() / 2, 130], duration: 800 });
   const popup = new maplibregl.Popup({ className: 'mpop', closeButton: false, closeOnClick: true, maxWidth: 'none', offset: 24 })
     .setLngLat(toLngLat(c.x, c.y)).setHTML(html).addTo(MAPV.map);
   popup.on('close', () => { if (MAPV.cam === popup) MAPV.cam = null; });
