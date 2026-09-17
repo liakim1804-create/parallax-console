@@ -1379,7 +1379,7 @@ const MAPV = {
   side: true,                                                   // 사이드바 펼침 여부
   q: '', results: [], hi: -1, status: 'idle', pin: null, abort: null, timer: 0,  // 장소 검색
   layers: {}, marks: new Map(), cam: null,                                       // 지도 레이어 표식 · CCTV 팝오버
-  caseOpen: true, caseSel: null, rowSel: null, navDir: null, fmarks: []                      // 사건 목록 펼침 · 선택한 사건 · 사건 표식
+  caseOpen: true, caseSel: null, rowSel: null, navDir: null, navScroll: 0, fmarks: []                      // 사건 목록 펼침 · 선택한 사건 · 사건 표식
 };
 const mapIsDark = () => document.documentElement.dataset.theme === 'dark';
 
@@ -1736,7 +1736,7 @@ function fitCase() {
 function openCase(id, rowId = null, fit = true) {
   if (!caseData(id)) return;
   closeCam();
-  MAPV.caseSel = id; MAPV.navDir = 'in'; MAPV.side = true; MAPV.rowSel = null;
+  MAPV.caseSel = id; MAPV.navDir = 'in'; MAPV.side = true; MAPV.rowSel = null; MAPV.navScroll = 0;
   // 검색 결과가 사이드바를 덮고 있으면 걷어 낸다
   if (MAPV.results.length || MAPV.status !== 'idle') { MAPV.results = []; MAPV.status = 'idle'; MAPV.hi = -1; }
   render('map');
@@ -1745,7 +1745,7 @@ function openCase(id, rowId = null, fit = true) {
   if (rowId) selectCaseRow(rowId);
 }
 function closeCase() {
-  MAPV.caseSel = null; MAPV.navDir = 'out'; MAPV.rowSel = null;
+  MAPV.caseSel = null; MAPV.navDir = 'out'; MAPV.rowSel = null; MAPV.navScroll = 0;
   render('map');
   paintCaseLines(); paintCaseMarks(); paintMapLayers();
 }
@@ -1978,15 +1978,11 @@ defApp({
           <button class="msearch-clear" type="button" data-act="map-search-clear" aria-label="검색어 지우기"${MAPV.q ? '' : ' hidden'}>${icon('ic-close')}</button>
         </div>
         <div class="mresults" id="mresults" role="listbox" aria-label="검색 결과"></div>
-        <!-- 지도 버튼 6개. [사건 위치] 아래에 사건 목록(또는 사건 상세)이 펼쳐지고, 나머지 버튼은 그 아래에 항상 보인다 -->
-        <div class="mlayers mlayers-top">
+        <!-- 지도 버튼 6개가 한 스크롤 영역 안에 있다. [사건 위치] 바로 아래에 사건 목록(또는 사건 상세)이 펼쳐진다 -->
+        <nav class="mnav" aria-label="지도 표시">
           <div class="mnav-h">지도</div>
           ${caseHeadHTML(MAP_TABS.find(t => t.k === 'incident'), counts.incident)}
-        </div>
-        <nav class="mnav${MAPV.navDir ? ' is-' + MAPV.navDir : ''}" aria-label="사건 목록">
-          ${caseSel ? caseDetailHTML(caseSel) : caseListHTML()}
-        </nav>
-        <nav class="mlayers" aria-label="지도 표시">
+          <div class="mcase-body${MAPV.navDir ? ' is-' + MAPV.navDir : ''}">${caseSel ? caseDetailHTML(caseSel) : caseListHTML()}</div>
           ${tabs}
         </nav>
       </aside>
@@ -2026,6 +2022,12 @@ defApp({
     paintResults();
     paintMapLayers();
     MAPV.navDir = null;   // 넘어가는 애니메이션은 사건을 열고 닫을 때 한 번만
+    // 다른 창 때문에 지도 창이 다시 그려져도 사이드바 스크롤 위치를 유지한다
+    const nav = $('.mnav', body);
+    if (nav) {
+      nav.scrollTop = MAPV.navScroll;
+      nav.addEventListener('scroll', () => { MAPV.navScroll = nav.scrollTop; }, { passive: true });
+    }
     // 사건 상세의 줄에 마우스를 올리면 지도의 해당 표식을 강조
     const side = $('.mside', body);
     if (side) {

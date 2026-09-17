@@ -2387,14 +2387,9 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .mside.is-case-open .mcase-fold .ic{ transform:rotate(90deg); }
 .mside.is-case-detail .mcase-fold{ display:none; }   /* 사건 상세에서는 [사건 목록] 뒤로 가기로 돌아간다 */
 
-/* 지도 버튼 묶음. 가운데 사건 목록은 내용만큼만 차지하고, 넘치면 그 안에서만 스크롤한다 */
-.mlayers{ flex:none; display:flex; flex-direction:column; gap:1px; padding:0 8px 10px; }
-.mlayers .mnav-h{ padding-top:14px; }
-.mlayers-top{ padding-bottom:0; }
-.mlayers .mnav-btn{ height:32px; }
-.mside .mnav{ flex:0 1 auto; padding-top:0; padding-bottom:4px; }
-.mside:not(.is-case-open) .mnav{ padding-bottom:0; }
-.mside.is-searching .mlayers{ display:none; }
+/* [사건 위치] 아래 펼쳐지는 영역 (사건 목록 또는 사건 상세) */
+.mcase-body{ flex:none; }
+.mside.is-case-open .mcase-body{ padding-bottom:6px; }
 
 .mcase-list{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .3s var(--ms-ease); }
 .mside.is-case-open .mcase-list{ grid-template-rows:1fr; }
@@ -2427,8 +2422,8 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .mcase-add .ic{ width:14px; height:14px; stroke-width:2.4; }
 
 /* 사이드바가 옆으로 넘어가는 느낌 (들어가기: 오른쪽에서, 나오기: 왼쪽에서) */
-.mnav.is-in > *{ animation:mnav-in .34s var(--ms-ease) both; }
-.mnav.is-out > *{ animation:mnav-out .34s var(--ms-ease) both; }
+.mcase-body.is-in > *{ animation:mnav-in .34s var(--ms-ease) both; }
+.mcase-body.is-out > *{ animation:mnav-out .34s var(--ms-ease) both; }
 @keyframes mnav-in{ from{ transform:translateX(28px); opacity:0; } }
 @keyframes mnav-out{ from{ transform:translateX(-28px); opacity:0; } }
 
