@@ -2360,3 +2360,119 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .mcam-x .ic{ width:10px; height:10px; stroke-width:2.8; }
 .mcam .screen{ height:158px; border-radius:10px; }
 .mcam-f{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+
+/* ---------- 사건: 사이드바 드롭다운 목록 → 사건 상세 ---------- */
+:root{ --pri-crit:#ff3b30; --pri-warn:#ff9500; --pri-idle:#8e8e93; }
+:root[data-theme="dark"]{ --pri-crit:#ff453a; --pri-warn:#ff9f0a; --pri-idle:#98989d; }
+.pri-crit{ --p:var(--pri-crit); } .pri-warn{ --p:var(--pri-warn); } .pri-idle{ --p:var(--pri-idle); }
+
+.mcase{ display:flex; flex-direction:column; }
+.mcase + .mnav-h{ margin-top:14px; }
+.mcase-head{ position:relative; }
+.mcase-head .mnav-btn{ padding-right:34px; }
+/* 펼치기 화살표: 줄 전체(레이어 켜기)와 따로 눌린다 (macOS 사이드바 방식) */
+.mcase-fold{
+  position:absolute; right:4px; top:5px; width:24px; height:24px; display:grid; place-items:center; padding:0;
+  border:0; border-radius:6px; background:transparent; color:var(--ms-dim); cursor:pointer;
+}
+.mcase-fold:hover{ background:var(--mc-press); color:var(--mc-fg); }
+.mcase-fold:focus-visible{ outline:2px solid var(--info); outline-offset:-1px; }
+.mcase-fold .ic{ width:13px; height:13px; stroke-width:2.4; transition:transform .25s var(--ms-ease); }
+.mcase.is-open .mcase-fold .ic{ transform:rotate(90deg); }
+
+.mcase-list{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .3s var(--ms-ease); }
+.mcase.is-open .mcase-list{ grid-template-rows:1fr; }
+.mcase-in{ min-height:0; overflow:hidden; display:flex; flex-direction:column; gap:1px; padding-left:10px; }
+.mcase.is-open .mcase-in{ padding-top:2px; }
+.mcase:not(.is-open) .mcase-in{ visibility:hidden; transition:visibility 0s linear .3s; }
+
+.mcase-item{
+  width:100%; display:flex; align-items:center; gap:8px; padding:6px 6px 6px 8px;
+  border:0; border-radius:8px; background:transparent; color:var(--mc-fg); text-align:left; cursor:pointer; font-family:var(--font);
+}
+.mcase-item:hover{ background:var(--mc-press); }
+.mcase-item:active{ background:var(--mc-sep); }
+.mcase-item:focus-visible{ outline:2px solid var(--info); outline-offset:-2px; }
+.mcase-dot{ flex:none; width:8px; height:8px; border-radius:50%; background:var(--p); }
+.mcase-tx{ flex:1; min-width:0; display:grid; gap:1px; }
+.mcase-t, .mcase-s{ overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.mcase-t{ font-size:13px; font-weight:500; letter-spacing:-.01em; }
+.mcase-s{ font-size:11px; color:var(--ms-dim); font-variant-numeric:tabular-nums; }
+.mcase-go{ flex:none; width:12px; height:12px; stroke-width:2.4; color:var(--ms-dim); }
+
+/* 사건 묶기: 목록 끝의 넓은 버튼 */
+.mcase-add{
+  margin:6px 0 2px; height:34px; display:flex; align-items:center; justify-content:center; gap:6px;
+  border:0; border-radius:9px; background:color-mix(in srgb, var(--info) 14%, transparent); color:var(--info);
+  font-family:var(--font); font-size:13px; font-weight:600; letter-spacing:-.01em; cursor:pointer; transition:background-color .15s ease;
+}
+.mcase-add:hover{ background:color-mix(in srgb, var(--info) 22%, transparent); }
+.mcase-add:focus-visible{ outline:2px solid var(--info); outline-offset:1px; }
+.mcase-add .ic{ width:14px; height:14px; stroke-width:2.4; }
+
+/* 사이드바가 옆으로 넘어가는 느낌 (들어가기: 오른쪽에서, 나오기: 왼쪽에서) */
+.mnav.is-in > *{ animation:mnav-in .34s var(--ms-ease) both; }
+.mnav.is-out > *{ animation:mnav-out .34s var(--ms-ease) both; }
+@keyframes mnav-in{ from{ transform:translateX(28px); opacity:0; } }
+@keyframes mnav-out{ from{ transform:translateX(-28px); opacity:0; } }
+
+/* 사건 상세 */
+.mcd{ display:flex; flex-direction:column; gap:2px; }
+.mcd-back{
+  align-self:flex-start; height:28px; display:flex; align-items:center; gap:2px; padding:0 8px 0 2px; margin-bottom:4px;
+  border:0; border-radius:7px; background:transparent; color:var(--info); cursor:pointer;
+  font-family:var(--font); font-size:13.5px; font-weight:500; letter-spacing:-.01em;
+}
+.mcd-back:hover{ background:var(--mc-press); }
+.mcd-back:focus-visible{ outline:2px solid var(--info); outline-offset:-2px; }
+.mcd-back .ic{ width:17px; height:17px; stroke-width:2.4; }
+.mcd-head{ display:grid; gap:3px; padding:0 8px 6px; }
+.mcd-pri{
+  justify-self:start; padding:1px 7px; border-radius:6px; font-size:11px; font-weight:600;
+  background:color-mix(in srgb, var(--p) 16%, transparent); color:var(--p);
+}
+.mcd-title{ font-size:16px; font-weight:700; letter-spacing:-.02em; line-height:1.25; color:var(--mc-fg); }
+.mcd-place{ font-size:11.5px; color:var(--ms-dim); line-height:1.35; }
+.mcd-note{
+  display:flex; gap:5px; margin-top:4px; padding:6px 8px; border-radius:8px; font-size:11.5px; line-height:1.4;
+  background:color-mix(in srgb, var(--mk-incident) 10%, transparent); color:var(--mc-fg);
+}
+.mcd-note .ic{ flex:none; width:13px; height:13px; margin-top:1px; stroke-width:2.2; color:var(--mk-incident); }
+
+.mcd-sec{ display:flex; flex-direction:column; gap:1px; margin-top:10px; }
+.mcd-h{ display:flex; justify-content:space-between; padding:0 8px 4px; font-size:11px; font-weight:600; color:var(--ms-dim); font-variant-numeric:tabular-nums; }
+.mcd-row{
+  --c:var(--mk-unit);
+  width:100%; display:flex; align-items:center; gap:8px; padding:5px 6px;
+  border:0; border-radius:8px; background:transparent; color:var(--mc-fg); text-align:left; cursor:pointer; font-family:var(--font);
+}
+.mcd-row:hover{ background:var(--mc-press); }
+.mcd-row:active{ background:var(--mc-sep); }
+.mcd-row:focus-visible{ outline:2px solid var(--info); outline-offset:-2px; }
+.mcd-incident{ --c:var(--mk-incident); }
+.mcd-cctv{ --c:var(--mk-cctv); }
+.mcd-ic{ flex:none; width:24px; height:24px; display:grid; place-items:center; border-radius:50%; background:var(--c); color:#ffffff; }
+.mcd-cctv .mcd-ic{ border-radius:7px; }
+.mcd-ic .ic{ width:13px; height:13px; stroke-width:2.2; }
+.mcd-incident .mcd-ic .ic{ stroke-width:3; }
+.mcd-tx{ flex:1; min-width:0; display:grid; gap:1px; }
+.mcd-t, .mcd-s{ overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.mcd-t{ font-size:12.5px; font-weight:500; letter-spacing:-.01em; }
+.mcd-s{ font-size:11px; color:var(--ms-dim); }
+.mcd-eta{ flex:none; font-size:11px; font-weight:600; color:var(--ms-dim); font-variant-numeric:tabular-nums; }
+.mcd-eta.is-move{ color:var(--mk-unit); }
+
+/* 지도: 사건을 연 동안 관계없는 표식은 흐리게, 사이드바에서 가리킨 표식은 강조 */
+.is-dim > .mk{ opacity:.3; filter:saturate(.4); }
+.is-focus.is-hot{ z-index:9 !important; }
+.is-focus.is-hot > .mk{ transform:scale(1.28); box-shadow:0 0 0 5px color-mix(in srgb, var(--c) 30%, transparent), 0 3px 10px rgba(0,0,0,.3); }
+
+/* 선 위의 작은 이름표: 이동 중 도착 예상 시간 · 연관 신고 */
+.mchip{
+  display:flex; align-items:center; gap:3px; padding:2px 7px; border-radius:10px; pointer-events:none;
+  background:var(--mk-unit); color:#ffffff; border:1.5px solid #ffffff;
+  font-family:var(--font); font-size:11px; font-weight:700; letter-spacing:-.01em; font-variant-numeric:tabular-nums;
+  box-shadow:0 1px 4px rgba(0,0,0,.25);
+}
+.mchip.is-link{ background:var(--mk-incident); }
+.mchip .ic{ width:11px; height:11px; stroke-width:2.6; }

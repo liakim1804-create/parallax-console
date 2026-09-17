@@ -1378,7 +1378,8 @@ const MAPV = {
   map: null, el: null, mode: 'standard', menu: false, me: null, busy: false,
   side: true,                                                   // 사이드바 펼침 여부
   q: '', results: [], hi: -1, status: 'idle', pin: null, abort: null, timer: 0,  // 장소 검색
-  layers: {}, marks: new Map(), cam: null                                        // 지도 레이어 표식 · CCTV 팝오버
+  layers: {}, marks: new Map(), cam: null,                                       // 지도 레이어 표식 · CCTV 팝오버
+  caseOpen: true, caseSel: null, navDir: null, fmarks: []                        // 사건 목록 펼침 · 선택한 사건 · 사건 표식
 };
 const mapIsDark = () => document.documentElement.dataset.theme === 'dark';
 
@@ -1417,6 +1418,11 @@ function initMap() {
   });
   MAPV.map.on('rotate', syncCompass);
   MAPV.map.on('moveend', paintMapLayers);   // 확대·축소가 끝나면 묶음을 다시 계산
+  // 지도 종류·테마를 바꾸면 스타일과 함께 연결선이 지워지므로 다시 그린다
+  // (스타일 교체 직후에는 아직 불러오는 중일 수 있어 첫 idle 에서도 확인한다)
+  const relines = () => { if (MAPV.caseSel && !MAPV.map.getSource('case')) paintCaseLines(); };
+  MAPV.map.on('styledata', relines);
+  MAPV.map.on('idle', relines);
   new ResizeObserver(() => MAPV.map.resize()).observe(MAPV.el);
   // 지도 종류 선택지는 바깥을 누르거나 Esc 로 닫는다
   document.addEventListener('pointerdown', e => {
@@ -1543,15 +1549,20 @@ function onMarkClick(tab, g) {
     return;
   }
   if (tab.k === 'cctv') { openCam(g.items[0].id); return; }
+  if (tab.k === 'incident') {   // 사건 표식을 누르면 그 신고가 속한 사건을 연다
+    const c = caseOfReport(g.items[0].id);
+    if (c && c.id !== MAPV.caseSel) { openCase(c.id); return; }
+  }
   map.flyTo({ center: g.items[0].ll, zoom: Math.max(map.getZoom() + 1.5, 15), offset: [sideOffset() / 2, 0], duration: 900 });
 }
 /** 켜진 레이어의 표식을 다시 계산해, 바뀐 것만 지우고 새로 붙인다 */
 function paintMapLayers() {
   const map = MAPV.map; if (!map) return;
   const want = new Map();
+  const focus = caseFocusIds();   // 사건을 연 동안: 그 사건 것은 사건 표식이 대신하고, 나머지는 흐리게
   MAP_TABS.forEach(tab => {
     if (!tab.points || !MAPV.layers[tab.k]) return;
-    const pts = tab.points();
+    const pts = tab.points().filter(p => !focus || !focus.has(p.id));
     const groups = tab.cluster ? clusterPoints(pts, 48) : pts.map(p => ({ items: [p], key: p.id, ll: p.ll }));
     groups.forEach(g => want.set(`${tab.k}|${g.key}`, { tab, g }));
   });
@@ -1561,6 +1572,7 @@ function paintMapLayers() {
     if (m) m.setLngLat(g.ll);
     else MAPV.marks.set(k, new maplibregl.Marker({ element: mapMarkEl(tab, g) }).setLngLat(g.ll).addTo(map));
   });
+  MAPV.marks.forEach(m => m.getElement().classList.toggle('is-dim', !!focus));
 }
 function toggleMapLayer(k) {
   const tab = MAP_TABS.find(t => t.k === k); if (!tab || !tab.points) return;
@@ -1595,6 +1607,181 @@ function openCam(id) {
 function closeCam() {
   if (!MAPV.cam) return;
   const p = MAPV.cam; MAPV.cam = null; p.remove();
+}
+
+/* ---- 사건: 여러 신고 건을 하나로 묶은 단위 ----
+   사이드바 [사건] 목록에서 사건을 고르면, 사이드바는 사건 상세로 넘어가고
+   지도는 그 사건의 신고·배정 인력·차량·CCTV만 또렷하게 찍고 배정 관계를 선으로 잇는다.
+   묶음 구성은 시연용 가상 데이터다. */
+const CASES = [
+  { id: 'K-01', title: '하늘동 주택 침입', reports: ['A-102'] },
+  { id: 'K-02', title: '새빛로 상가 흉기 위협', reports: ['A-104'] },
+  { id: 'K-03', title: '도난 차량 도주·추돌', reports: ['A-111', 'A-107'],
+    note: '도난 차량이 교차로 추돌에 연루된 것으로 보여 묶음 (가상)' },
+  { id: 'K-04', title: '한들공원 아동 실종', reports: ['A-109'] },
+  { id: 'K-05', title: '미르동 소음 신고', reports: ['A-113'] }
+];
+const PRI_TONE = { 긴급: 'crit', 주의: 'warn', 일반: 'idle' };
+const MOVE_KMH = 30;   // 이동 중 도착 예상 시간 계산용 평균 속도 (가상)
+
+const caseOfReport = rid => CASES.find(c => c.reports.includes(rid));
+function caseData(id) {
+  const c = CASES.find(x => x.id === id); if (!c) return null;
+  const reports = c.reports.map(r => INCIDENTS.find(i => i.id === r)).filter(Boolean);
+  const mine = u => c.reports.includes(u.inc);
+  const pri = reports.map(r => r.priority).sort((a, b) => Object.keys(PRI_TONE).indexOf(a) - Object.keys(PRI_TONE).indexOf(b))[0] || '일반';
+  return { c, reports, pri, officers: OFFICERS.filter(mine), vehicles: VEHICLES.filter(mine), cams: CCTVS.filter(mine) };
+}
+function caseFocusIds() {
+  const d = MAPV.caseSel && caseData(MAPV.caseSel); if (!d) return null;
+  return new Set([...d.reports, ...d.officers, ...d.vehicles, ...d.cams].map(x => x.id));
+}
+function kmBetween(a, b) {
+  const r = Math.PI / 180, dLat = (b[1] - a[1]) * r, dLon = (b[0] - a[0]) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[1] * r) * Math.cos(b[1] * r) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+/** 인력·차량 → 배정된 신고 위치. 이동 중이면 도착 예상 시간을 붙인다 (차량은 탑승 경찰관 상태를 따른다) */
+function caseLinks(d) {
+  const link = (u, state) => {
+    const r = d.reports.find(x => x.id === u.inc);
+    const from = toLngLat(u.x, u.y), to = toLngLat(r.x, r.y), km = kmBetween(from, to), moving = state === '이동 중';
+    return { id: u.id, from, to, km, moving, eta: moving ? Math.max(1, Math.round(km / MOVE_KMH * 60)) : 0 };
+  };
+  return [
+    ...d.officers.map(o => link(o, o.state)),
+    ...d.vehicles.map(v => link(v, (OFFICERS.find(o => o.call === v.crew) || {}).state))
+  ];
+}
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/** 배정 관계선: 현장에 있으면 실선, 이동 중이면 점선. 묶인 신고끼리는 빨간 파선 */
+function paintCaseLines() {
+  const map = MAPV.map; if (!map || !map.isStyleLoaded()) return;
+  ['case-link', 'case-move', 'case-here', 'case-halo'].forEach(l => map.getLayer(l) && map.removeLayer(l));
+  if (map.getSource('case')) map.removeSource('case');
+  const d = MAPV.caseSel && caseData(MAPV.caseSel); if (!d) return;
+  const line = (t, a, b) => ({ type: 'Feature', properties: { t }, geometry: { type: 'LineString', coordinates: [a, b] } });
+  const features = [
+    ...caseLinks(d).map(l => line(l.moving ? 'move' : 'here', l.from, l.to)),
+    ...d.reports.slice(1).map((r, i) => line('link', toLngLat(d.reports[i].x, d.reports[i].y), toLngLat(r.x, r.y)))
+  ];
+  map.addSource('case', { type: 'geojson', data: { type: 'FeatureCollection', features } });
+  const round = { 'line-cap': 'round', 'line-join': 'round' };
+  const unit = cssVar('--mk-unit') || '#007aff', inc = cssVar('--mk-incident') || '#ff3b30';
+  const halo = MAPV.mode === 'standard' && !mapIsDark() ? 'rgba(255,255,255,.95)' : 'rgba(0,0,0,.5)';
+  map.addLayer({ id: 'case-halo', type: 'line', source: 'case', layout: round, paint: { 'line-color': halo, 'line-width': 7 } });
+  map.addLayer({ id: 'case-here', type: 'line', source: 'case', filter: ['==', ['get', 't'], 'here'], layout: round,
+    paint: { 'line-color': unit, 'line-width': 3 } });
+  map.addLayer({ id: 'case-move', type: 'line', source: 'case', filter: ['==', ['get', 't'], 'move'], layout: round,
+    paint: { 'line-color': unit, 'line-width': 3.5, 'line-dasharray': [0.1, 1.9] } });
+  map.addLayer({ id: 'case-link', type: 'line', source: 'case', filter: ['==', ['get', 't'], 'link'], layout: round,
+    paint: { 'line-color': inc, 'line-width': 3, 'line-dasharray': [1.6, 1.8] } });
+}
+/** 사건 표식 (묶지 않고 하나씩) + 이동 중 도착 예상 시간 · 연관 신고 표시 */
+function paintCaseMarks() {
+  MAPV.fmarks.forEach(m => m.remove()); MAPV.fmarks = [];
+  const map = MAPV.map, ids = caseFocusIds(); if (!map || !ids) return;
+  const d = caseData(MAPV.caseSel);
+  MAP_TABS.forEach(tab => {
+    if (!tab.points) return;
+    tab.points().filter(p => ids.has(p.id)).forEach(p => {
+      const el = mapMarkEl(tab, { items: [p], key: p.id, ll: p.ll });
+      el.classList.add('is-focus'); el.dataset.fid = p.id;
+      el.style.zIndex = +el.style.zIndex + 3;
+      MAPV.fmarks.push(new maplibregl.Marker({ element: el }).setLngLat(p.ll).addTo(map));
+    });
+  });
+  const chip = (ll, html, cls = '') => {
+    const el = document.createElement('div');
+    el.className = `mchip ${cls}`; el.innerHTML = html; el.style.zIndex = 3;
+    MAPV.fmarks.push(new maplibregl.Marker({ element: el }).setLngLat(ll).addTo(map));
+  };
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  caseLinks(d).filter(l => l.moving).forEach(l => chip(mid(l.from, l.to), `${l.eta}분`));
+  d.reports.slice(1).forEach((r, i) => chip(mid(toLngLat(d.reports[i].x, d.reports[i].y), toLngLat(r.x, r.y)), `${icon('ic-link')}연관 신고`, 'is-link'));
+}
+function hotMark(id) {
+  MAPV.fmarks.forEach(m => { const el = m.getElement(); if (el.dataset.fid) el.classList.toggle('is-hot', el.dataset.fid === id); });
+}
+function fitCase() {
+  const map = MAPV.map, d = MAPV.caseSel && caseData(MAPV.caseSel); if (!map || !d) return;
+  const pts = [...d.reports, ...d.officers, ...d.vehicles, ...d.cams].map(u => toLngLat(u.x, u.y));
+  const b = new maplibregl.LngLatBounds(pts[0], pts[0]); pts.forEach(p => b.extend(p));
+  map.fitBounds(b, { padding: { left: sideOffset() + 60, right: 90, top: 70, bottom: 70 }, maxZoom: 16, duration: 900 });
+}
+function openCase(id) {
+  if (!caseData(id)) return;
+  closeCam();
+  MAPV.caseSel = id; MAPV.navDir = 'in'; MAPV.side = true;
+  render('map');
+  paintCaseLines(); paintCaseMarks(); paintMapLayers(); fitCase();
+}
+function closeCase() {
+  MAPV.caseSel = null; MAPV.navDir = 'out';
+  render('map');
+  paintCaseLines(); paintCaseMarks(); paintMapLayers();
+}
+/** 사건 상세에서 줄을 누르면: CCTV는 영상, 나머지는 그 위치로 이동 */
+function goCaseItem(kind, id) {
+  const map = MAPV.map; if (!map) return;
+  if (kind === 'cctv') { openCam(id); return; }
+  const u = [...INCIDENTS, ...OFFICERS, ...VEHICLES].find(x => x.id === id); if (!u) return;
+  map.flyTo({ center: toLngLat(u.x, u.y), zoom: Math.max(map.getZoom(), 16), offset: [sideOffset() / 2, 0], duration: 900 });
+}
+
+/* 사이드바 HTML: 사건 드롭다운 목록 / 사건 상세 */
+function caseListHTML() {
+  const items = CASES.map(c => {
+    const d = caseData(c.id);
+    return `
+      <button class="mcase-item" type="button" data-act="map-case" data-id="${c.id}" title="${esc(c.title)} 자세히 보기">
+        <span class="mcase-dot pri-${PRI_TONE[d.pri]}" aria-label="${esc(d.pri)}"></span>
+        <span class="mcase-tx"><span class="mcase-t">${esc(c.title)}</span>
+          <span class="mcase-s">${d.reports.length > 1 ? `신고 ${d.reports.length} · ` : ''}인력 ${d.officers.length + d.vehicles.length} · CCTV ${d.cams.length}</span></span>
+        ${icon('ic-chev-r', 'mcase-go')}
+      </button>`;
+  }).join('');
+  return `
+    <div class="mcase${MAPV.caseOpen ? ' is-open' : ''}">
+      <div class="mcase-head">
+        <button class="mnav-btn mnav-incident${MAPV.layers.incident ? ' is-on' : ''}" type="button" data-act="map-layer" data-k="incident"
+          aria-pressed="${!!MAPV.layers.incident}" title="사건 위치 지도에 표시/숨기기">${icon('ic-incident')}<span class="mnav-t">사건</span><span class="mnav-n">${CASES.length}</span></button>
+        <button class="mcase-fold" type="button" data-act="map-case-fold" aria-expanded="${MAPV.caseOpen}" title="사건 목록 펼치기/접기" aria-label="사건 목록">${icon('ic-chev-r')}</button>
+      </div>
+      <div class="mcase-list"><div class="mcase-in">
+        ${items}
+        <button class="mcase-add" type="button" title="여러 신고를 하나의 사건으로 묶기 (다음 단계에서 구성)">${icon('ic-plus')}<span>사건 묶기</span></button>
+      </div></div>
+    </div>`;
+}
+function caseDetailHTML(d) {
+  const row = (kind, fid, glyph, title, sub, end = '') => `
+    <button class="mcd-row mcd-${kind}" type="button" data-act="map-case-go" data-kind="${kind}" data-id="${fid}" data-fid="${fid}">
+      <span class="mcd-ic">${icon(glyph)}</span>
+      <span class="mcd-tx"><span class="mcd-t">${esc(title)}</span><span class="mcd-s">${esc(sub)}</span></span>${end}
+    </button>`;
+  const links = new Map(caseLinks(d).map(l => [l.id, l]));
+  const eta = id => { const l = links.get(id); return l.moving ? `<span class="mcd-eta is-move">${l.eta}분</span>` : '<span class="mcd-eta">현장</span>'; };
+  const sec = (title, n, body) => n ? `<div class="mcd-sec"><div class="mcd-h"><span>${title}</span><span>${n}</span></div>${body}</div>` : '';
+  return `
+    <div class="mcd">
+      <button class="mcd-back" type="button" data-act="map-case-back">${icon('ic-chev-l')}<span>사건</span></button>
+      <div class="mcd-head">
+        <span class="mcd-pri pri-${PRI_TONE[d.pri]}">${esc(d.pri)}</span>
+        <strong class="mcd-title">${esc(d.c.title)}</strong>
+        <span class="mcd-place">${esc(d.reports[0].place)}</span>
+        ${d.c.note ? `<span class="mcd-note">${icon('ic-link')}<span>${esc(d.c.note)}</span></span>` : ''}
+      </div>
+      ${sec(d.reports.length > 1 ? '묶인 신고' : '신고', d.reports.length, d.reports.map(r =>
+        row('incident', r.id, 'ic-exclaim', r.type, `${r.id} · ${r.reportedAt} 접수 · ${r.status}`)).join(''))}
+      ${sec('배정 인력', d.officers.length, d.officers.map(o =>
+        row('unit', o.id, 'ic-officer', `${o.call} ${o.name}`, o.task, eta(o.id))).join(''))}
+      ${sec('차량', d.vehicles.length, d.vehicles.map(v =>
+        row('unit', v.id, 'ic-car', v.label, `탑승 ${v.crew}`, eta(v.id))).join(''))}
+      ${sec('CCTV', d.cams.length, d.cams.map(c =>
+        row('cctv', c.id, 'ic-cctv', c.name, `${c.id} · 교통 ${c.traffic}`)).join(''))}
+    </div>`;
 }
 
 /* ---- 사이드바 ---- */
@@ -1735,8 +1922,9 @@ defApp({
   render() {
     const cur = MAP_MODES.find(m => m.k === MAPV.mode);
     const onImage = MAPV.mode !== 'standard';
+    const caseSel = MAPV.caseSel && caseData(MAPV.caseSel);
     const counts = { incident: INCIDENTS.length, unit: OFFICERS.length + VEHICLES.length, cctv: CCTVS.length };
-    const tabs = MAP_TABS.map(t => t.points
+    const tabs = MAP_TABS.filter(t => t.k !== 'incident').map(t => t.points
       ? `<button class="mnav-btn mnav-${t.k}${MAPV.layers[t.k] ? ' is-on' : ''}" type="button" data-act="map-layer" data-k="${t.k}"
           aria-pressed="${!!MAPV.layers[t.k]}" title="${esc(t.t)} 지도에 표시/숨기기">${icon(t.ic)}<span class="mnav-t">${esc(t.t)}</span><span class="mnav-n">${counts[t.k]}</span></button>`
       : `<button class="mnav-btn" type="button" data-k="${t.k}">${icon(t.ic)}<span class="mnav-t">${esc(t.t)}</span></button>`).join('');
@@ -1758,9 +1946,11 @@ defApp({
           <button class="msearch-clear" type="button" data-act="map-search-clear" aria-label="검색어 지우기"${MAPV.q ? '' : ' hidden'}>${icon('ic-close')}</button>
         </div>
         <div class="mresults" id="mresults" role="listbox" aria-label="검색 결과"></div>
-        <nav class="mnav" aria-label="지도 표시">
+        <nav class="mnav${MAPV.navDir ? ' is-' + MAPV.navDir : ''}" aria-label="지도 표시">
+          ${caseSel ? caseDetailHTML(caseSel) : `
+          ${caseListHTML()}
           <div class="mnav-h">지도</div>
-          ${tabs}
+          ${tabs}`}
         </nav>
       </aside>
       <button class="mside-toggle" type="button" data-act="map-side" aria-expanded="${MAPV.side}"
@@ -1798,6 +1988,13 @@ defApp({
     bindSearch(body);
     paintResults();
     paintMapLayers();
+    MAPV.navDir = null;   // 넘어가는 애니메이션은 사건을 열고 닫을 때 한 번만
+    // 사건 상세의 줄에 마우스를 올리면 지도의 해당 표식을 강조
+    const side = $('.mside', body);
+    if (side) {
+      side.addEventListener('pointerover', e => hotMark(e.target.closest('[data-fid]')?.dataset.fid || null));
+      side.addEventListener('pointerleave', () => hotMark(null));
+    }
   }
 });
 /* ---------- 4. 현장 인력 ---------- */
@@ -2324,6 +2521,15 @@ const ACT = {
   'map-search-clear': () => clearSearch(),
   'map-layer': d => toggleMapLayer(d.k),
   'map-cam-close': () => closeCam(),
+  'map-case-fold': () => {
+    MAPV.caseOpen = !MAPV.caseOpen;
+    const box = document.querySelector('#win-map .mcase'); if (!box) return;
+    box.classList.toggle('is-open', MAPV.caseOpen);
+    box.querySelector('.mcase-fold').setAttribute('aria-expanded', String(MAPV.caseOpen));
+  },
+  'map-case': d => openCase(d.id),
+  'map-case-back': () => closeCase(),
+  'map-case-go': d => goCaseItem(d.kind, d.id),
   'map-cam-open': d => { closeCam(); S.ui.cctvSel = d.id; ensureOpen('cctv'); render('cctv'); focusWin('cctv'); applyLayout(); },
 
   /* --- 런처 / 창 --- */
