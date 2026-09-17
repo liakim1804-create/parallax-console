@@ -1771,13 +1771,20 @@ function caseListHTML() {
       </button>`;
   }).join('');
   return `
-    <div class="mcase${MAPV.caseOpen ? ' is-open' : ''}">
-      <button class="mnav-btn mcase-toggle" type="button" data-act="map-case-fold" aria-expanded="${MAPV.caseOpen}" title="사건 목록 펼치기/접기">
-        ${icon('ic-briefing')}<span class="mnav-t">사건</span><span class="mnav-n">${CASES.length}</span>${icon('ic-chev-r', 'mcase-chev')}</button>
+    <div class="mcase">
       <div class="mcase-list"><div class="mcase-in">
         ${items}
         <button class="mcase-add" type="button" title="여러 신고를 하나의 사건으로 묶기 (다음 단계에서 구성)">${icon('ic-plus')}<span>사건 묶기</span></button>
       </div></div>
+    </div>`;
+}
+/** [사건 위치] 버튼: 줄을 누르면 지도에 사건 위치를 켜고 끄고, 오른쪽 화살표를 누르면 사건 목록을 펼치고 접는다 */
+function caseHeadHTML(tab, n) {
+  return `
+    <div class="mcase-head">
+      <button class="mnav-btn mnav-incident${MAPV.layers.incident ? ' is-on' : ''}" type="button" data-act="map-layer" data-k="incident"
+        aria-pressed="${!!MAPV.layers.incident}" title="사건 위치 지도에 표시/숨기기">${icon(tab.ic)}<span class="mnav-t">${esc(tab.t)}</span><span class="mnav-n">${n}</span></button>
+      <button class="mcase-fold" type="button" data-act="map-case-fold" aria-expanded="${MAPV.caseOpen}" title="사건 목록 펼치기/접기" aria-label="사건 목록">${icon('ic-chev-r')}</button>
     </div>`;
 }
 function caseDetailHTML(d) {
@@ -1791,7 +1798,7 @@ function caseDetailHTML(d) {
   const sec = (title, n, body) => n ? `<div class="mcd-sec"><div class="mcd-h"><span>${title}</span><span>${n}</span></div>${body}</div>` : '';
   return `
     <div class="mcd">
-      <button class="mcd-back" type="button" data-act="map-case-back">${icon('ic-chev-l')}<span>사건</span></button>
+      <button class="mcd-back" type="button" data-act="map-case-back">${icon('ic-chev-l')}<span>사건 목록</span></button>
       <div class="mcd-head">
         <span class="mcd-pri pri-${PRI_TONE[d.pri]}">${esc(d.pri)}</span>
         <strong class="mcd-title">${esc(d.c.title)}</strong>
@@ -1949,7 +1956,7 @@ defApp({
     const onImage = MAPV.mode !== 'standard';
     const caseSel = MAPV.caseSel && caseData(MAPV.caseSel);
     const counts = { incident: INCIDENTS.filter(i => i.status !== '종료').length, unit: OFFICERS.length + VEHICLES.length, cctv: CCTVS.length };
-    const tabs = MAP_TABS.map(t => t.points
+    const tabs = MAP_TABS.filter(t => t.k !== 'incident').map(t => t.points
       ? `<button class="mnav-btn mnav-${t.k}${MAPV.layers[t.k] ? ' is-on' : ''}" type="button" data-act="map-layer" data-k="${t.k}"
           aria-pressed="${!!MAPV.layers[t.k]}" title="${esc(t.t)} 지도에 표시/숨기기">${icon(t.ic)}<span class="mnav-t">${esc(t.t)}</span><span class="mnav-n">${counts[t.k]}</span></button>`
       : `<button class="mnav-btn" type="button" data-k="${t.k}">${icon(t.ic)}<span class="mnav-t">${esc(t.t)}</span></button>`).join('');
@@ -1962,7 +1969,7 @@ defApp({
     return `
     <div class="mapx${MAPV.side ? '' : ' is-side-closed'}">
       <div class="map-stage" id="mapStage"></div>
-      <aside class="mside" aria-label="지도 사이드바">
+      <aside class="mside${MAPV.caseOpen || caseSel ? ' is-case-open' : ''}${caseSel ? ' is-case-detail' : ''}" aria-label="지도 사이드바">
         <div class="mside-head" data-drag data-win="map"></div>
         <div class="msearch" role="search">
           ${icon('ic-search')}
@@ -1971,11 +1978,15 @@ defApp({
           <button class="msearch-clear" type="button" data-act="map-search-clear" aria-label="검색어 지우기"${MAPV.q ? '' : ' hidden'}>${icon('ic-close')}</button>
         </div>
         <div class="mresults" id="mresults" role="listbox" aria-label="검색 결과"></div>
-        <nav class="mnav${MAPV.navDir ? ' is-' + MAPV.navDir : ''}" aria-label="사건">
+        <!-- 지도 버튼 6개. [사건 위치] 아래에 사건 목록(또는 사건 상세)이 펼쳐지고, 나머지 버튼은 그 아래에 항상 보인다 -->
+        <div class="mlayers mlayers-top">
+          <div class="mnav-h">지도</div>
+          ${caseHeadHTML(MAP_TABS.find(t => t.k === 'incident'), counts.incident)}
+        </div>
+        <nav class="mnav${MAPV.navDir ? ' is-' + MAPV.navDir : ''}" aria-label="사건 목록">
           ${caseSel ? caseDetailHTML(caseSel) : caseListHTML()}
         </nav>
         <nav class="mlayers" aria-label="지도 표시">
-          <div class="mnav-h">지도</div>
           ${tabs}
         </nav>
       </aside>
@@ -2549,9 +2560,9 @@ const ACT = {
   'map-cam-close': () => closeCam(),
   'map-case-fold': () => {
     MAPV.caseOpen = !MAPV.caseOpen;
-    const box = document.querySelector('#win-map .mcase'); if (!box) return;
-    box.classList.toggle('is-open', MAPV.caseOpen);
-    box.querySelector('.mcase-toggle').setAttribute('aria-expanded', String(MAPV.caseOpen));
+    const side = document.querySelector('#win-map .mside'); if (!side) return;
+    side.classList.toggle('is-case-open', MAPV.caseOpen);
+    side.querySelector('.mcase-fold').setAttribute('aria-expanded', String(MAPV.caseOpen));
   },
   'map-case': d => openCase(d.id),
   'map-case-back': () => closeCase(),

@@ -2374,20 +2374,33 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .mnav::-webkit-scrollbar-track{ background:transparent; }
 .mnav::-webkit-scrollbar-thumb{ background:var(--mc-sep); border:2px solid transparent; background-clip:padding-box; border-radius:4px; }
 .mcase{ display:flex; flex-direction:column; }
-/* 사건 버튼: 누르면 사건 목록이 펼쳐지고 접힌다 */
-.mcase-toggle .ic.mcase-chev{ width:12px; height:12px; stroke-width:2.4; color:var(--ms-dim); transition:transform .25s var(--ms-ease); }
-.mcase.is-open .mcase-chev{ transform:rotate(90deg); }
+/* [사건 위치] 버튼: 줄 = 지도에 켜기/끄기, 오른쪽 화살표 = 사건 목록 펼치기/접기 (macOS 사이드바 방식) */
+.mcase-head{ position:relative; }
+.mcase-head .mnav-btn{ padding-right:34px; }
+.mcase-fold{
+  position:absolute; right:4px; top:50%; width:24px; height:24px; margin-top:-12px; display:grid; place-items:center; padding:0;
+  border:0; border-radius:6px; background:transparent; color:var(--ms-dim); cursor:pointer;
+}
+.mcase-fold:hover{ background:var(--mc-press); color:var(--mc-fg); }
+.mcase-fold:focus-visible{ outline:2px solid var(--info); outline-offset:-1px; }
+.mcase-fold .ic{ width:13px; height:13px; stroke-width:2.4; transition:transform .25s var(--ms-ease); }
+.mside.is-case-open .mcase-fold .ic{ transform:rotate(90deg); }
+.mside.is-case-detail .mcase-fold{ display:none; }   /* 사건 상세에서는 [사건 목록] 뒤로 가기로 돌아간다 */
 
-/* 지도 표시 버튼: 사이드바 아래에 고정 */
-.mlayers{ flex:none; display:flex; flex-direction:column; gap:1px; padding:10px 8px 10px; border-top:.5px solid var(--mc-sep); }
-.mlayers .mnav-btn{ height:31px; }
+/* 지도 버튼 묶음. 가운데 사건 목록은 내용만큼만 차지하고, 넘치면 그 안에서만 스크롤한다 */
+.mlayers{ flex:none; display:flex; flex-direction:column; gap:1px; padding:0 8px 10px; }
+.mlayers .mnav-h{ padding-top:14px; }
+.mlayers-top{ padding-bottom:0; }
+.mlayers .mnav-btn{ height:32px; }
+.mside .mnav{ flex:0 1 auto; padding-top:0; padding-bottom:4px; }
+.mside:not(.is-case-open) .mnav{ padding-bottom:0; }
 .mside.is-searching .mlayers{ display:none; }
 
 .mcase-list{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .3s var(--ms-ease); }
-.mcase.is-open .mcase-list{ grid-template-rows:1fr; }
+.mside.is-case-open .mcase-list{ grid-template-rows:1fr; }
 .mcase-in{ min-height:0; overflow:hidden; display:flex; flex-direction:column; gap:1px; padding-left:10px; }
-.mcase.is-open .mcase-in{ padding-top:2px; }
-.mcase:not(.is-open) .mcase-in{ visibility:hidden; transition:visibility 0s linear .3s; }
+.mside.is-case-open .mcase-in{ padding-top:2px; }
+.mside:not(.is-case-open) .mcase-in{ visibility:hidden; transition:visibility 0s linear .3s; }
 
 .mcase-item{
   width:100%; display:flex; align-items:center; gap:8px; padding:6px 6px 6px 8px;
@@ -2420,7 +2433,7 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 @keyframes mnav-out{ from{ transform:translateX(-28px); opacity:0; } }
 
 /* 사건 상세 */
-.mcd{ display:flex; flex-direction:column; gap:2px; }
+.mcd{ display:flex; flex-direction:column; gap:2px; padding-top:6px; }
 .mcd-back{
   align-self:flex-start; height:28px; display:flex; align-items:center; gap:2px; padding:0 8px 0 2px; margin-bottom:4px;
   border:0; border-radius:7px; background:transparent; color:var(--info); cursor:pointer;
