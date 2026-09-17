@@ -2495,3 +2495,5 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 /* 사이드바 버튼 아이콘은 기본 글자색(라이트: 검정, 다크: 흰색)으로 통일. 켜진 버튼의 옅은 바탕색은 그대로 둔다.
    사건 상세의 줄 아이콘은 지도 표식과 같은 색(사건 빨강 · 인력·차량 파랑 · CCTV 남보라)을 쓴다 */
 .mside .mnav-btn .ic{ color:var(--mc-fg); }
+/* 켜진 버튼의 바탕색·개수 색은 모든 메뉴를 인력·차량 버튼 색(파랑)으로 통일 */
+.mside .mnav-btn{ --c:var(--mk-unit); }
