@@ -2947,3 +2947,8 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-messages select{ transition:background-color .15s ease; cursor:pointer; }
 #win-messages .chat-to select:hover, #win-messages .cmx-field select:hover{ background-color:var(--mc-press); }
 #win-messages .cmx-field select{ padding:2px 6px; border-radius:6px; background-color:transparent; }
+
+/* 중요도·긴급도 표시는 모두 원으로 통일 (삼각형·사각형 표시 사용 안 함) */
+.badge-sq::before, .badge-tri::before{ border-radius:50%; clip-path:none; }
+.ov-item.is-crit::before, .ov-item.is-warn::before{ border-radius:50%; clip-path:none; }
+.lg-mk.mk-danger{ border-radius:50%; clip-path:none; }
