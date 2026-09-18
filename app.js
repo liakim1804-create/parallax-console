@@ -2510,19 +2510,10 @@ defApp({
       </div>
       <div class="arx-main">
         ${sel ? `
-        ${screenHTML({ id: sel.call, title: sel.name, place: `X ${Math.round(sel.x)} · Y ${Math.round(sel.y)} (가상 좌표)`,
-          at: sel.comm + ':' + pad2(rint(10, 59)), rec: sel.ar === '연결', lost: sel.ar === '두절', scene: 'alley' })}
-        <div class="arx-bar">
-          <span class="arx-who">촬영자 ${esc(sel.call)} · ${esc(sel.name)}</span>
-          <span class="arx-st">AR ${esc(sel.ar)}</span>
-          <span class="arx-st ${sel.ar === '두절' ? 'is-crit' : ''}">${sel.ar === '두절' ? '녹화 중단' : '녹화 중'}</span>
-          ${battHTML(sel.batt)}
-          <span class="arx-st detail">촬영 시각 ${esc(sel.comm)}</span>
-          <span class="arx-acts">
-            <button class="btn btn-sm" type="button" data-act="ar-capture" data-id="${sel.id}">${icon('ic-capture', 'ic-sm')}<span class="btn-t">중요 장면 캡처</span></button>
-            <button class="btn btn-sm btn-warn" type="button" data-act="ar-tx" data-id="${sel.id}">현장 전송 후보로 추가</button>
-            <button class="btn btn-sm" type="button" data-act="msg-to-officer" data-id="${sel.id}">해당 경찰관에 메시지</button>
-          </span>
+        <div class="arx-screen">
+          ${screenHTML({ id: sel.call, title: sel.name, place: `X ${Math.round(sel.x)} · Y ${Math.round(sel.y)} (가상 좌표)`,
+            at: sel.comm + ':' + pad2(rint(10, 59)), rec: sel.ar === '연결', lost: sel.ar === '두절', scene: 'alley' })}
+          <span class="arx-batt">${battHTML(sel.batt)}</span>
         </div>` : '<div class="empty-note arx-empty">현재 사건에 AR 글래스 연결 인원이 없습니다.</div>'}
       </div>
     </div>`;
