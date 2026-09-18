@@ -2541,28 +2541,21 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
    긴급도 색은 작은 점으로만 쓰고, 선택 표시(파랑)와 섞지 않는다 */
 .mcase-in{ padding:0; }
 .mside.is-case-open .mcase-in{ padding:6px 0 4px; }
-.mlist{
-  display:flex; flex-direction:column;
-  border-radius:6px; background:var(--ms-field); overflow:hidden;
-}
+.mlist{ display:flex; flex-direction:column; gap:4px; background:transparent; }
 .mrow{
-  position:relative; width:100%; height:68px; display:flex; align-items:center; gap:6px; padding:0 8px 0 10px;
-  border:0; border-radius:0; background:transparent; color:var(--mc-fg); text-align:left; cursor:pointer;
+  width:100%; height:52px; display:flex; align-items:center; gap:6px; padding:0 8px 0 10px;
+  border:0; border-radius:6px; background:transparent; color:var(--mc-fg); text-align:left; cursor:pointer;
   font-family:var(--font);
-}
-/* 행 사이 실선 하나로 이어지는 목록 (마지막 행은 선 없음) */
-.mrow + .mrow::before{
-  content:""; position:absolute; left:10px; right:0; top:0; height:1px; background:var(--mc-sep);
 }
 .mrow:hover{ background:var(--mc-press); }
 .mrow:focus-visible{ outline:2px solid var(--info); outline-offset:-2px; }
 .mrow.is-sel{ background:color-mix(in srgb, var(--info) 14%, transparent); }
-.mrow.is-sel .mrow-t{ font-weight:500; }
+.mrow.is-sel .mrow-t{ font-weight:600; }
 .mrow-tx{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
 .mrow-t, .mrow-s{ overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-.mrow-t{ font-size:16px; font-weight:500; letter-spacing:-.01em; line-height:1.25; }
-.mrow-s{ display:flex; align-items:center; gap:5px; font-size:14px; font-weight:400; color:var(--ms-dim); line-height:1.3; }
-.mrow-dot{ flex:none; width:7px; height:7px; border-radius:50%; background:var(--p); }
+.mrow-t{ font-size:14px; font-weight:500; letter-spacing:-.01em; line-height:1.25; }
+.mrow-s{ display:flex; align-items:center; gap:5px; font-size:12px; font-weight:400; color:var(--ms-dim); line-height:1.3; }
+.mrow-dot{ flex:none; width:6px; height:6px; border-radius:50%; background:var(--p); }
 .mrow-go{ flex:none; width:12px; height:12px; stroke-width:2.4; color:var(--ms-dim); }
 
 /* 사건 묶기: 장식 없는 목록 끝 줄 */
