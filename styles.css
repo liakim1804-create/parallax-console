@@ -2873,3 +2873,37 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-map .wb:hover{ background:var(--mc-press); }
 /* 사이드바를 접으면 왼쪽 위 사이드바 버튼과 겹치지 않게 옆으로 옮긴다 */
 #win-map:has(.mapx.is-side-closed) .win-bar{ left:62px; top:19px; }
+
+/* 말풍선 줄: 글자 길이만큼만 차지하고, 시각·확인 여부는 말풍선 옆에 (카카오톡 참고) */
+#win-messages .chat-log{ display:flex; flex-direction:column; }
+#win-messages .msg-row{ display:flex; align-items:flex-end; gap:6px; max-width:100%; }
+#win-messages .msg-row.is-mine{ flex-direction:row-reverse; align-self:flex-end; }
+#win-messages .msg{ width:fit-content; max-width:min(78%, 420px); margin:0; }
+#win-messages .msg-meta{
+  flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:1px; padding-bottom:2px;
+  font-size:12px; color:var(--ms-dim); font-variant-numeric:tabular-nums; line-height:1.25;
+}
+#win-messages .msg-row.is-mine .msg-meta{ align-items:flex-start; }
+#win-messages .msg-state{ color:var(--info); }
+#win-messages .msg-state.is-read{ color:var(--ms-dim); }
+#win-messages .msg-pin{ display:inline-flex; color:var(--ms-dim); }
+#win-messages .msg-pin .ic{ width:12px; height:12px; }
+#win-messages .msg.is-pin{ box-shadow:inset 0 0 0 1.5px color-mix(in srgb, var(--mk-incident) 45%, transparent); }
+#win-messages .msg-f{ display:none; }
+#win-messages .msg.is-system{ width:100%; max-width:100%; }
+
+/* 입력칸: 오른쪽 스크롤바 감추기 */
+#win-messages .cmx-input .textarea{ scrollbar-width:none; overflow-y:auto; }
+#win-messages .cmx-input .textarea::-webkit-scrollbar{ width:0; height:0; display:none; }
+
+/* 보낸이 이름은 말풍선 위(밖)에 */
+#win-messages .msg-wrap{ min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:2px; }
+#win-messages .msg-row.is-mine .msg-wrap{ align-items:flex-end; }
+#win-messages .msg-name{ padding:0 4px; font-size:12px; font-weight:500; color:var(--ms-dim); }
+#win-messages .msg-h{ margin:0 0 4px; }
+
+/* 말풍선 폭: 글자 길이만큼 (줄은 최대 86%까지, 그 안에서 자연스럽게 줄바꿈) */
+#win-messages .msg-row{ align-self:flex-start; max-width:min(86%, 560px); }
+#win-messages .msg-row.is-mine{ align-self:flex-end; }
+#win-messages .msg-wrap{ flex:1 1 auto; }
+#win-messages .msg{ max-width:100%; }

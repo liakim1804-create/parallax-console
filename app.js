@@ -2341,10 +2341,14 @@ defApp({
           </div></div>`;
       }
       const cls = m.kind === '긴급' ? 'is-crit' : m.kind === '중요' ? 'is-warn' : '';
-      return `<div class="msg ${m.mine ? 'is-mine' : ''} ${cls} ${m.pin ? 'is-pin' : ''}">
-        <div class="msg-h"><span class="who">${esc(m.from)}</span><span>→ ${esc(m.to)}</span>
-          ${m.kind !== '일반' ? badge(m.kind, m.kind === '긴급' ? 'badge-crit' : 'badge-warn', m.kind === '긴급' ? 'badge-tri' : 'badge-sq') : ''}
-          ${m.pin ? badge('고정', 'badge-warn', 'badge-sq') : ''}</div>
+      // 시각·확인 여부는 말풍선 밖(옆)에, 고정은 오른쪽 클릭 메뉴에서 (카카오톡 방식)
+      const state = m.mine ? (m.read ? '읽음' : '전송됨') : (m.read ? '' : '미확인');
+      // 보낸이 이름은 말풍선 밖에 두어, 말풍선 폭이 글자 길이를 따르게 한다
+      return `<div class="msg-row ${m.mine ? 'is-mine' : ''}" data-msg="${m.id}">
+      <div class="msg-wrap">
+        ${m.mine ? '' : `<div class="msg-name">${esc(m.from)}${m.kind !== '일반' ? ` ${badge(m.kind, m.kind === '긴급' ? 'badge-crit' : 'badge-warn', m.kind === '긴급' ? 'badge-tri' : 'badge-sq')}` : ''}</div>`}
+      <div class="msg ${m.mine ? 'is-mine' : ''} ${cls} ${m.pin ? 'is-pin' : ''}">
+        ${m.mine && m.kind !== '일반' ? `<div class="msg-h">${badge(m.kind, m.kind === '긴급' ? 'badge-crit' : 'badge-warn', m.kind === '긴급' ? 'badge-tri' : 'badge-sq')}</div>` : ''}
         <div class="msg-b">${esc(m.text)}</div>
         ${m.att ? (m.att.type === '음성'
           ? `<div class="msg-att voice" data-voice="${m.id}"><button class="btn btn-sm" type="button" data-act="voice-play" data-id="${m.id}">${icon('ic-play', 'ic-sm')}재생</button>
@@ -2352,13 +2356,12 @@ defApp({
              <span class="dim">${esc(m.att.label)}</span></div>`
           : `<div class="msg-att">${icon(m.att.type === '위치' ? 'ic-pin' : 'ic-capture', 'ic-sm')}${esc(m.att.label)}
              ${m.att.type === '이미지' ? '<span class="dim">(가상 이미지 첨부 모형)</span>' : ''}</div>`) : ''}
-        <div class="msg-f"><span class="mono">${esc(m.t)}</span>
-          <span class="msg-state ${m.read ? 'is-read' : ''}">${m.mine ? (m.read ? '읽음' : '전송됨 · 수신 확인 대기') : (m.read ? '확인' : '미확인')}</span>
-          ${m.mine && m.delivered !== false ? '<span class="dim">수신 확인</span>' : ''}
-          <span class="spacer" style="flex:1"></span>
-          <button class="btn btn-sm" type="button" data-act="msg-pin" data-id="${m.id}" title="중요 메시지 고정/해제">${m.pin ? '고정 해제' : '고정'}</button>
-          ${!m.read && !m.mine ? `<button class="btn btn-sm" type="button" data-act="msg-read" data-id="${m.id}" title="읽음 처리">읽음</button>` : ''}
-        </div></div>`;
+      </div></div>
+      <div class="msg-meta">
+        ${m.pin ? `<span class="msg-pin" title="고정된 메시지">${icon('ic-pushpin')}</span>` : ''}
+        ${state ? `<span class="msg-state ${m.read ? 'is-read' : ''}">${state}</span>` : ''}
+        <span class="msg-time">${esc(m.t)}</span>
+      </div></div>`;
     };
 
     // 알림 기록: 긴급도는 색 원으로만, 줄 사이는 지도 사이드바와 같은 얇은 선
@@ -2407,7 +2410,7 @@ defApp({
           <button class="btn btn-sm ${u.chatAtt === '이미지' ? 'btn-on' : ''}" type="button" data-act="chat-att" data-v="이미지" title="가상 이미지 첨부 모형" aria-label="이미지 첨부">${icon('ic-capture', 'ic-sm')}<span class="btn-t">이미지</span></button>
         </div>
         <div class="cmx-row cmx-input">
-          <textarea class="textarea" rows="1" placeholder="${tg ? `${esc(tg.label)} 에게 보낼 내용을 입력하십시오. Enter 로 전송, Shift+Enter 로 줄바꿈.` : '받는 대상을 먼저 선택하십시오.'}"
+          <textarea class="textarea" rows="1" placeholder="${tg ? '내용을 입력하십시오.' : '받는 대상을 먼저 선택하십시오.'}"
             title="Enter: 전송 · Shift+Enter: 줄바꿈" data-model="chatText" ${tg ? '' : 'disabled'}
             aria-label="메시지 입력 (Enter 로 전송, Shift+Enter 로 줄바꿈)">${esc(chatDraft())}</textarea>
           <button class="btn-send ${u.chatKind === '긴급' ? 'is-crit' : ''} ${tg && chatDraft().trim() ? '' : 'is-off'}" type="button" data-act="chat-send" ${tg && chatDraft().trim() ? '' : 'disabled'}
@@ -2417,7 +2420,22 @@ defApp({
       </div>`}
     </div>`;
   },
-  after(body) { const l = $('#chatLog', body); if (l) l.scrollTop = l.scrollHeight; paintSendState(); }
+  after(body) {
+    const l = $('#chatLog', body);
+    if (l) {
+      l.scrollTop = l.scrollHeight;
+      // 말풍선 오른쪽 클릭: 고정 · 읽음 처리 (카카오톡 방식)
+      l.addEventListener('contextmenu', e => {
+        const row = e.target.closest('[data-msg]'); if (!row) return;
+        const m = S.msgs.find(x => x.id === row.dataset.msg); if (!m) return;
+        e.preventDefault();
+        const items = [{ label: m.pin ? '고정 해제' : '고정', glyph: 'ic-pushpin', act: () => ACT['msg-pin']({ id: m.id }) }];
+        if (!m.read && !m.mine) items.push({ label: '읽음 처리', glyph: 'ic-check', act: () => ACT['msg-read']({ id: m.id }) });
+        openUMenu(items, e.clientX, e.clientY);
+      });
+    }
+    paintSendState();
+  }
 });
 
 /** 입력 내용이 없으면 전송 버튼을 회색(비활성)으로 */
