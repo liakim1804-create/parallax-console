@@ -329,7 +329,8 @@ const S = {
   ui: {
     listQ: '', listPrio: '전체', listStatus: '전체',
     cctvSel: 'C-01', arSel: 'O-11',
-    chatTab: '전체', chatTo: '현장 경찰', chatKind: '일반', chatText: '', chatAtt: null,
+    chatTab: '현장팀', chatTarget: {}, chatDrafts: {}, chatAlerts: false,
+    chatTo: '현장 경찰', chatKind: '일반', chatText: '', chatAtt: null,
     compose: { step: 1, items: [], note: '', targets: [], editing: null },
     hoTarget: '후속 인력(대기조)'
   }
@@ -1165,7 +1166,7 @@ function selectIncident(id, why) {
   const inc = curInc();
   const c = incCCTVs(id)[0]; if (c) S.ui.cctvSel = c.id;
   const o = incOfficers(id).find(x => x.ar === '연결') || incOfficers(id)[0]; if (o) S.ui.arSel = o.id;
-  S.ui.chatTab = '전체';
+  S.ui.chatTab = '현장팀'; S.ui.chatTarget = {}; S.ui.chatDrafts = {};
   renderAll(); save();
   toast('info', '사건 동기화', `${inc.id} ${inc.type} 기준으로 모든 앱을 전환했습니다.${why ? ' (' + why + ')' : ''}`);
 }
@@ -2276,6 +2277,29 @@ defApp({
 
 /* ---------- 7. 메시지·긴급 알림 ---------- */
 const CHANNELS = ['지휘통제실', '현장 경찰', '후속 인력'];
+/* ---- 수신 대상: 상단 탭(팀) → 세부 대상 ----
+   단체 대화(팀 전체)와 개별 대화는 서로 섞이지 않도록 대상마다 이름 목록을 따로 둔다.
+   예전 메시지의 '현장 경찰'·'후속 인력' 표기도 각 팀의 단체 대화로 이어 붙인다. */
+const CHAT_TABS = [
+  { k: '현장팀', t: '현장팀' },
+  { k: '후속팀', t: '후속팀' },
+  { k: '상황실', t: '상황실 내부' }
+];
+/** 상황실 내부 대상 (등록된 데이터가 없으면 빈 상태로 표시된다) */
+const CONTROL_ROOM = [];
+function chatTargets(tab) {
+  const team = (id, label, names, units) => units.length
+    ? [{ id: `g:${id}`, label: `${label} 전체 · ${units.length}개 팀`, send: `${label} 전체`, group: true, names },
+       ...units.map(o => ({ id: `u:${o.call}`, label: `${o.call} ${o.name}`, send: o.call, names: [o.call] }))]
+    : [];
+  if (tab === '현장팀') return team('현장팀', '현장팀', ['현장팀 전체', '현장 경찰', '전체 현장 인력'], incOfficers(S.sel));
+  if (tab === '후속팀') return team('후속팀', '후속팀', ['후속팀 전체', '후속 인력'], OFFICERS.filter(o => !o.inc));
+  return CONTROL_ROOM;
+}
+const chatTargetId = () => S.ui.chatTarget[S.ui.chatTab] || '';
+const curChatTarget = () => chatTargets(S.ui.chatTab).find(x => x.id === chatTargetId()) || null;
+const chatDraftKey = () => `${S.ui.chatTab}|${chatTargetId()}`;
+const chatDraft = () => S.ui.chatDrafts[chatDraftKey()] || '';
 defApp({
   id: 'messages', name: '메시지·긴급 알림', short: '메시지', icon: 'ic-message', defW: .3, defH: .5,
   desc: '지휘통제실·현장 경찰·후속 인력 3방향 통신 및 알림 기록',
@@ -2283,15 +2307,18 @@ defApp({
   render() {
     const u = S.ui, inc = curInc();
     const all = S.msgs.filter(m => m.inc === inc.id || m.system);
-    const unread = c => all.filter(m => !m.read && (m.from === c || m.to === c)).length;
-    let list;
-    if (u.chatTab === '알림') list = [];
-    else if (u.chatTab === '전체') list = all;
-    else list = all.filter(m => !m.system && (m.from === u.chatTab || m.to === u.chatTab || (u.chatTab === '현장 경찰' && OFFICERS.some(o => o.call === m.from))));
-    const pinned = all.filter(m => m.pin && !m.system);
+    // 선택한 대상과 주고받은 내역만 보여 준다 (단체 대화와 개별 대화를 구분)
+    const inScope = (m, tg) => !m.system && tg && (tg.names.includes(m.to) || tg.names.includes(m.from));
+    const targets = chatTargets(u.chatTab), tg = curChatTarget();
+    const list = tg ? all.filter(m => inScope(m, tg)) : [];
+    const pinned = all.filter(m => m.pin && !m.system && inScope(m, tg));
+    const tabUnread = k => {
+      const ts = chatTargets(k);
+      return all.filter(m => !m.read && !m.mine && ts.some(x => inScope(m, x))).length;
+    };
 
-    const tab = (t, n) => `<button class="chat-tab ${u.chatTab === t ? 'is-on' : ''}" type="button" data-act="chat-tab" data-v="${t}"
-      title="${esc(t)} 대화 보기">${esc(t)}${n ? `<span class="cnt">${n}</span>` : ''}</button>`;
+    const tab = t => `<button class="chat-tab ${u.chatTab === t.k ? 'is-on' : ''}" type="button" data-act="chat-tab" data-v="${t.k}"
+      title="${esc(t.t)} 대화 보기">${esc(t.t)}${tabUnread(t.k) ? `<span class="cnt">${tabUnread(t.k)}</span>` : ''}</button>`;
 
     const msgHTML = m => {
       if (m.system) {
@@ -2340,12 +2367,21 @@ defApp({
       <button class="btn btn-sm" type="button" data-act="alert-clear">알림 기록 비우기</button>
     </div>`;
 
+    const unseen = S.alerts.filter(a => !a.seen).length;
     return `<div class="chat">
-      <div class="chat-tabs">
-        ${tab('전체', all.filter(m => !m.read).length)}${tab('현장 경찰', unread('현장 경찰'))}${tab('후속 인력', unread('후속 인력'))}
-        ${tab('알림', S.alerts.filter(a => !a.seen).length)}
+      <div class="chat-head">
+        <div class="chat-tabs" role="tablist" aria-label="수신 대상 팀">${CHAT_TABS.map(tab).join('')}</div>
+        <button class="chat-bell ${u.chatAlerts ? 'is-on' : ''} ${unseen ? 'has-alert' : ''}" type="button" data-act="chat-alerts"
+          aria-pressed="${u.chatAlerts}" title="알림 기록 보기" aria-label="알림 기록">${icon('ic-bell')}${unseen ? `<span class="cnt">${unseen}</span>` : ''}</button>
       </div>
-      ${u.chatTab === '알림' ? alertsHTML : `
+      <div class="chat-to">
+        <span class="chat-to-k">받는 대상</span>
+        ${targets.length ? `<select data-model="chatTarget" aria-label="받는 대상 선택">
+          <option value="" ${!tg ? 'selected' : ''}>대상 선택</option>
+          ${targets.map(x => `<option value="${esc(x.id)}" ${tg && tg.id === x.id ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}
+        </select>` : '<span class="chat-to-empty">등록된 대상이 없습니다</span>'}
+      </div>
+      ${u.chatAlerts ? alertsHTML : `
       ${pinned.length ? `<div class="pinned" aria-label="고정된 메시지">
         ${pinned.map(m => `<div class="pin-row">
           <span class="person-c">${esc(m.from)}</span>
@@ -2355,15 +2391,11 @@ defApp({
         </div>`).join('')}
       </div>` : ''}
       <div class="chat-log" id="chatLog">
-        ${list.length ? list.map(msgHTML).join('') : '<div class="empty-note">이 채널의 메시지가 없습니다.</div>'}
+        ${!tg ? `<div class="empty-note">${targets.length ? '받는 대상을 선택하면 대화 내역이 표시됩니다.' : '이 팀에 등록된 대상이 없습니다.'}</div>`
+        : list.length ? list.map(msgHTML).join('') : `<div class="empty-note">${esc(tg.label)} 와(과) 주고받은 메시지가 없습니다.</div>`}
       </div>
       <div class="cmx">
         <div class="cmx-row">
-          <label class="cmx-field"><span>대상</span>
-            <select data-model="chatTo" aria-label="전달 대상 선택">
-              ${['현장 경찰', '후속 인력', '전체 현장 인력', ...incOfficers(inc.id).map(o => o.call)].map(v =>
-                `<option ${u.chatTo === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
-            </select></label>
           <label class="cmx-field"><span>종류</span>
             <select data-model="chatKind" aria-label="메시지 종류">
               ${['일반', '중요', '긴급'].map(v => `<option ${u.chatKind === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
@@ -2374,9 +2406,11 @@ defApp({
           <button class="btn btn-sm ${u.chatAtt === '이미지' ? 'btn-on' : ''}" type="button" data-act="chat-att" data-v="이미지" title="가상 이미지 첨부 모형" aria-label="이미지 첨부">${icon('ic-capture', 'ic-sm')}<span class="btn-t">이미지</span></button>
         </div>
         <div class="cmx-row cmx-input">
-          <textarea class="textarea" rows="1" placeholder="전달할 내용을 입력하십시오. Enter 로 전송, Shift+Enter 로 줄바꿈."
-            title="Enter: 전송 · Shift+Enter: 줄바꿈" data-model="chatText" aria-label="메시지 입력 (Enter 로 전송, Shift+Enter 로 줄바꿈)">${esc(u.chatText)}</textarea>
-          <button class="btn btn-sm ${u.chatKind === '긴급' ? 'btn-crit' : 'btn-primary'}" type="button" data-act="chat-send">
+          <textarea class="textarea" rows="1" placeholder="${tg ? `${esc(tg.label)} 에게 보낼 내용을 입력하십시오. Enter 로 전송, Shift+Enter 로 줄바꿈.` : '받는 대상을 먼저 선택하십시오.'}"
+            title="Enter: 전송 · Shift+Enter: 줄바꿈" data-model="chatText" ${tg ? '' : 'disabled'}
+            aria-label="메시지 입력 (Enter 로 전송, Shift+Enter 로 줄바꿈)">${esc(chatDraft())}</textarea>
+          <button class="btn btn-sm ${u.chatKind === '긴급' ? 'btn-crit' : 'btn-primary'}" type="button" data-act="chat-send" ${tg ? '' : 'disabled'}
+            title="${tg ? esc(tg.label) + ' 에게 전송' : '받는 대상을 선택해야 전송할 수 있습니다'}">
             ${icon('ic-send', 'ic-sm')}${u.chatKind === '긴급' ? '긴급 알림 전송' : '메시지 전송'}</button>
         </div>
       </div>`}
@@ -2707,13 +2741,19 @@ const ACT = {
   /* --- 알림 --- */
   'alert-ack': d => ackAlert(d.alert),
   'alert-ack-all': () => ackAllAlerts(),
-  'alert-inbox': () => { S.ui.chatTab = '알림'; ensureOpen('messages'); render('messages'); focusWin('messages'); applyLayout(); },
+  'alert-inbox': () => { S.ui.chatAlerts = true; ensureOpen('messages'); render('messages'); focusWin('messages'); applyLayout(); },
   'alert-open': d => { const a = S.alerts.find(x => x.id === d.alert); if (!a) return; ackAlert(a.id); if (a.inc !== S.sel) selectIncident(a.inc); if (a.app) ensureOpen(a.app); },
   'alert-clear': () => { S.alerts = []; paintTaskbar(); paintStatus(); render('messages'); toast('info', '알림 기록 삭제', '알림 기록을 비웠습니다.'); },
   'modal-close': () => closeModal(),
 
   'open-ar-of': d => { const o = findOfficer(d.id); if (!o) return; S.ui.arSel = o.id; ensureOpen('ar'); render('ar'); focusWin('ar'); applyLayout(); },
-  'msg-to-officer': d => { const o = findOfficer(d.id); if (!o) return; S.ui.chatTo = o.call; S.ui.chatTab = '전체'; ensureOpen('messages'); render('messages'); focusWin('messages'); applyLayout(); },
+  'msg-to-officer': d => {
+    const o = findOfficer(d.id); if (!o) return;
+    // 해당 경찰관이 속한 팀 탭으로 옮기고 그 사람을 받는 대상으로 지정
+    const tab = CHAT_TABS.map(t => t.k).find(k => chatTargets(k).some(x => x.send === o.call)) || '현장팀';
+    S.ui.chatTab = tab; S.ui.chatTarget[tab] = 'u:' + o.call; S.ui.chatTo = o.call; S.ui.chatAlerts = false;
+    ensureOpen('messages'); render('messages'); focusWin('messages'); applyLayout();
+  },
   'tx-target': d => { const o = findOfficer(d.id); if (!o) return; const c = S.ui.compose; if (!c.targets.includes(o.call)) c.targets.push(o.call); ensureOpen('transmit'); renderAll(); toast('info', '전송 대상 지정', `${o.call} 을(를) 전달 대상에 추가했습니다.`); },
   'tx-hazard': d => txCandidate('위험 위치', d.label),
 
@@ -2759,22 +2799,28 @@ const ACT = {
   },
 
   /* --- 메시지 --- */
-  'chat-tab': d => { S.ui.chatTab = d.v; render('messages'); },
+  'chat-tab': d => { S.ui.chatTab = d.v; S.ui.chatAlerts = false; renderForce('messages'); },
+  'chat-alerts': () => { S.ui.chatAlerts = !S.ui.chatAlerts; renderForce('messages'); },
   'chat-att': d => { S.ui.chatAtt = S.ui.chatAtt === d.v ? null : d.v; render('messages'); },
   'chat-send': () => {
-    const u = S.ui, text = u.chatText.trim();
+    const u = S.ui, tg = curChatTarget();
+    if (!tg) { toast('warn', '대상 없음', '받는 대상을 먼저 선택하십시오.'); return; }
+    const text = chatDraft().trim();
     if (!text) { toast('warn', '내용 없음', '전달할 내용을 입력하십시오.'); return; }
+    u.chatTo = tg.send;
     const att = u.chatAtt === '위치' ? { type: '위치', label: `사건 위치 (${curInc().x}, ${curInc().y})` }
       : u.chatAtt === '이미지' ? { type: '이미지', label: '현장 캡처 이미지 (가상)' } : null;
     const m = addMsg({ from: '지휘통제실', to: u.chatTo, kind: u.chatKind, text, mine: true, read: false, delivered: false, att });
     if (u.chatKind === '긴급') pushAlert('긴급', '긴급 지시 발신', `${u.chatTo} 대상: ${text}`, { app: 'messages' });
     else if (u.chatKind === '중요') pushAlert('중요', '중요 지시 발신', `${u.chatTo} 대상: ${text}`, { app: 'messages' });
-    u.chatText = ''; u.chatAtt = null;
+    u.chatDrafts[chatDraftKey()] = ''; u.chatText = ''; u.chatAtt = null;
     renderForce('messages');   // 입력칸에 focus 가 있어도 비운 내용으로 다시 그린다
     setTimeout(() => { m.delivered = true; m.read = true; if (winOf('messages')) render('messages'); }, 2200);
     setTimeout(() => {
-      const who = OFFICERS.find(o => o.call === u.chatTo) || incOfficers(S.sel)[0];
-      if (who) addMsg({ inc: who.inc, from: who.call, to: '지휘통제실', text: pick(['수신했습니다.', '확인했습니다. 조치하겠습니다.', '내용 확인. 진행 중입니다.']), read: false });
+      // 답신도 같은 대화 범위 안에 남긴다 (단체는 단체 대화로, 개별은 개별 대화로)
+      const who = tg.group ? (chatTargets(u.chatTab)[1] && OFFICERS.find(o => o.call === chatTargets(u.chatTab)[1].send)) : OFFICERS.find(o => o.call === tg.send);
+      if (who) addMsg({ inc: who.inc || S.sel, from: who.call, to: tg.group ? tg.send : '지휘통제실',
+        text: pick(['수신했습니다.', '확인했습니다. 조치하겠습니다.', '내용 확인. 진행 중입니다.']), read: false });
     }, 4200);
   },
   'msg-pin': d => { const m = S.msgs.find(x => x.id === d.id); if (m) m.pin = !m.pin; render('messages'); },
@@ -2906,6 +2952,7 @@ document.addEventListener('input', e => {
   const el = e.target.closest('[data-model]'); if (!el) return;
   const k = el.dataset.model;
   if (k === 'txNote') { S.ui.compose.note = el.value; return; }
+  if (k === 'chatText') { S.ui.chatDrafts[chatDraftKey()] = el.value; S.ui.chatText = el.value; return; }   // 대상별로 따로 보관
   S.ui[k] = el.value;
   if (['listQ', 'listPrio', 'listStatus'].includes(k)) renderForce('overview');
 });
@@ -2914,13 +2961,14 @@ document.addEventListener('keydown', e => {
   const el = e.target.closest('[data-model="chatText"]'); if (!el) return;
   if (e.key !== 'Enter' || e.shiftKey || e.isComposing || e.keyCode === 229) return;
   e.preventDefault();
-  S.ui.chatText = el.value;
+  S.ui.chatDrafts[chatDraftKey()] = el.value; S.ui.chatText = el.value;
   ACT['chat-send']();
 });
 document.addEventListener('change', e => {
   const el = e.target.closest('[data-model]'); if (!el) return;
   const k = el.dataset.model;
   if (k === 'txNote') return;
+  if (k === 'chatTarget') { S.ui.chatTarget[S.ui.chatTab] = el.value || null; renderForce('messages'); return; }
   S.ui[k] = el.value;
   if (['listPrio', 'listStatus'].includes(k)) renderForce('overview');
   if (['chatTo', 'chatKind'].includes(k)) renderForce('messages');
@@ -3045,7 +3093,7 @@ function init() {
     b.querySelector('use').setAttribute('href', S.sound ? '#ic-sound' : '#ic-mute');
     save();
   });
-  $('#tbAlert').addEventListener('click', () => { S.ui.chatTab = '알림'; ensureOpen('messages'); render('messages'); focusWin('messages'); applyLayout(); });
+  $('#tbAlert').addEventListener('click', () => { S.ui.chatAlerts = true; ensureOpen('messages'); render('messages'); focusWin('messages'); applyLayout(); });
 
   setInterval(() => { $('#sbClockVal').textContent = nowHMS(); }, 1000);
 

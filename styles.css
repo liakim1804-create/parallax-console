@@ -2737,3 +2737,28 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 }
 #win-messages .cmx .btn{ border-radius:8px; }
 #win-messages .cmx .btn-primary, #win-messages .cmx .btn-crit{ border-radius:999px; padding:5px 12px; }
+
+/* 메시지 창 머리: 팀 탭 + 알림 기록 버튼 · 받는 대상 선택 */
+#win-messages .chat-head{ display:flex; align-items:center; gap:6px; margin:2px 12px 6px; }
+#win-messages .chat-head .chat-tabs{ flex:1; min-width:0; margin:0; }
+#win-messages .chat-bell{
+  flex:none; position:relative; width:30px; height:30px; display:grid; place-items:center; padding:0;
+  border:0; border-radius:8px; background:transparent; color:var(--mc-fg); cursor:pointer;
+}
+#win-messages .chat-bell:hover{ background:var(--mc-press); }
+#win-messages .chat-bell.is-on{ background:var(--ms-field); }
+#win-messages .chat-bell .ic{ width:17px; height:17px; stroke-width:1.7; }
+#win-messages .chat-bell .cnt{
+  position:absolute; top:1px; right:0; min-width:14px; height:14px; padding:0 3px; border-radius:7px;
+  background:var(--mk-incident); color:#ffffff; font-size:12px; font-weight:600; line-height:14px;
+}
+#win-messages .chat-to{ display:flex; align-items:center; gap:8px; margin:0 12px 8px; padding:0 2px; }
+#win-messages .chat-to-k{ font-size:12px; color:var(--ms-dim); }
+#win-messages .chat-to select{
+  flex:1; min-width:0; height:30px; padding:0 8px; border:0; border-radius:8px;
+  background:var(--ms-field); color:var(--mc-fg); font-family:var(--font); font-size:14px;
+}
+#win-messages .chat-to select:focus-visible{ outline:2px solid var(--info); outline-offset:1px; }
+#win-messages .chat-to-empty{ font-size:12px; color:var(--ms-dim); }
+#win-messages .cmx .btn[disabled]{ opacity:.42; cursor:not-allowed; }
+#win-messages .cmx-input .textarea[disabled]{ opacity:.6; }
