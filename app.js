@@ -2514,8 +2514,7 @@ defApp({
         <div class="arx-screen">
           ${screenHTML({ id: sel.call, title: sel.name, place: `X ${Math.round(sel.x)} · Y ${Math.round(sel.y)} (가상 좌표)`,
             at: sel.comm + ':' + pad2(rint(10, 59)), rec: sel.ar === '연결', lost: sel.ar === '두절', scene: 'alley' })}
-          ${picker}
-          <span class="arx-batt">${battHTML(sel.batt)}</span>
+          <div class="arx-hud">${picker}<span class="arx-batt">${battHTML(sel.batt)}</span></div>
         </div>` : '<div class="empty-note arx-empty">현재 사건에 AR 글래스 연결 인원이 없습니다.</div>'}
       </div>
     </div>`;
