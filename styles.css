@@ -2854,3 +2854,22 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-overview .win-bar, #win-map .win-bar, #win-field .win-bar, #win-cctv .win-bar,
 #win-messages .win-bar, #win-progress .win-bar, #win-ar .win-bar,
 #win-transmit .win-bar, #win-handover .win-bar, .win .win-bar{ padding-right:9px; }
+
+/* 작전 지도 창: 제목 줄 대신 왼쪽 위에 닫기·최대화 버튼만 유리 알약으로 띄운다 (창에 마우스를 올렸을 때) */
+#win-map .win-bar{
+  display:flex; position:absolute; z-index:7; top:14px; left:16px; height:28px; width:auto;
+  padding:0; background:transparent; border:0; opacity:0; transition:opacity .15s ease;
+}
+#win-map:hover .win-bar, #win-map .win-bar:focus-within{ opacity:1; }
+#win-map .win-bar > .ic, #win-map .win-title, #win-map .win-ctx{ display:none; }
+#win-map .win-btns{ opacity:1; }
+#win-map .win-lights{
+  display:flex; align-items:center; gap:2px; padding:2px; border-radius:999px;
+  background:var(--mc-bg); backdrop-filter:var(--mc-blur); -webkit-backdrop-filter:var(--mc-blur);
+  border:.5px solid var(--mc-line); box-shadow:inset 0 .5px 0 var(--mc-hi), var(--mc-shadow);
+}
+#win-map .wb{ width:26px; height:26px; color:var(--mc-fg); }
+#win-map .wb .ic{ width:16px; height:16px; }
+#win-map .wb:hover{ background:var(--mc-press); }
+/* 사이드바를 접으면 왼쪽 위 사이드바 버튼과 겹치지 않게 옆으로 옮긴다 */
+#win-map:has(.mapx.is-side-closed) .win-bar{ left:62px; top:19px; }
