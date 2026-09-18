@@ -2396,7 +2396,7 @@ defApp({
       </div>` : ''}
       <div class="chat-log" id="chatLog">
         ${!tg ? `<div class="empty-note">${targets.length ? '받는 대상을 선택하면 대화 내역이 표시됩니다.' : '이 팀에 등록된 대상이 없습니다.'}</div>`
-        : list.length ? list.map(msgHTML).join('') : `<div class="empty-note">${esc(tg.label)} 와(과) 주고받은 메시지가 없습니다.</div>`}
+        : list.length ? list.map(msgHTML).join('') : `<div class="empty-note"><b>${esc(tg.label)}</b> 와(과) 주고받은 메시지가 없습니다.</div>`}
       </div>
       <div class="cmx">
         <div class="cmx-row">
@@ -3015,8 +3015,12 @@ document.addEventListener('change', e => {
   if (k === 'chatTarget') {   // "팀|대상" 한 값으로 팀과 대상을 함께 정한다
     const [tab, id] = String(el.value).split('|');
     if (tab) { S.ui.chatTab = tab; S.ui.chatTarget[tab] = id || null; S.ui.chatAlerts = false; }
-    el.blur();          // 고르고 나면 파란 선택 테두리를 남기지 않는다
-    render('messages'); return;
+    // 브라우저가 드롭다운에 초점을 되돌려 놓아도 확실히 다시 그린다 (render 는 입력 중이면 건너뛴다)
+    el.blur();
+    renderForce('messages');
+    const sel = document.querySelector('#win-messages .chat-to select');
+    if (sel) sel.blur();
+    return;
   }
   S.ui[k] = el.value;
   if (['listPrio', 'listStatus'].includes(k)) renderForce('overview');
