@@ -3280,3 +3280,8 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-overview .badge-crit::before{ background:var(--pri-crit); }
 #win-overview .badge-warn::before{ background:var(--pri-warn); }
 #win-overview .badge-info::before, #win-overview .badge-ok::before, #win-overview .badge-idle::before{ background:var(--pri-idle); }
+
+/* 사건 브리핑: 회색 상자 없이 배경 위에 그대로 */
+#win-overview .ov-brief{ padding:0; border-radius:0; background:transparent; }
+#win-overview .ov-brief .sect-h{ padding:0 2px 6px; }
+#win-overview .ov-brief .sect-b{ padding:0 2px; }
