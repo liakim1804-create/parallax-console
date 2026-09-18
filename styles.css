@@ -2589,3 +2589,9 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .sb-profile-t{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 /* 글자는 화면에서만 감추고 보조 기술에는 남긴다 */
 .sb-btn-t{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+
+/* ---------- 왼쪽 앱 목록: 번호·화면 모드 없이 이름만, 글자 14px ---------- */
+.launcher-list{ padding-top:10px; }
+.lc-btn{ padding:8px 10px; gap:10px; }
+.lc-t{ font-size:14px; font-weight:500; letter-spacing:-.01em; }
+.lc-btn .ic{ width:18px; height:18px; }

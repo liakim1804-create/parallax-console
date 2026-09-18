@@ -616,7 +616,8 @@ function layoutWindows() {
   const d = DESK(); const W = d.clientWidth, H = d.clientHeight;
   S.mode = layoutMode();
   document.body.dataset.mode = S.mode;
-  $('#lfMode').textContent = { wide: '넓은 화면 (다중 창)', standard: '일반 모니터 (분할 배치)', compact: '좁은 화면 (단일 앱)' }[S.mode];
+  const lf = $('#lfMode');   // 화면 모드 표시는 화면에서 뺐다 (남아 있으면 갱신)
+  if (lf) lf.textContent = { wide: '넓은 화면 (다중 창)', standard: '일반 모니터 (분할 배치)', compact: '좁은 화면 (단일 앱)' }[S.mode];
 
   const compact = S.mode === 'compact';
   $('#compactSwitch').hidden = !compact;
@@ -938,7 +939,7 @@ function paintLauncher() {
     const key = i < 9 ? String(i + 1) : i === 9 ? '0' : '-';
     return `<li><button class="lc-btn ${open ? 'is-open' : ''} ${S.focus === a.id ? 'is-focus' : ''}" type="button" data-act="launch" data-app="${a.id}"
       title="${esc(a.name)} - ${esc(a.desc)} (Alt+${key})" aria-pressed="${open}">
-      ${icon(a.icon)}<span class="lc-t">${esc(a.name)}</span><span class="lc-num">${key}</span></button></li>`;
+      ${icon(a.icon)}<span class="lc-t">${esc(a.name)}</span></button></li>`;
   }).join('');
 }
 function paintTaskbar() {
