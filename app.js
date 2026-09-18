@@ -2311,13 +2311,17 @@ defApp({
     const targets = chatTargets(u.chatTab), tg = curChatTarget();
     const list = tg ? all.filter(m => inScope(m, tg)) : [];
     const pinned = all.filter(m => m.pin && !m.system && inScope(m, tg));
-    const tabUnread = k => {
-      const ts = chatTargets(k);
-      return all.filter(m => !m.read && !m.mine && ts.some(x => inScope(m, x))).length;
-    };
-
-    const tab = t => `<button class="chat-tab ${u.chatTab === t.k ? 'is-on' : ''}" type="button" data-act="chat-tab" data-v="${t.k}"
-      title="${esc(t.t)} 대화 보기">${esc(t.t)}${tabUnread(t.k) ? `<span class="cnt">${tabUnread(t.k)}</span>` : ''}</button>`;
+    // 받는 대상 한 줄: 팀별로 묶은 드롭다운 (상단 팀 탭을 대신한다)
+    const unreadOf = x => all.filter(m => !m.read && !m.mine && inScope(m, x)).length;
+    const groups = CHAT_TABS.map(t => {
+      const ts = chatTargets(t.k);
+      return ts.length
+        ? `<optgroup label="${esc(t.t)}">${ts.map(x => {
+            const n = unreadOf(x);
+            return `<option value="${esc(t.k)}|${esc(x.id)}" ${u.chatTab === t.k && tg && tg.id === x.id ? 'selected' : ''}>${esc(x.label)}${n ? ` (${n})` : ''}</option>`;
+          }).join('')}</optgroup>`
+        : `<optgroup label="${esc(t.t)}"><option disabled>등록된 대상이 없습니다</option></optgroup>`;
+    }).join('');
 
     const msgHTML = m => {
       if (m.system) {
@@ -2370,16 +2374,11 @@ defApp({
 
     const unseen = S.alerts.filter(a => !a.seen).length;
     return `<div class="chat">
-      <div class="chat-head">
-        <div class="chat-tabs" role="tablist" aria-label="수신 대상 팀">${CHAT_TABS.map(tab).join('')}</div>
-        <button class="chat-bell ${u.chatAlerts ? 'is-on' : ''} ${unseen ? 'has-alert' : ''}" type="button" data-act="chat-alerts"
-          aria-pressed="${u.chatAlerts}" title="알림 기록 보기" aria-label="알림 기록">${icon('ic-bell')}${unseen ? `<span class="cnt">${unseen}</span>` : ''}</button>
-      </div>
       <div class="chat-to">
         <span class="chat-to-k">받는 대상</span>
-        ${targets.length ? `<select data-model="chatTarget" aria-label="받는 대상 선택">
-          ${targets.map(x => `<option value="${esc(x.id)}" ${tg && tg.id === x.id ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}
-        </select>` : '<span class="chat-to-empty">등록된 대상이 없습니다</span>'}
+        <select data-model="chatTarget" aria-label="받는 대상 선택">${groups}</select>
+        <button class="chat-bell ${u.chatAlerts ? 'is-on' : ''} ${unseen ? 'has-alert' : ''}" type="button" data-act="chat-alerts"
+          aria-pressed="${u.chatAlerts}" title="알림 기록 보기" aria-label="알림 기록">${icon('ic-bell')}${unseen ? `<span class="cnt">${unseen}</span>` : ''}</button>
       </div>
       ${u.chatAlerts ? alertsHTML : `
       ${pinned.length ? `<div class="pinned" aria-label="고정된 메시지">
@@ -2970,7 +2969,11 @@ document.addEventListener('change', e => {
   const el = e.target.closest('[data-model]'); if (!el) return;
   const k = el.dataset.model;
   if (k === 'txNote') return;
-  if (k === 'chatTarget') { S.ui.chatTarget[S.ui.chatTab] = el.value || null; renderForce('messages'); return; }
+  if (k === 'chatTarget') {   // "팀|대상" 한 값으로 팀과 대상을 함께 정한다
+    const [tab, id] = String(el.value).split('|');
+    if (tab) { S.ui.chatTab = tab; S.ui.chatTarget[tab] = id || null; S.ui.chatAlerts = false; }
+    renderForce('messages'); return;
+  }
   S.ui[k] = el.value;
   if (['listPrio', 'listStatus'].includes(k)) renderForce('overview');
   if (['chatTo', 'chatKind'].includes(k)) renderForce('messages');

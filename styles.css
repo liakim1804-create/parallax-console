@@ -2782,3 +2782,8 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-messages .al-row.is-seen .al-t{ font-weight:400; }
 #win-messages .al-row.is-seen .al-dot{ opacity:.4; }
 #win-messages .al-row.is-seen .al-d{ color:var(--ms-dim); }
+
+/* 받는 대상 한 줄 (팀 탭 대신 드롭다운으로 묶음) */
+#win-messages .chat-to{ margin:6px 12px 8px; gap:8px; }
+#win-messages .chat-to select{ height:32px; font-size:14px; }
+#win-messages .chat-to .chat-bell{ flex:none; width:32px; height:32px; }
