@@ -2401,7 +2401,7 @@ defApp({
       </div>
       <div class="cmx">
         <div class="cmx-row">
-          <label class="cmx-field"><span>종류</span>
+          <label class="cmx-field"><span class="sr">메시지 종류</span>
             <select data-model="chatKind" aria-label="메시지 종류">
               ${['일반', '중요', '긴급'].map(v => `<option ${u.chatKind === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
             </select></label>
