@@ -2798,3 +2798,17 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 :root[data-theme="dark"] #win-messages .chat-to select{
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.4 1.6 6 6.2l4.6-4.6' fill='none' stroke='rgba(255,255,255,.7)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
+
+/* 전송 버튼: 아이폰 메시지처럼 원형 아이콘 하나 (내용이 없으면 회색) */
+#win-messages .btn-send{
+  flex:none; width:30px; height:30px; display:grid; place-items:center; padding:0;
+  border:0; border-radius:50%; background:var(--info); color:#ffffff; cursor:pointer;
+  transition:background-color .15s ease, opacity .15s ease;
+}
+#win-messages .btn-send:hover{ filter:brightness(1.06); }
+#win-messages .btn-send:focus-visible{ outline:2px solid var(--info); outline-offset:2px; }
+#win-messages .btn-send .ic{ width:17px; height:17px; stroke-width:2.6; }
+#win-messages .btn-send.is-crit{ background:var(--mk-incident); }
+#win-messages .btn-send.is-off{ background:rgba(118,118,128,.28); color:rgba(60,60,67,.5); cursor:not-allowed; }
+:root[data-theme="dark"] #win-messages .btn-send.is-off{ background:rgba(118,118,128,.36); color:rgba(235,235,245,.5); }
+#win-messages .btn-send.is-off:hover{ filter:none; }

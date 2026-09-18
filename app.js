@@ -2408,15 +2408,25 @@ defApp({
           <textarea class="textarea" rows="1" placeholder="${tg ? `${esc(tg.label)} 에게 보낼 내용을 입력하십시오. Enter 로 전송, Shift+Enter 로 줄바꿈.` : '받는 대상을 먼저 선택하십시오.'}"
             title="Enter: 전송 · Shift+Enter: 줄바꿈" data-model="chatText" ${tg ? '' : 'disabled'}
             aria-label="메시지 입력 (Enter 로 전송, Shift+Enter 로 줄바꿈)">${esc(chatDraft())}</textarea>
-          <button class="btn btn-sm ${u.chatKind === '긴급' ? 'btn-crit' : 'btn-primary'}" type="button" data-act="chat-send" ${tg ? '' : 'disabled'}
-            title="${tg ? esc(tg.label) + ' 에게 전송' : '받는 대상을 선택해야 전송할 수 있습니다'}">
-            ${icon('ic-send', 'ic-sm')}${u.chatKind === '긴급' ? '긴급 알림 전송' : '메시지 전송'}</button>
+          <button class="btn-send ${u.chatKind === '긴급' ? 'is-crit' : ''} ${tg && chatDraft().trim() ? '' : 'is-off'}" type="button" data-act="chat-send" ${tg && chatDraft().trim() ? '' : 'disabled'}
+            title="${tg ? esc(tg.label) + ' 에게 ' + (u.chatKind === '긴급' ? '긴급 알림' : '메시지') + ' 전송' : '받는 대상을 선택해야 전송할 수 있습니다'}"
+            aria-label="${u.chatKind === '긴급' ? '긴급 알림 전송' : '메시지 전송'}">${icon('ic-arrow-up')}</button>
         </div>
       </div>`}
     </div>`;
   },
-  after(body) { const l = $('#chatLog', body); if (l) l.scrollTop = l.scrollHeight; }
+  after(body) { const l = $('#chatLog', body); if (l) l.scrollTop = l.scrollHeight; paintSendState(); }
 });
+
+/** 입력 내용이 없으면 전송 버튼을 회색(비활성)으로 */
+function paintSendState() {
+  const box = document.querySelector('#win-messages [data-model="chatText"]');
+  const btn = document.querySelector('#win-messages [data-act="chat-send"]');
+  if (!btn) return;
+  const on = !!(box && !box.disabled && box.value.trim());
+  btn.disabled = !on;
+  btn.classList.toggle('is-off', !on);
+}
 
 /* ---------- 8. 사건 처리 상태 ---------- */
 defApp({
@@ -2953,7 +2963,10 @@ document.addEventListener('input', e => {
   const el = e.target.closest('[data-model]'); if (!el) return;
   const k = el.dataset.model;
   if (k === 'txNote') { S.ui.compose.note = el.value; return; }
-  if (k === 'chatText') { S.ui.chatDrafts[chatDraftKey()] = el.value; S.ui.chatText = el.value; return; }   // 대상별로 따로 보관
+  if (k === 'chatText') {   // 대상별로 따로 보관하고, 전송 버튼을 바로 켜고 끈다
+    S.ui.chatDrafts[chatDraftKey()] = el.value; S.ui.chatText = el.value;
+    paintSendState(); return;
+  }
   S.ui[k] = el.value;
   if (['listQ', 'listPrio', 'listStatus'].includes(k)) renderForce('overview');
 });
