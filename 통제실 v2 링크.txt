@@ -1,0 +1,17 @@
+PARALLAX 지휘통제 콘솔 · 통제실 v2
+
+공개 주소 (인터넷에서 바로 열기)
+  콘솔 실행:   https://liakim1804-create.github.io/parallax-console/
+  단일 파일:   https://liakim1804-create.github.io/parallax-console/통제실%20v2.html
+  압축본:      https://liakim1804-create.github.io/parallax-console/통제실%20v2.zip
+  코드 저장소: https://github.com/liakim1804-create/parallax-console
+
+이 묶음에 든 파일 (모두 위 저장소에 올라가 있는 것)
+  통제실 v2.html  - index.html + styles.css + app.js 를 하나로 합친 파일
+  index.html      - 화면 뼈대와 아이콘
+  styles.css      - 디자인
+  app.js          - 기능과 가상 데이터
+
+참고
+  인터넷 연결이 필요합니다 (지도 타일, 장소 검색, 지도 라이브러리).
+  모든 데이터는 시연용 가상 데이터이며 실제 경찰 시스템과 연결되지 않습니다.
