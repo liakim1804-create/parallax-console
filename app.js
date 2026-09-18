@@ -2405,10 +2405,6 @@ defApp({
             <select data-model="chatKind" aria-label="메시지 종류">
               ${['일반', '중요', '긴급'].map(v => `<option ${u.chatKind === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}
             </select></label>
-          <span class="spacer"></span>
-          <span class="cmx-att">${u.chatAtt ? '첨부: ' + esc(u.chatAtt) : '첨부 없음'}</span>
-          <button class="btn btn-sm ${u.chatAtt === '위치' ? 'btn-on' : ''}" type="button" data-act="chat-att" data-v="위치" title="현재 사건 위치 첨부" aria-label="위치 첨부">${icon('ic-pin', 'ic-sm')}<span class="btn-t">위치</span></button>
-          <button class="btn btn-sm ${u.chatAtt === '이미지' ? 'btn-on' : ''}" type="button" data-act="chat-att" data-v="이미지" title="가상 이미지 첨부 모형" aria-label="이미지 첨부">${icon('ic-capture', 'ic-sm')}<span class="btn-t">이미지</span></button>
         </div>
         <div class="cmx-row cmx-input">
           <textarea class="textarea" rows="1" placeholder="${tg ? '내용을 입력하십시오.' : '받는 대상을 먼저 선택하십시오.'}"
@@ -3021,7 +3017,7 @@ document.addEventListener('change', e => {
   }
   S.ui[k] = el.value;
   if (['listPrio', 'listStatus'].includes(k)) renderForce('overview');
-  if (['chatTo', 'chatKind'].includes(k)) renderForce('messages');
+  if (['chatTo', 'chatKind'].includes(k)) { el.blur(); render('messages'); }
   if (k === 'hoTarget') renderForce('handover');
 });
 document.addEventListener('focusout', e => {

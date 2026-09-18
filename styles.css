@@ -2925,3 +2925,7 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 }
 #win-messages .msg-ack:hover{ background:color-mix(in srgb, var(--info) 24%, transparent); }
 #win-messages .msg-ack:focus-visible{ outline:2px solid var(--info); outline-offset:1px; }
+
+/* 메시지 창 드롭다운: 고르고 나면 강조 테두리를 남기지 않는다 */
+#win-messages select:focus, #win-messages select:focus-visible,
+#win-messages .chat-to select:focus, #win-messages .chat-to select:focus-visible{ outline:none; box-shadow:none; }
