@@ -2834,3 +2834,7 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .wb-max .wb-i-res{ display:none; }
 .win.is-max .wb-max .wb-i-max{ display:none; }
 .win.is-max .wb-max .wb-i-res{ display:inline-flex; }
+
+/* 받는 대상 알약: 왼쪽 정렬, 아래 구분선 없음 */
+#win-messages .chat-to{ justify-content:flex-start; padding:6px 46px 6px 12px; border-bottom:0; }
+#win-messages .chat-to select{ text-align:left; text-align-last:left; }
