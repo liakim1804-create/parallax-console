@@ -563,7 +563,9 @@ function winChrome(app) {
     <div class="win-btns">
       <!-- 배치 관련 버튼은 반응형 작업 때 다시 붙인다 (기능과 단축키는 그대로 남아 있다) -->
       <span class="win-lights">
-        ${b('w-max', 'ic-expand', '최대화 / 복원 (Alt+위)', 'wb-light wb-max')}
+        <button class="wb wb-light wb-max" type="button" data-act="w-max" data-win="${app.id}" title="최대화 / 복원 (Alt+위)" aria-label="최대화 / 복원">
+          <span class="wb-i-max">${icon('ic-expand')}</span><span class="wb-i-res">${icon('ic-restore')}</span>
+        </button>
         ${b('w-close', 'ic-close', '닫기', 'wb-light wb-close')}
       </span>
     </div>
@@ -2355,7 +2357,7 @@ defApp({
           ${m.mine && m.delivered !== false ? '<span class="dim">수신 확인</span>' : ''}
           <span class="spacer" style="flex:1"></span>
           <button class="btn btn-sm" type="button" data-act="msg-pin" data-id="${m.id}" title="중요 메시지 고정/해제">${m.pin ? '고정 해제' : '고정'}</button>
-          ${!m.read ? `<button class="btn btn-sm" type="button" data-act="msg-read" data-id="${m.id}" title="읽음 처리">읽음</button>` : ''}
+          ${!m.read && !m.mine ? `<button class="btn btn-sm" type="button" data-act="msg-read" data-id="${m.id}" title="읽음 처리">읽음</button>` : ''}
         </div></div>`;
     };
 
@@ -2680,10 +2682,20 @@ defApp({
 function findOfficer(id) { return OFFICERS.find(o => o.id === id); }
 function ensureOpen(id) { if (!winOf(id)) openApp(id, { silent: true }); else { restoreWin(id); } }
 
+/* 메시지 창 새로 그리기: 입력칸에 커서가 있어도 새 메시지가 바로 보이게 한다.
+   (render 는 입력 중이면 건너뛰므로 renderForce 를 쓰고, 한글 조합 중에는 조합이 끝난 뒤로 미룬다) */
+let imeOn = false, msgPending = false;
+document.addEventListener('compositionstart', () => { imeOn = true; });
+document.addEventListener('compositionend', () => { imeOn = false; if (msgPending) { msgPending = false; refreshMessages(); } });
+function refreshMessages() {
+  if (!winOf('messages')) return;
+  if (imeOn) { msgPending = true; return; }
+  renderForce('messages');
+}
 function addMsg(m) {
   const msg = Object.assign({ id: uid('M'), inc: S.sel, t: nowHM(), read: false, mine: false, kind: '일반' }, m);
   S.msgs.push(msg);
-  if (winOf('messages')) render('messages');
+  refreshMessages();
   if (winOf('overview')) render('overview');
   paintStatus();
   return msg;
@@ -2826,7 +2838,7 @@ const ACT = {
     else if (u.chatKind === '중요') pushAlert('중요', '중요 지시 발신', `${u.chatTo} 대상: ${text}`, { app: 'messages' });
     u.chatDrafts[chatDraftKey()] = ''; u.chatText = ''; u.chatAtt = null;
     renderForce('messages');   // 입력칸에 focus 가 있어도 비운 내용으로 다시 그린다
-    setTimeout(() => { m.delivered = true; m.read = true; if (winOf('messages')) render('messages'); }, 2200);
+    setTimeout(() => { m.delivered = true; m.read = true; refreshMessages(); }, 2200);
     setTimeout(() => {
       // 답신도 같은 대화 범위 안에 남긴다 (단체는 단체 대화로, 개별은 개별 대화로)
       const who = tg.group ? (chatTargets(u.chatTab)[1] && OFFICERS.find(o => o.call === chatTargets(u.chatTab)[1].send)) : OFFICERS.find(o => o.call === tg.send);

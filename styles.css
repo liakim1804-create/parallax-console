@@ -2829,3 +2829,8 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-messages .chat-to select:hover{ background-color:var(--mc-press); }
 #win-messages .chat-to .chat-bell{ position:absolute; right:10px; top:50%; transform:translateY(-50%); width:28px; height:28px; }
 #win-messages .chat-tabs{ display:none; }
+
+/* 최대화 버튼: 창이 전체 화면이면 축소 아이콘으로 바뀐다 */
+.wb-max .wb-i-res{ display:none; }
+.win.is-max .wb-max .wb-i-max{ display:none; }
+.win.is-max .wb-max .wb-i-res{ display:inline-flex; }
