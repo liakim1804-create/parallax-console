@@ -2997,3 +2997,14 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 :root[data-theme="dark"] #win-messages .msg.is-mine .msg-kind.is-crit{ color:#e5342a; }
 #win-messages .msg.is-mine .msg-kind.is-warn,
 :root[data-theme="dark"] #win-messages .msg.is-mine .msg-kind.is-warn{ color:#b35f00; }
+
+/* 중요도 색은 작전 지도의 표시와 같은 값으로 통일 (긴급 빨강 · 중요 주황) */
+#win-messages .msg-kind.is-crit,
+:root[data-theme="dark"] #win-messages .msg-kind.is-crit,
+#win-messages .msg.is-mine .msg-kind.is-crit,
+:root[data-theme="dark"] #win-messages .msg.is-mine .msg-kind.is-crit{ color:var(--pri-crit); }
+#win-messages .msg-kind.is-warn,
+:root[data-theme="dark"] #win-messages .msg-kind.is-warn,
+#win-messages .msg.is-mine .msg-kind.is-warn,
+:root[data-theme="dark"] #win-messages .msg.is-mine .msg-kind.is-warn{ color:var(--pri-warn); }
+#win-messages .msg-sev.is-warn{ background:var(--pri-warn); }
