@@ -2907,3 +2907,10 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-messages .msg-row.is-mine{ align-self:flex-end; }
 #win-messages .msg-wrap{ flex:1 1 auto; }
 #win-messages .msg{ max-width:100%; }
+
+/* 창 버튼: 두 아이콘의 높이를 맞춘다 (칸 안에서 가운데) */
+.wb > span{ display:inline-flex; align-items:center; justify-content:center; line-height:0; }
+.wb .ic{ display:block; }
+/* 받는 대상 드롭다운: 고른 뒤 파란 테두리를 남기지 않는다 (키보드로 옮길 때만 표시) */
+#win-messages .chat-to select:focus{ outline:none; }
+#win-messages .chat-to select:focus-visible{ outline:2px solid var(--info); outline-offset:1px; }

@@ -3015,7 +3015,8 @@ document.addEventListener('change', e => {
   if (k === 'chatTarget') {   // "팀|대상" 한 값으로 팀과 대상을 함께 정한다
     const [tab, id] = String(el.value).split('|');
     if (tab) { S.ui.chatTab = tab; S.ui.chatTarget[tab] = id || null; S.ui.chatAlerts = false; }
-    renderForce('messages'); return;
+    el.blur();          // 고르고 나면 파란 선택 테두리를 남기지 않는다
+    render('messages'); return;
   }
   S.ui[k] = el.value;
   if (['listPrio', 'listStatus'].includes(k)) renderForce('overview');
