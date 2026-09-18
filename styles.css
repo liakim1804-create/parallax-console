@@ -2661,3 +2661,9 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .mrow > .mrow-dot{ align-self:center; margin-right:2px; width:8px; height:8px; }
 .mrow-tx{ gap:2px; }
 .mrow-s{ font-size:12px; }
+
+/* 구분선과 칸 제목은 가깝게, 인력·신고 줄끼리는 넉넉하게 */
+.mcd-sec{ gap:7px; padding-top:10px; }
+.mcd-sec + .mcd-sec{ margin-top:10px; }
+.mcd-sec:first-of-type{ margin-top:12px; }
+.mcd-h{ padding:0 8px 1px; }
