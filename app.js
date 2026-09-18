@@ -2375,7 +2375,7 @@ defApp({
     const unseen = S.alerts.filter(a => !a.seen).length;
     return `<div class="chat">
       <div class="chat-to">
-        <span class="chat-to-k">받는 대상</span>
+        <span class="sr">받는 대상</span>
         <select data-model="chatTarget" aria-label="받는 대상 선택">${groups}</select>
         <button class="chat-bell ${u.chatAlerts ? 'is-on' : ''} ${unseen ? 'has-alert' : ''}" type="button" data-act="chat-alerts"
           aria-pressed="${u.chatAlerts}" title="알림 기록 보기" aria-label="알림 기록">${icon('ic-bell')}${unseen ? `<span class="cnt">${unseen}</span>` : ''}</button>
