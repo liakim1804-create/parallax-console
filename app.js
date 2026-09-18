@@ -2297,8 +2297,12 @@ function chatTargets(tab) {
   return CONTROL_ROOM;
 }
 const chatTargetId = () => S.ui.chatTarget[S.ui.chatTab] || '';
-const curChatTarget = () => chatTargets(S.ui.chatTab).find(x => x.id === chatTargetId()) || null;
-const chatDraftKey = () => `${S.ui.chatTab}|${chatTargetId()}`;
+/** 따로 고르지 않으면 그 팀의 '전체'(첫 항목)가 기본 대상 */
+const curChatTarget = () => {
+  const ts = chatTargets(S.ui.chatTab);
+  return ts.find(x => x.id === chatTargetId()) || ts[0] || null;
+};
+const chatDraftKey = () => `${S.ui.chatTab}|${(curChatTarget() || {}).id || ''}`;
 const chatDraft = () => S.ui.chatDrafts[chatDraftKey()] || '';
 defApp({
   id: 'messages', name: '메시지·긴급 알림', short: '메시지', icon: 'ic-message', defW: .3, defH: .5,
@@ -2379,7 +2383,6 @@ defApp({
       <div class="chat-to">
         <span class="chat-to-k">받는 대상</span>
         ${targets.length ? `<select data-model="chatTarget" aria-label="받는 대상 선택">
-          <option value="" ${!tg ? 'selected' : ''}>대상 선택</option>
           ${targets.map(x => `<option value="${esc(x.id)}" ${tg && tg.id === x.id ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}
         </select>` : '<span class="chat-to-empty">등록된 대상이 없습니다</span>'}
       </div>
@@ -2807,7 +2810,9 @@ const ACT = {
   'chat-send': () => {
     const u = S.ui, tg = curChatTarget();
     if (!tg) { toast('warn', '대상 없음', '받는 대상을 먼저 선택하십시오.'); return; }
-    const text = chatDraft().trim();
+    // 화면의 입력칸 내용을 그대로 보낸다 (임시 보관값과 어긋나도 보이는 대로 전송)
+    const box = document.querySelector('#win-messages [data-model="chatText"]');
+    const text = (box ? box.value : chatDraft()).trim();
     if (!text) { toast('warn', '내용 없음', '전달할 내용을 입력하십시오.'); return; }
     u.chatTo = tg.send;
     const att = u.chatAtt === '위치' ? { type: '위치', label: `사건 위치 (${curInc().x}, ${curInc().y})` }
