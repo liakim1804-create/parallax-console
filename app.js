@@ -2489,7 +2489,7 @@ defApp({
 defApp({
   id: 'ar', name: 'AR 실시간 영상', short: 'AR', icon: 'ic-ar', defW: .3, defH: .5,
   desc: '현장 경찰 AR 글래스에서 지휘통제실로 들어오는 가상 영상',
-  ctx: () => `현장 AR → 지휘통제실 · ${incOfficers(S.sel).filter(o => o.ar !== '미연결').length}회선`,
+  ctx: null,   // 창 이름 옆 문구는 쓰지 않는다
   render() {
     const inc = curInc();
     const pool = (S.ui.arAll ? OFFICERS : incOfficers(inc.id)).filter(o => o.ar !== '미연결');

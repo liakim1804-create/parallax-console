@@ -3129,3 +3129,55 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-map .win-bar:hover, #win-map .win-bar:focus-within{ opacity:1; }
 /* 사이드바를 접으면 왼쪽 위 사이드바 버튼을 가리지 않게 옆으로 */
 #win-map:has(.mapx.is-side-closed) .win-bar{ left:58px; top:6px; width:130px; height:52px; padding:12px 0 0 4px; }
+
+/* =========================================================================
+   AR 실시간 영상 창: 메시지 창과 같은 맥 글래스모피즘 · 같은 글자 크기
+   ========================================================================= */
+#win-ar, #win-ar.is-focus{
+  background:var(--ms-bg); backdrop-filter:var(--ms-blur); -webkit-backdrop-filter:var(--ms-blur);
+  border:.5px solid var(--mc-line); border-radius:var(--r-l, 18px);
+  box-shadow:inset 0 .5px 0 var(--mc-hi), var(--mc-shadow);
+}
+#win-ar .win-bar{ height:38px; padding:0 9px 0 14px; background:transparent; color:var(--mc-fg); }
+#win-ar .win-title{ font-size:14px; font-weight:600; color:var(--mc-fg); }
+#win-ar .win-body{ background:transparent; color:var(--mc-fg); }
+
+/* 본 화면 */
+#win-ar .arx-main{ padding:0 12px 12px; }
+#win-ar .viewer .screen, #win-ar .arx-main .screen{ border-radius:14px; }
+#win-ar .arx-bar{ gap:6px 10px; margin-top:8px; font-size:12px; color:var(--ms-dim); }
+#win-ar .arx-who{ font-size:14px; font-weight:500; color:var(--mc-fg); }
+#win-ar .arx-st{ font-size:12px; color:var(--ms-dim); }
+#win-ar .arx-st.is-crit{ color:var(--pri-crit); }
+#win-ar .arx-acts .btn{
+  height:26px; padding:0 10px; border:0; border-radius:8px; background:var(--ms-field);
+  color:var(--mc-fg); font-size:12px; font-weight:500;
+}
+#win-ar .arx-acts .btn:hover{ background:var(--mc-press); }
+#win-ar .arx-acts .btn-warn{ background:color-mix(in srgb, var(--pri-warn) 18%, transparent); color:var(--mc-fg); }
+
+/* 오른쪽 회선 목록 */
+#win-ar .arx-side{ border:0; background:transparent; padding:0 12px 12px; }
+#win-ar .arx-side-h{ border:0; padding:0 0 8px; }
+#win-ar .arx-side-t{ font-size:14px; font-weight:600; color:var(--mc-fg); }
+#win-ar .arx-scope .btn{
+  height:26px; padding:0 10px; border:0; border-radius:8px; background:var(--ms-field);
+  color:var(--mc-fg); font-size:12px; font-weight:500;
+}
+#win-ar .arx-scope .btn.btn-on{ background:var(--info); color:#ffffff; }
+#win-ar .arx-flow, #win-ar .arx-k, #win-ar .arx-cap{ font-size:12px; color:var(--ms-dim); }
+#win-ar .thumb{ border:0; border-radius:12px; background:var(--ms-field); padding:6px; }
+#win-ar .thumb:hover{ background:var(--mc-press); }
+#win-ar .thumb.is-sel{ background:color-mix(in srgb, var(--info) 16%, transparent); box-shadow:none; }
+#win-ar .thumb .screen{ border-radius:9px; }
+#win-ar .thumb-t{ font-size:12px; font-weight:500; color:var(--mc-fg); }
+#win-ar .thumb-s{ font-size:12px; color:var(--ms-dim); }
+#win-ar .empty-note{ font-size:12px; color:var(--ms-dim); }
+#win-ar .win-body::-webkit-scrollbar{ width:8px; }
+#win-ar .win-body::-webkit-scrollbar-track{ background:transparent; }
+#win-ar .win-body::-webkit-scrollbar-thumb{ background:var(--mc-sep); border:2px solid transparent; background-clip:padding-box; border-radius:4px; }
+
+/* 회선 목록 머리말: 제목과 범위 버튼을 줄 나눠 배치 (글자가 버튼 사이로 끼지 않게) */
+#win-ar .arx-side-h{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
+#win-ar .arx-side-t{ white-space:nowrap; }
+#win-ar .arx-scope{ display:flex; gap:4px; }
