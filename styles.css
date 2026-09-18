@@ -2650,3 +2650,8 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .mcd-sec:first-of-type{ margin-top:14px; }
 .mcd-h{ padding:0 8px 6px; font-weight:500; }
 .mcd-add{ margin-top:6px; }
+
+/* 사건 상세: 칸 사이를 더 띄우고 얇은 구분선을 넣는다 */
+.mcd-sec{ margin-top:0; padding-top:18px; border-top:1px solid var(--mc-sep); }
+.mcd-sec + .mcd-sec{ margin-top:18px; }
+.mcd-sec:first-of-type{ margin-top:16px; }
