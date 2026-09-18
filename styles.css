@@ -2655,3 +2655,9 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .mcd-sec{ margin-top:0; padding-top:18px; border-top:1px solid var(--mc-sep); }
 .mcd-sec + .mcd-sec{ margin-top:18px; }
 .mcd-sec:first-of-type{ margin-top:16px; }
+
+/* 사건 목록: 위험도는 이름 옆 색 점으로만, 인력·CCTV 수는 사건을 열었을 때만 보여 준다 */
+.mrow{ height:auto; min-height:44px; padding:7px 8px 7px 10px; }
+.mrow > .mrow-dot{ align-self:center; margin-right:2px; width:8px; height:8px; }
+.mrow-tx{ gap:2px; }
+.mrow-s{ font-size:12px; }

@@ -1867,10 +1867,11 @@ function caseListHTML() {
   const items = CASES.map(c => {
     const d = caseData(c.id);
     return `
-      <button class="mrow${MAPV.caseSel === c.id ? ' is-sel' : ''}" type="button" data-act="map-case" data-id="${c.id}" title="${esc(c.title)} 자세히 보기">
+      <button class="mrow${MAPV.caseSel === c.id ? ' is-sel' : ''}" type="button" data-act="map-case" data-id="${c.id}" title="${esc(c.title)} · ${esc(d.pri)} · 자세히 보기">
+        <i class="mrow-dot pri-${PRI_TONE[d.pri]}" aria-hidden="true"></i>
         <span class="mrow-tx">
-          <span class="mrow-t">${esc(c.title)}</span>
-          <span class="mrow-s"><i class="mrow-dot pri-${PRI_TONE[d.pri]}"></i>${esc(d.pri)} · ${d.reports.length > 1 ? `신고 ${d.reports.length} · ` : ''}인력 ${d.officers.length + d.vehicles.length} · CCTV ${d.cams.length}</span>
+          <span class="mrow-t">${esc(c.title)}<span class="sr"> · ${esc(d.pri)}</span></span>
+          ${d.reports.length > 1 ? `<span class="mrow-s">신고 ${d.reports.length}건 묶음</span>` : ''}
         </span>
         ${icon('ic-chev-r', 'mrow-go')}
       </button>`;
