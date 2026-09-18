@@ -1019,7 +1019,9 @@ function beepThrottled(level) {
  * 어떤 경우에도 작업 영역 크기는 바뀌지 않는다.
  */
 function pushAlert(level, title, desc, opt = {}) {
-  const a = { id: uid('AL'), level, title, desc, t: nowHMS(), inc: opt.inc || S.sel, app: opt.app || null, seen: level !== '긴급' };
+  // opt.mine: 내가 보낸 지시로 생긴 알림 → 표식(빨간 배지)을 띄우지 않는다
+  const a = { id: uid('AL'), level, title, desc, t: nowHMS(), inc: opt.inc || S.sel, app: opt.app || null,
+    mine: !!opt.mine, seen: !!opt.mine || level !== '긴급' };
   S.alerts.unshift(a);
   if (S.alerts.length > 120) S.alerts.pop();
   const open = msgVisible();
@@ -2342,9 +2344,11 @@ defApp({
       const state = m.mine ? (m.read ? '확인' : '전송됨') : (m.read ? '확인' : '미확인');
       // 보낸이·내용·시각/확인 여부를 모두 말풍선 안에 둔다
       return `<div class="msg-row ${m.mine ? 'is-mine' : ''}" data-msg="${m.id}">
+      ${m.kind !== '일반'
+        ? `<span class="msg-sev ${m.kind === '긴급' ? 'is-crit' : 'is-warn'}" title="${esc(m.kind)} 메시지" aria-label="${esc(m.kind)}">${icon('ic-exclaim')}</span>`
+        : ''}
       <div class="msg ${m.mine ? 'is-mine' : ''} ${cls} ${m.pin ? 'is-pin' : ''}">
         <div class="msg-h"><span class="who">${esc(m.from)}</span><span aria-hidden="true">→</span><span>${esc(m.to)}</span>
-          ${m.kind !== '일반' ? badge(m.kind, m.kind === '긴급' ? 'badge-crit' : 'badge-warn', m.kind === '긴급' ? 'badge-tri' : 'badge-sq') : ''}
           ${m.pin ? `<span class="msg-pin" title="고정된 메시지">${icon('ic-pushpin')}</span>` : ''}</div>
         <div class="msg-b">${esc(m.text)}</div>
         ${m.att ? (m.att.type === '음성'
@@ -2832,7 +2836,11 @@ const ACT = {
 
   /* --- 메시지 --- */
   'chat-tab': d => { S.ui.chatTab = d.v; S.ui.chatAlerts = false; renderForce('messages'); },
-  'chat-alerts': () => { S.ui.chatAlerts = !S.ui.chatAlerts; renderForce('messages'); },
+  'chat-alerts': () => {
+    S.ui.chatAlerts = !S.ui.chatAlerts;
+    if (S.ui.chatAlerts) S.alerts.forEach(a => { a.seen = true; });   // 열어서 확인하면 표식을 지운다
+    renderForce('messages'); paintStatus(); paintTaskbar(); save();
+  },
   'chat-att': d => { S.ui.chatAtt = S.ui.chatAtt === d.v ? null : d.v; render('messages'); },
   'chat-send': () => {
     const u = S.ui, tg = curChatTarget();
@@ -2845,8 +2853,8 @@ const ACT = {
     const att = u.chatAtt === '위치' ? { type: '위치', label: `사건 위치 (${curInc().x}, ${curInc().y})` }
       : u.chatAtt === '이미지' ? { type: '이미지', label: '현장 캡처 이미지 (가상)' } : null;
     const m = addMsg({ from: '지휘통제실', to: u.chatTo, kind: u.chatKind, text, mine: true, read: false, delivered: false, att });
-    if (u.chatKind === '긴급') pushAlert('긴급', '긴급 지시 발신', `${u.chatTo} 대상: ${text}`, { app: 'messages' });
-    else if (u.chatKind === '중요') pushAlert('중요', '중요 지시 발신', `${u.chatTo} 대상: ${text}`, { app: 'messages' });
+    if (u.chatKind === '긴급') pushAlert('긴급', '긴급 지시 발신', `${u.chatTo} 대상: ${text}`, { app: 'messages', mine: true });
+    else if (u.chatKind === '중요') pushAlert('중요', '중요 지시 발신', `${u.chatTo} 대상: ${text}`, { app: 'messages', mine: true });
     u.chatDrafts[chatDraftKey()] = ''; u.chatText = ''; u.chatAtt = null;
     renderForce('messages');   // 입력칸에 focus 가 있어도 비운 내용으로 다시 그린다
     setTimeout(() => { m.delivered = true; m.read = true; refreshMessages(); }, 2200);

@@ -2952,3 +2952,19 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .badge-sq::before, .badge-tri::before{ border-radius:50%; clip-path:none; }
 .ov-item.is-crit::before, .ov-item.is-warn::before{ border-radius:50%; clip-path:none; }
 .lg-mk.mk-danger{ border-radius:50%; clip-path:none; }
+
+/* 중요·긴급 메시지: 말풍선 색은 일반과 같게, 중요도는 말풍선 왼쪽 아래의 원 아이콘으로 */
+#win-messages .msg.is-crit{ background:rgba(118,118,128,.14); }
+#win-messages .msg.is-warn{ background:rgba(118,118,128,.14); }
+:root[data-theme="dark"] #win-messages .msg.is-crit,
+:root[data-theme="dark"] #win-messages .msg.is-warn{ background:rgba(118,118,128,.28); }
+#win-messages .msg.is-mine.is-crit, #win-messages .msg.is-mine.is-warn{ background:var(--info); }
+#win-messages .msg-row{ flex-direction:row; }
+#win-messages .msg-row.is-mine{ flex-direction:row; }
+#win-messages .msg-sev{
+  flex:none; align-self:flex-end; width:20px; height:20px; margin-bottom:2px;
+  display:grid; place-items:center; border-radius:50%; color:#ffffff;
+}
+#win-messages .msg-sev.is-crit{ background:var(--mk-incident); }
+#win-messages .msg-sev.is-warn{ background:#ff9500; }
+#win-messages .msg-sev .ic{ width:12px; height:12px; stroke-width:3; }
