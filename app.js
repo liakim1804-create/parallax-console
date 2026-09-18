@@ -174,6 +174,13 @@ const OFFICERS = [
   { id: 'O-51', call: '강력-5', name: '임하늘 경사', team: '강력2팀', inc: 'A-111', task: '주차장 출입 기록 확인', state: '확인 중', ar: '미연결', batt: 81, comm: '20:44', x: 838, y: 506, sos: false, health: { label: '이상 없음', source: '경찰관 직접 보고' } },
   { id: 'O-61', call: '지역-9', name: '서지오 경장', team: '지역2팀', inc: 'A-113', task: '현장 계도', state: '현장 도착', ar: '미연결', batt: 58, comm: '20:51', x: 214, y: 532, sos: false, health: { label: '이상 없음', source: '경찰관 직접 보고' } }
 ];
+// 사건에 배정되지 않은 대기 인력 (통제실에서 사건에 배정했다가 뺄 수 있다)
+OFFICERS.push(
+  { id: 'O-71', call: '대기-1', name: '유시윤 경장', team: '지역3팀', inc: null, task: '대기 중', state: '대기', ar: '연결', batt: 97, comm: '20:58', x: 430, y: 236, sos: false, health: { label: '이상 없음', source: '경찰관 직접 보고' } },
+  { id: 'O-72', call: '대기-2', name: '조하린 경사', team: '지역3팀', inc: null, task: '대기 중', state: '대기', ar: '연결', batt: 84, comm: '20:57', x: 476, y: 300, sos: false, health: { label: '이상 없음', source: '경찰관 직접 보고' } },
+  { id: 'O-73', call: '기동-4', name: '남건우 경위', team: '기동1팀', inc: null, task: '대기 중', state: '대기', ar: '미연결', batt: 73, comm: '20:55', x: 760, y: 470, sos: false, health: { label: '상태 미확인', source: '상태 미확인' } },
+  { id: 'O-74', call: '여청-5', name: '배수아 경장', team: '여성청소년팀', inc: null, task: '대기 중', state: '대기', ar: '연결', batt: 61, comm: '20:56', x: 330, y: 430, sos: false, health: { label: '이상 없음', source: '경찰관 직접 보고' } }
+);
 OFFICERS.forEach(o => { o.trail = [[o.x, o.y]]; });
 
 const VEHICLES = [
@@ -182,7 +189,11 @@ const VEHICLES = [
   { id: 'V-45', label: '교통 45호', inc: 'A-107', x: 470, y: 452, crew: '교통-3' },
   { id: 'V-12', label: '순찰차 12호', inc: 'A-109', x: 590, y: 300, crew: '순찰-12' },
   { id: 'V-20', label: '순찰차 20호', inc: 'A-111', x: 896, y: 476, crew: '강력-5' },
-  { id: 'V-27', label: '순찰차 27호', inc: 'A-113', x: 262, y: 502, crew: '지역-9' }
+  { id: 'V-27', label: '순찰차 27호', inc: 'A-113', x: 262, y: 502, crew: '지역-9' },
+  // 대기 차량
+  { id: 'V-60', label: '순찰차 60호', inc: null, x: 452, y: 268, crew: '대기-1' },
+  { id: 'V-63', label: '순찰차 63호', inc: null, x: 706, y: 506, crew: '기동-4' },
+  { id: 'V-77', label: '승합 77호', inc: null, x: 352, y: 412, crew: '여청-5' }
 ];
 
 const CCTVS = [
@@ -1379,7 +1390,7 @@ const MAPV = {
   side: true,                                                   // 사이드바 펼침 여부
   q: '', results: [], hi: -1, status: 'idle', pin: null, abort: null, timer: 0,  // 장소 검색
   layers: {}, marks: new Map(), cam: null,                                       // 지도 레이어 표식 · CCTV 팝오버
-  caseOpen: true, caseSel: null, rowSel: null, navDir: null, navScroll: 0, fmarks: []                      // 사건 목록 펼침 · 선택한 사건 · 사건 표식
+  caseOpen: true, caseSel: null, rowSel: null, navDir: null, navScroll: 0, fmarks: [], umenu: null                      // 사건 목록 펼침 · 선택한 사건 · 사건 표식
 };
 const mapIsDark = () => document.documentElement.dataset.theme === 'dark';
 
@@ -1437,6 +1448,10 @@ function initMap() {
     if (MAPV.menu && !e.target.closest('#win-map .mmenu, #win-map [data-act="map-menu"]')) setMapMenu(false);
   });
   document.addEventListener('keydown', e => { if (MAPV.menu && e.key === 'Escape') setMapMenu(false); });
+  // 작은 메뉴는 바깥을 누르거나 Esc, 화면이 움직이면 닫는다
+  document.addEventListener('pointerdown', e => { if (MAPV.umenu && !e.target.closest('.umenu')) closeUMenu(); }, true);
+  document.addEventListener('keydown', e => { if (MAPV.umenu && e.key === 'Escape') { e.stopPropagation(); closeUMenu(); } });
+  MAPV.map.on('movestart', closeUMenu);
 }
 function syncCompass() {
   const dial = document.querySelector('#win-map .mc-dial');
@@ -1542,6 +1557,7 @@ function mapMarkEl(tab, g) {
   const label = n > 1 ? `${tab.t} ${n}건 · 눌러서 확대` : one.label;
   b.title = label; b.setAttribute('aria-label', label);
   b.addEventListener('click', e => { e.stopPropagation(); onMarkClick(tab, g); });
+  if (tab.k === 'unit' && n === 1) b.addEventListener('contextmenu', e => { e.preventDefault(); e.stopPropagation(); openUnitMenu(one.id, e.clientX, e.clientY); });
   wrap.appendChild(b);
   return wrap;
 }
@@ -1766,6 +1782,85 @@ function goCaseItem(kind, id) {
   map.flyTo({ center: toLngLat(u.x, u.y), zoom: Math.max(map.getZoom(), 16), offset: [sideOffset() / 2, 0], duration: 900 });
 }
 
+/* ---- 배정 인력·차량 직접 붙이고 떼기 ----
+   추가: 목록 아래 [+ 인력 추가] 버튼 → 대기 중인 대상 메뉴
+   삭제: 목록 줄이나 지도 표식을 오른쪽 클릭 → 삭제 메뉴 (맥 컨텍스트 메뉴 방식) */
+const UNIT_KINDS = {
+  officer: { t: '인력', glyph: 'ic-officer', list: () => OFFICERS, name: o => `${o.call} ${o.name}`, sub: o => o.team },
+  vehicle: { t: '차량', glyph: 'ic-car', list: () => VEHICLES, name: v => v.label, sub: v => `탑승 ${v.crew}` }
+};
+const unitKindOf = id => String(id).startsWith('V-') ? 'vehicle' : 'officer';
+const findUnit = id => UNIT_KINDS[unitKindOf(id)].list().find(u => u.id === id);
+/** 사건 상세·지도·다른 창을 한꺼번에 다시 그린다 */
+function refreshCase() {
+  renderAll();
+  paintCaseLines(); paintCaseMarks(); paintMapLayers();
+}
+function assignUnit(id, caseId) {
+  const u = findUnit(id), c = CASES.find(x => x.id === caseId); if (!u || !c) return;
+  const K = UNIT_KINDS[unitKindOf(id)];
+  u.inc = c.reports[0];
+  MAPV.rowSel = id;
+  refreshCase();
+  selectCaseRow(id);
+  toast('info', `${K.t} 배정`, `${K.name(u)} 을(를) ${c.title} 사건에 배정했습니다. (가상 배정)`);
+}
+function unassignUnit(id) {
+  const u = findUnit(id); if (!u || !u.inc) return;
+  const K = UNIT_KINDS[unitKindOf(id)];
+  u.inc = null;
+  if (MAPV.rowSel === id) MAPV.rowSel = null;
+  refreshCase();
+  toast('warn', `${K.t} 배정 해제`, `${K.name(u)} 을(를) 사건에서 제외했습니다. 대기 상태로 돌아갑니다. (가상 배정)`);
+}
+
+/* ---- 작은 메뉴 (맥 메뉴 방식: 유리 배경, 바깥을 누르거나 Esc 로 닫힘) ---- */
+function closeUMenu() {
+  if (!MAPV.umenu) return;
+  MAPV.umenu.remove(); MAPV.umenu = null;
+}
+function openUMenu(items, x, y) {
+  closeUMenu();
+  const el = document.createElement('div');
+  el.className = 'umenu'; el.setAttribute('role', 'menu');
+  el.innerHTML = items.length ? items.map((it, i) => it.sep
+    ? '<div class="umenu-sep" role="separator"></div>'
+    : `<button class="umenu-it${it.danger ? ' is-danger' : ''}" type="button" role="menuitem" data-i="${i}">
+         ${it.glyph ? icon(it.glyph) : '<i class="umenu-gap"></i>'}<span class="umenu-t">${esc(it.label)}</span>
+         ${it.sub ? `<span class="umenu-s">${esc(it.sub)}</span>` : ''}</button>`).join('')
+    : '<div class="umenu-empty">대기 중인 대상이 없습니다</div>';
+  document.body.appendChild(el);
+  const r = el.getBoundingClientRect();
+  el.style.left = `${Math.max(8, Math.min(x, innerWidth - r.width - 8))}px`;
+  el.style.top = `${Math.max(8, Math.min(y, innerHeight - r.height - 8))}px`;
+  el.addEventListener('click', e => {
+    const b = e.target.closest('.umenu-it'); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    const it = items[+b.dataset.i]; closeUMenu(); it.act && it.act();
+  });
+  MAPV.umenu = el;
+  requestAnimationFrame(() => el.classList.add('is-in'));
+}
+/** [+ 인력/차량 추가] : 대기 중인 대상을 골라 이 사건에 배정 */
+function openAddMenu(kind, ev) {
+  const d = MAPV.caseSel && caseData(MAPV.caseSel); if (!d) return;
+  const K = UNIT_KINDS[kind]; if (!K) return;
+  const btn = ev && ev.target.closest('[data-act="case-add"]');
+  const r = btn ? btn.getBoundingClientRect() : { left: 0, bottom: 0 };
+  openUMenu(K.list().filter(u => !u.inc).map(u => ({
+    label: K.name(u), sub: K.sub(u), glyph: K.glyph, act: () => assignUnit(u.id, d.c.id)
+  })), r.left, r.bottom + 4);
+}
+/** 인력·차량 오른쪽 클릭 메뉴 */
+function openUnitMenu(id, x, y) {
+  const u = findUnit(id); if (!u) return;
+  const K = UNIT_KINDS[unitKindOf(id)];
+  const items = [{ label: '지도에서 보기', glyph: 'ic-map', act: () => goCaseItem('unit', id) }];
+  if (u.inc) items.push({ sep: true }, { label: `사건에서 삭제 (${K.t})`, glyph: 'ic-dash', danger: true, act: () => unassignUnit(id) });
+  else if (MAPV.caseSel) items.push({ sep: true }, { label: '이 사건에 배정', glyph: 'ic-plus', act: () => assignUnit(id, MAPV.caseSel) });
+  openUMenu(items, x, y);
+}
+
 /* 사이드바 HTML: 사건 드롭다운 목록 / 사건 상세 */
 function caseListHTML() {
   const items = CASES.map(c => {
@@ -1803,7 +1898,8 @@ function caseDetailHTML(d) {
     </button>`;
   const links = new Map(caseLinks(d).map(l => [l.id, l]));
   const eta = id => { const l = links.get(id); return l.moving ? `<span class="mcd-eta is-move">${l.eta}분</span>` : '<span class="mcd-eta">현장</span>'; };
-  const sec = (title, n, body) => n ? `<div class="mcd-sec"><div class="mcd-h"><span>${title}</span><span>${n}</span></div>${body}</div>` : '';
+  const sec = (title, n, body, add = '') => (n || add) ? `<div class="mcd-sec"><div class="mcd-h"><span>${title}</span><span>${n}</span></div>${body}${add}</div>` : '';
+  const addBtn = (kind, label) => `<button class="mcd-add" type="button" data-act="case-add" data-kind="${kind}" title="대기 중인 ${esc(label)} 을(를) 이 사건에 배정">${icon('ic-plus')}<span>${esc(label)} 추가</span></button>`;
   return `
     <div class="mcd">
       <button class="mcd-back" type="button" data-act="map-case-back">${icon('ic-chev-l')}<span>사건 목록</span></button>
@@ -1816,9 +1912,9 @@ function caseDetailHTML(d) {
       ${sec(d.reports.length > 1 ? '묶인 신고' : '신고', d.reports.length, d.reports.map(r =>
         row('incident', r.id, 'ic-exclaim', r.type, `${r.id} · ${r.reportedAt} 접수 · ${r.status}`)).join(''))}
       ${sec('배정 인력', d.officers.length, d.officers.map(o =>
-        row('unit', o.id, 'ic-officer', `${o.call} ${o.name}`, o.task, eta(o.id))).join(''))}
+        row('unit', o.id, 'ic-officer', `${o.call} ${o.name}`, o.task, eta(o.id))).join(''), addBtn('officer', '인력'))}
       ${sec('차량', d.vehicles.length, d.vehicles.map(v =>
-        row('unit', v.id, 'ic-car', v.label, `탑승 ${v.crew}`, eta(v.id))).join(''))}
+        row('unit', v.id, 'ic-car', v.label, `탑승 ${v.crew}`, eta(v.id))).join(''), addBtn('vehicle', '차량'))}
       ${sec('CCTV', d.cams.length, d.cams.map(c =>
         row('cctv', c.id, 'ic-cctv', c.name, `${c.id} · 교통 ${c.traffic}`)).join(''))}
     </div>`;
@@ -2041,6 +2137,10 @@ defApp({
     if (side) {
       side.addEventListener('pointerover', e => hotMark(e.target.closest('[data-fid]')?.dataset.fid || null));
       side.addEventListener('pointerleave', () => hotMark(null));
+      side.addEventListener('contextmenu', e => {
+        const row = e.target.closest('.mcd-row[data-kind="unit"]'); if (!row) return;
+        e.preventDefault(); openUnitMenu(row.dataset.id, e.clientX, e.clientY);
+      });
     }
   }
 });
@@ -2577,6 +2677,7 @@ const ACT = {
   'map-case': d => openCase(d.id),
   'map-case-back': () => closeCase(),
   'map-case-go': d => goCaseItem(d.kind, d.id),
+  'case-add': (d, e) => openAddMenu(d.kind, e),
   'map-cam-open': d => { closeCam(); S.ui.cctvSel = d.id; ensureOpen('cctv'); render('cctv'); focusWin('cctv'); applyLayout(); },
 
   /* --- 런처 / 창 --- */

@@ -2497,3 +2497,41 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .mside .mnav-btn .ic{ color:var(--mc-fg); }
 /* 켜진 버튼의 바탕색·개수 색은 모든 메뉴를 인력·차량 버튼 색(파랑)으로 통일 */
 .mside .mnav-btn{ --c:var(--mk-unit); }
+
+/* 지도 표식·영상 창은 지도 틀 안에서만 겹치도록 (사이드바와 조작 버튼 위로 올라오지 않게) */
+.mapx .map-stage{ z-index:0; }
+
+/* 사건 상세: 인력·차량 추가 버튼 */
+.mcd-add{
+  width:100%; height:30px; margin-top:2px; display:flex; align-items:center; gap:6px; padding:0 8px;
+  border:0; border-radius:8px; background:transparent; color:var(--info); cursor:pointer;
+  font-family:var(--font); font-size:12px; font-weight:500; letter-spacing:-.01em; transition:background-color .15s ease;
+}
+.mcd-add:hover{ background:var(--mc-press); }
+.mcd-add:focus-visible{ outline:2px solid var(--info); outline-offset:-2px; }
+.mcd-add .ic{ width:14px; height:14px; stroke-width:2.4; }
+
+/* 작은 메뉴 (맥 메뉴 참고): 유리 배경 · 얇은 테두리 · 파란 선택 */
+.umenu{
+  position:fixed; z-index:9000; min-width:196px; max-width:280px; padding:5px;
+  border-radius:10px; background:var(--ms-bg); backdrop-filter:var(--ms-blur); -webkit-backdrop-filter:var(--ms-blur);
+  border:.5px solid var(--mc-line); box-shadow:inset 0 .5px 0 var(--mc-hi), 0 8px 28px rgba(0,0,0,.24);
+  font-family:var(--font); color:var(--mc-fg);
+  opacity:0; transform:scale(.96); transform-origin:top left; transition:opacity .12s ease, transform .12s cubic-bezier(.2,.8,.2,1);
+}
+.umenu.is-in{ opacity:1; transform:none; }
+.umenu-it{
+  width:100%; height:28px; display:flex; align-items:center; gap:8px; padding:0 8px;
+  border:0; border-radius:6px; background:transparent; color:inherit; text-align:left; cursor:pointer;
+  font-family:var(--font); font-size:14px; letter-spacing:-.01em;
+}
+.umenu-it:hover{ background:var(--info); color:#ffffff; }
+.umenu-it .ic{ width:15px; height:15px; stroke-width:2; }
+.umenu-gap{ width:15px; }
+.umenu-t{ flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.umenu-s{ flex:none; font-size:12px; color:var(--ms-dim); }
+.umenu-it:hover .umenu-s{ color:rgba(255,255,255,.8); }
+.umenu-it.is-danger{ color:#ff3b30; }
+.umenu-it.is-danger:hover{ background:#ff3b30; color:#ffffff; }
+.umenu-sep{ height:1px; margin:4px 6px; background:var(--mc-sep); }
+.umenu-empty{ padding:7px 9px; font-size:12px; color:var(--ms-dim); }
