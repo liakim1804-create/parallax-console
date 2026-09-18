@@ -2492,11 +2492,22 @@ defApp({
   ctx: null,   // 창 이름 옆 문구는 쓰지 않는다
   render() {
     const inc = curInc();
-    const pool = (S.ui.arAll ? OFFICERS : incOfficers(inc.id)).filter(o => o.ar !== '미연결');
-    const sel = pool.find(o => o.id === S.ui.arSel) || pool[0];
+    const pool = incOfficers(inc.id).filter(o => o.ar !== '미연결');
+    const all = OFFICERS.filter(o => o.ar !== '미연결');
+    const sel = all.find(o => o.id === S.ui.arSel) || pool[0] || all[0];
     const caps = S.captures.filter(c => c.inc === inc.id && c.from.startsWith('AR'));
+    // 화면 하나만 가득 차게 보여 주고, 위쪽 드롭다운으로 누구의 시점인지 고른다
+    const others = OFFICERS.filter(o => o.ar !== '미연결' && o.inc !== inc.id);
+    const opt = o => `<option value="${esc(o.id)}" ${sel && o.id === sel.id ? 'selected' : ''}>${esc(o.call)} ${esc(o.name)} · AR ${esc(o.ar)}</option>`;
     return `
     <div class="arx">
+      <div class="arx-to">
+        <span class="sr">보는 영상 선택</span>
+        ${pool.length || others.length ? `<select data-model="arSel" aria-label="보는 영상 선택">
+          ${pool.length ? `<optgroup label="현재 사건 ${esc(inc.id)}">${pool.map(opt).join('')}</optgroup>` : ''}
+          ${others.length ? `<optgroup label="다른 사건">${others.map(opt).join('')}</optgroup>` : ''}
+        </select>` : '<span class="arx-empty-sel">연결된 AR 회선이 없습니다</span>'}
+      </div>
       <div class="arx-main">
         ${sel ? `
         ${screenHTML({ id: sel.call, title: sel.name, place: `X ${Math.round(sel.x)} · Y ${Math.round(sel.y)} (가상 좌표)`,
@@ -2514,29 +2525,6 @@ defApp({
           </span>
         </div>` : '<div class="empty-note arx-empty">현재 사건에 AR 글래스 연결 인원이 없습니다.</div>'}
       </div>
-      <aside class="arx-side" aria-label="경찰관별 영상">
-        <div class="arx-side-h">
-          <span class="arx-side-t">경찰관별 영상 ${pool.length}회선</span>
-          <span class="arx-scope">
-            <button class="btn btn-sm ${!S.ui.arAll ? 'btn-on' : ''}" type="button" data-act="ar-scope" data-v="0">현재 사건</button>
-            <button class="btn btn-sm ${S.ui.arAll ? 'btn-on' : ''}" type="button" data-act="ar-scope" data-v="1">전체</button>
-          </span>
-        </div>
-        <div class="arx-flow">데이터 흐름: 현장 경찰 AR 글래스 → 지휘통제실</div>
-        <div class="arx-thumbs">
-          ${pool.map(o => `<button class="thumb ${sel && o.id === sel.id ? 'is-sel' : ''}" type="button" data-act="ar-sel" data-id="${o.id}"
-              title="${esc(o.call)} ${esc(o.name)} 영상 확대">
-            ${screenHTML({ id: o.call, title: '', place: '', at: o.comm, rec: o.ar === '연결', lost: o.ar === '두절', scene: 'street' })}
-            <div class="thumb-c"><div class="thumb-t">${esc(o.call)} ${esc(o.name)}</div>
-              <div class="thumb-s">AR ${esc(o.ar)} · <span class="mono">${esc(o.comm)}</span></div></div>
-          </button>`).join('') || '<div class="empty-note">연결된 회선 없음</div>'}
-        </div>
-        <div class="arx-caps">
-          <div class="arx-k">AR 캡처 기록</div>
-          ${caps.map(c => `<div class="arx-cap"><span>${esc(c.from)}</span> ${esc(c.label)} <span class="mono">${esc(c.t)}</span></div>`).join('')
-            || '<div class="arx-cap dim">캡처 기록 없음</div>'}
-        </div>
-      </aside>
     </div>`;
   }
 });
@@ -3013,6 +3001,7 @@ document.addEventListener('change', e => {
   const el = e.target.closest('[data-model]'); if (!el) return;
   const k = el.dataset.model;
   if (k === 'txNote') return;
+  if (k === 'arSel') { S.ui.arSel = el.value; el.blur(); renderForce('ar'); return; }
   if (k === 'chatTarget') {   // "팀|대상" 한 값으로 팀과 대상을 함께 정한다
     const [tab, id] = String(el.value).split('|');
     if (!S.ui.chatTarget || typeof S.ui.chatTarget !== 'object') S.ui.chatTarget = {};   // 예전 저장값 보호

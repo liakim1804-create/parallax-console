@@ -3181,3 +3181,25 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-ar .arx-side-h{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
 #win-ar .arx-side-t{ white-space:nowrap; }
 #win-ar .arx-scope{ display:flex; gap:4px; }
+
+/* AR 창: 화면 하나만 가득 · 위쪽 드롭다운으로 시점 전환 (메시지 창의 받는 대상과 같은 방식) */
+#win-ar .arx{ display:flex; flex-direction:column; min-height:0; height:100%; }
+#win-ar .arx-side{ display:none; }
+#win-ar .arx-to{ flex:none; display:flex; align-items:center; padding:6px 12px 8px; }
+#win-ar .arx-to select{
+  appearance:none; -webkit-appearance:none; width:auto; max-width:100%; height:28px;
+  padding:0 26px 0 12px; border:.5px solid var(--mc-line); border-radius:999px;
+  background-color:var(--ms-field); color:var(--mc-fg); font-family:var(--font); font-size:13px; font-weight:500; cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.4 1.6 6 6.2l4.6-4.6' fill='none' stroke='rgba(0,0,0,.55)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 9px center; background-size:11px 8px;
+  transition:background-color .15s ease;
+}
+:root[data-theme="dark"] #win-ar .arx-to select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.4 1.6 6 6.2l4.6-4.6' fill='none' stroke='rgba(255,255,255,.7)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+#win-ar .arx-to select:hover{ background-color:var(--mc-press); }
+#win-ar .arx-to select:focus, #win-ar .arx-to select:focus-visible{ outline:none; }
+#win-ar .arx-empty-sel{ font-size:12px; color:var(--ms-dim); }
+#win-ar .arx-main{ flex:1; min-height:0; display:flex; flex-direction:column; padding:0 12px 12px; }
+#win-ar .arx-main .screen{ flex:1; min-height:0; height:auto; }
+#win-ar .arx-bar{ flex:none; display:flex; align-items:center; flex-wrap:wrap; }
