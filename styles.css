@@ -2776,3 +2776,9 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-messages .al-m{ font-size:12px; color:var(--ms-dim); }
 #win-messages .al-foot{ padding-top:12px; border-top:1px solid var(--mc-sep); }
 #win-messages .al-foot .btn{ width:100%; border-radius:8px; }
+
+/* 알림: 확인 여부는 글자 없이 점의 진하기와 제목 굵기로 */
+#win-messages .al-row .al-t{ font-weight:600; }
+#win-messages .al-row.is-seen .al-t{ font-weight:400; }
+#win-messages .al-row.is-seen .al-dot{ opacity:.4; }
+#win-messages .al-row.is-seen .al-d{ color:var(--ms-dim); }

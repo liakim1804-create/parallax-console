@@ -2362,12 +2362,12 @@ defApp({
 
     // 알림 기록: 긴급도는 색 원으로만, 줄 사이는 지도 사이드바와 같은 얇은 선
     const alertsHTML = `<div class="alerts">
-      ${S.alerts.length ? S.alerts.map(a => `<div class="al-row">
-        <i class="al-dot pri-${a.level === '긴급' ? 'crit' : a.level === '중요' ? 'warn' : 'idle'}" title="${esc(a.level)}" aria-label="${esc(a.level)}"></i>
+      ${S.alerts.length ? S.alerts.map(a => `<div class="al-row${a.seen ? ' is-seen' : ''}">
+        <i class="al-dot pri-${a.level === '긴급' ? 'crit' : a.level === '중요' ? 'warn' : 'idle'}"
+          title="${esc(a.level)} · ${a.seen ? '확인' : '미확인'} · 사건 ${esc(a.inc)}" aria-label="${esc(a.level)} · ${a.seen ? '확인' : '미확인'} · 사건 ${esc(a.inc)}"></i>
         <div class="al-tx">
           <div class="al-h"><span class="al-t">${esc(a.title)}</span><span class="al-time">${esc(a.t)}</span></div>
           <div class="al-d">${esc(a.desc)}</div>
-          <div class="al-m">사건 ${esc(a.inc)} · ${a.seen ? '확인' : '미확인'}</div>
         </div>
       </div>`).join('') : '<div class="empty-note">알림 기록이 없습니다.</div>'}
       <div class="al-foot"><button class="btn btn-sm" type="button" data-act="alert-clear">알림 기록 비우기</button></div>
