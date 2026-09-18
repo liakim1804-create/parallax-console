@@ -1879,7 +1879,6 @@ function caseListHTML() {
     <div class="mcase">
       <div class="mcase-list"><div class="mcase-in">
         <div class="mlist">${items}</div>
-        <button class="mcase-add" type="button" title="여러 신고를 하나의 사건으로 묶기 (다음 단계에서 구성)">${icon('ic-plus')}<span>사건 묶기</span></button>
       </div></div>
     </div>`;
 }
