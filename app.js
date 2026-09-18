@@ -939,7 +939,7 @@ function paintTaskbar() {
         <span class="tb-dot"></span><span class="tb-app-t">${esc(a.name)}</span></button>
       <button class="tb-x" type="button" data-act="w-close" data-win="${w.id}"
         title="${esc(a.name)} 닫기" aria-label="${esc(a.name)} 닫기">${icon('ic-close', 'ic-sm')}</button></li>`;
-  }).join('') : '<li class="dim" style="font-size:11px;padding:4px 6px">실행 중인 앱 없음</li>';
+  }).join('') : '<li class="dim" style="font-size:12px;padding:4px 6px">실행 중인 앱 없음</li>';
 
   const n = S.alerts.filter(x => !x.seen && x.level === '긴급').length;
   $('#tbAlertCount').textContent = String(S.alerts.length);
@@ -2525,7 +2525,7 @@ defApp({
     </div></div>
 
     <div class="sect"><div class="sect-h">지령·응답 기록</div><div class="sect-b" style="display:grid;gap:4px">
-      ${S.stages[inc.id].log.slice().reverse().slice(0, 6).map(l => `<div class="card-row dim mono" style="font-size:11px">${esc(l)}</div>`).join('')}
+      ${S.stages[inc.id].log.slice().reverse().slice(0, 6).map(l => `<div class="card-row dim mono" style="font-size:12px">${esc(l)}</div>`).join('')}
     </div></div>`;
   }
 });
