@@ -2993,6 +2993,7 @@ document.addEventListener('input', e => {
   const el = e.target.closest('[data-model]'); if (!el) return;
   const k = el.dataset.model;
   if (k === 'txNote') { S.ui.compose.note = el.value; return; }
+  if (k === 'chatTarget') return;   // 받는 대상은 change 에서만 처리한다 (여기서 덮어쓰면 선택이 풀린다)
   if (k === 'chatText') {   // 대상별로 따로 보관하고, 전송 버튼을 바로 켜고 끈다
     S.ui.chatDrafts[chatDraftKey()] = el.value; S.ui.chatText = el.value;
     paintSendState(); return;
@@ -3014,6 +3015,7 @@ document.addEventListener('change', e => {
   if (k === 'txNote') return;
   if (k === 'chatTarget') {   // "팀|대상" 한 값으로 팀과 대상을 함께 정한다
     const [tab, id] = String(el.value).split('|');
+    if (!S.ui.chatTarget || typeof S.ui.chatTarget !== 'object') S.ui.chatTarget = {};   // 예전 저장값 보호
     if (tab) { S.ui.chatTab = tab; S.ui.chatTarget[tab] = id || null; S.ui.chatAlerts = false; }
     // 브라우저가 드롭다운에 초점을 되돌려 놓아도 확실히 다시 그린다 (render 는 입력 중이면 건너뛴다)
     el.blur();
