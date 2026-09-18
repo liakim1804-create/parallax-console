@@ -2968,3 +2968,12 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-messages .msg-sev.is-crit{ background:var(--mk-incident); }
 #win-messages .msg-sev.is-warn{ background:#ff9500; }
 #win-messages .msg-sev .ic{ width:12px; height:12px; stroke-width:3; }
+
+/* 말풍선 위쪽 줄의 중요도: 색 원 + 글자 (일반은 표시 없음) */
+#win-messages .msg-sev{ display:none; }
+#win-messages .msg-kind{ display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; }
+#win-messages .msg-kind i{ width:7px; height:7px; border-radius:50%; background:currentColor; }
+#win-messages .msg-kind.is-crit{ color:var(--mk-incident); }
+#win-messages .msg-kind.is-warn{ color:#ff9500; }
+#win-messages .msg.is-mine .msg-kind.is-crit{ color:#ffd0cb; }
+#win-messages .msg.is-mine .msg-kind.is-warn{ color:#ffe1b0; }
