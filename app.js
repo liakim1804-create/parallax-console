@@ -2356,15 +2356,17 @@ defApp({
         </div></div>`;
     };
 
-    const alertsHTML = `<div class="pane" style="display:grid;gap:6px">
-      <div class="dim">긴급 알림을 닫아도 아래 기록에는 남습니다. 총 ${S.alerts.length}건.</div>
-      ${S.alerts.length ? S.alerts.map(a => `<div class="card" style="${a.level === '긴급' ? 'border-color:#f5a7a3' : a.level === '중요' ? 'border-color:#fdf7e8' : ''}">
-        <div class="card-h">${badge(a.level, a.level === '긴급' ? 'badge-crit' : a.level === '중요' ? 'badge-warn' : 'badge-info', a.level === '긴급' ? 'badge-tri' : a.level === '중요' ? 'badge-sq' : '')}
-          <span class="card-t">${esc(a.title)}</span><span class="spacer"></span><span class="dim mono">${esc(a.t)}</span></div>
-        <div class="card-row">${esc(a.desc)}</div>
-        <div class="card-row dim">사건 ${esc(a.inc)} · ${a.seen ? '확인' : '미확인'}</div>
+    // 알림 기록: 긴급도는 색 원으로만, 줄 사이는 지도 사이드바와 같은 얇은 선
+    const alertsHTML = `<div class="alerts">
+      ${S.alerts.length ? S.alerts.map(a => `<div class="al-row">
+        <i class="al-dot pri-${a.level === '긴급' ? 'crit' : a.level === '중요' ? 'warn' : 'idle'}" title="${esc(a.level)}" aria-label="${esc(a.level)}"></i>
+        <div class="al-tx">
+          <div class="al-h"><span class="al-t">${esc(a.title)}</span><span class="al-time">${esc(a.t)}</span></div>
+          <div class="al-d">${esc(a.desc)}</div>
+          <div class="al-m">사건 ${esc(a.inc)} · ${a.seen ? '확인' : '미확인'}</div>
+        </div>
       </div>`).join('') : '<div class="empty-note">알림 기록이 없습니다.</div>'}
-      <button class="btn btn-sm" type="button" data-act="alert-clear">알림 기록 비우기</button>
+      <div class="al-foot"><button class="btn btn-sm" type="button" data-act="alert-clear">알림 기록 비우기</button></div>
     </div>`;
 
     const unseen = S.alerts.filter(a => !a.seen).length;

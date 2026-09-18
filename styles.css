@@ -2762,3 +2762,17 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-messages .chat-to-empty{ font-size:12px; color:var(--ms-dim); }
 #win-messages .cmx .btn[disabled]{ opacity:.42; cursor:not-allowed; }
 #win-messages .cmx-input .textarea[disabled]{ opacity:.6; }
+
+/* 알림 기록: 긴급도는 색 원으로만, 구분선은 지도 사이드바와 같은 색 */
+#win-messages .alerts{ display:flex; flex-direction:column; padding:0 12px 12px; overflow-y:auto; }
+#win-messages .al-row{ display:flex; gap:9px; padding:10px 2px; }
+#win-messages .al-row + .al-row{ border-top:1px solid var(--mc-sep); }
+#win-messages .al-dot{ flex:none; width:8px; height:8px; margin-top:6px; border-radius:50%; background:var(--p); }
+#win-messages .al-tx{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+#win-messages .al-h{ display:flex; align-items:baseline; gap:8px; }
+#win-messages .al-t{ flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:14px; font-weight:500; }
+#win-messages .al-time{ flex:none; font-size:12px; color:var(--ms-dim); font-variant-numeric:tabular-nums; }
+#win-messages .al-d{ font-size:14px; line-height:1.45; }
+#win-messages .al-m{ font-size:12px; color:var(--ms-dim); }
+#win-messages .al-foot{ padding-top:12px; border-top:1px solid var(--mc-sep); }
+#win-messages .al-foot .btn{ width:100%; border-radius:8px; }
