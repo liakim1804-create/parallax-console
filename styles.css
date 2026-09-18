@@ -3008,3 +3008,20 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-messages .msg.is-mine .msg-kind.is-warn,
 :root[data-theme="dark"] #win-messages .msg.is-mine .msg-kind.is-warn{ color:var(--pri-warn); }
 #win-messages .msg-sev.is-warn{ background:var(--pri-warn); }
+
+/* 창 버튼: 모든 창에서 유리 알약 + 원형 호버 (작전 지도와 같은 방식) */
+.win-lights{
+  display:flex; align-items:center; gap:2px; padding:2px; border-radius:999px;
+  background:var(--mc-bg); backdrop-filter:var(--mc-blur); -webkit-backdrop-filter:var(--mc-blur);
+  border:.5px solid var(--mc-line); box-shadow:inset 0 .5px 0 var(--mc-hi), var(--mc-shadow);
+}
+.wb, .wb.wb-light, .wb.wb-close, .wb.wb-min, .wb.wb-max{
+  width:28px; height:28px; border-radius:50%; color:var(--mc-fg); background:transparent;
+}
+.wb:hover, .wb.wb-light:hover, .wb.wb-close:hover{ background:var(--mc-press); color:var(--mc-fg); }
+.wb:focus-visible{ outline:2px solid var(--info); outline-offset:1px; }
+
+/* 창 버튼 크기는 작전 지도 기준으로 통일 (버튼 26px · 아이콘 16px) */
+.wb, .wb.wb-light, .wb.wb-close, .wb.wb-min, .wb.wb-max,
+#win-map .wb{ width:26px; height:26px; }
+.wb .ic, .wb.wb-light .ic, #win-map .wb .ic{ width:16px; height:16px; stroke-width:1.7; }
