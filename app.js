@@ -1293,7 +1293,7 @@ function briefHTML(inc) {
 defApp({
   id: 'overview', name: '전체 상황', short: '상황', icon: 'ic-overview', defW: .46, defH: .7,
   desc: '상황 요약, 선택 사건 브리핑, 사건 목록(검색·긴급도·상태 필터)을 한 화면에서 확인',
-  ctx: () => `선택 ${S.sel} · 진행 ${activeIncidents().length}건 · 투입 ${OFFICERS.length}명`,
+  ctx: null,   // 창 이름 옆에는 아무것도 붙이지 않는다
   render() {
     const u = S.ui;
     const sos = OFFICERS.filter(o => o.sos);
