@@ -2498,21 +2498,23 @@ defApp({
     const caps = S.captures.filter(c => c.inc === inc.id && c.from.startsWith('AR'));
     // 화면 하나만 가득 차게 보여 주고, 위쪽 드롭다운으로 누구의 시점인지 고른다
     const others = OFFICERS.filter(o => o.ar !== '미연결' && o.inc !== inc.id);
-    const opt = o => `<option value="${esc(o.id)}" ${sel && o.id === sel.id ? 'selected' : ''}>${esc(o.call)} ${esc(o.name)} · AR ${esc(o.ar)}</option>`;
-    return `
-    <div class="arx">
-      <div class="arx-to">
+    const opt = o => `<option value="${esc(o.id)}" ${sel && o.id === sel.id ? 'selected' : ''}>${esc(o.call)} ${esc(o.name)}</option>`;
+    const picker = (pool.length || others.length) ? `
+      <span class="arx-pick">
         <span class="sr">보는 영상 선택</span>
-        ${pool.length || others.length ? `<select data-model="arSel" aria-label="보는 영상 선택">
+        <select data-model="arSel" aria-label="보는 영상 선택">
           ${pool.length ? `<optgroup label="현재 사건 ${esc(inc.id)}">${pool.map(opt).join('')}</optgroup>` : ''}
           ${others.length ? `<optgroup label="다른 사건">${others.map(opt).join('')}</optgroup>` : ''}
-        </select>` : '<span class="arx-empty-sel">연결된 AR 회선이 없습니다</span>'}
-      </div>
+        </select>
+      </span>` : '';
+    return `
+    <div class="arx">
       <div class="arx-main">
         ${sel ? `
         <div class="arx-screen">
           ${screenHTML({ id: sel.call, title: sel.name, place: `X ${Math.round(sel.x)} · Y ${Math.round(sel.y)} (가상 좌표)`,
             at: sel.comm + ':' + pad2(rint(10, 59)), rec: sel.ar === '연결', lost: sel.ar === '두절', scene: 'alley' })}
+          ${picker}
           <span class="arx-batt">${battHTML(sel.batt)}</span>
         </div>` : '<div class="empty-note arx-empty">현재 사건에 AR 글래스 연결 인원이 없습니다.</div>'}
       </div>
