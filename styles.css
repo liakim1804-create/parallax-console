@@ -3025,3 +3025,98 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .wb, .wb.wb-light, .wb.wb-close, .wb.wb-min, .wb.wb-max,
 #win-map .wb{ width:26px; height:26px; }
 .wb .ic, .wb.wb-light .ic, #win-map .wb .ic{ width:16px; height:16px; stroke-width:1.7; }
+
+/* =========================================================================
+   전체 상황 창: 작전 지도·메시지 창과 같은 맥 글래스모피즘
+   ========================================================================= */
+#win-overview, #win-overview.is-focus{
+  background:var(--ms-bg); backdrop-filter:var(--ms-blur); -webkit-backdrop-filter:var(--ms-blur);
+  border:.5px solid var(--mc-line); border-radius:var(--r-l, 18px);
+  box-shadow:inset 0 .5px 0 var(--mc-hi), var(--mc-shadow);
+}
+#win-overview .win-bar{ background:transparent; color:var(--mc-fg); }
+#win-overview .win-body{ background:transparent; color:var(--mc-fg); padding:0 14px 14px; }
+
+/* 상황 요약 줄 */
+#win-overview .ov-strip{
+  margin:0 0 12px; padding:10px 12px; border:0; border-radius:12px; background:var(--ms-field);
+  display:flex; flex-wrap:wrap; gap:6px 16px;
+}
+#win-overview .ov-item{ font-size:12px; color:var(--ms-dim); }
+#win-overview .ov-item b{ margin-left:6px; font-size:14px; font-weight:600; color:var(--mc-fg); }
+#win-overview .ov-item.is-crit b{ color:var(--pri-crit); }
+#win-overview .ov-item.is-warn b{ color:var(--pri-warn); }
+
+/* 칸 제목과 카드 */
+#win-overview .sect{ margin:0 0 14px; background:transparent; border:0; box-shadow:none; }
+#win-overview .sect-h{
+  display:flex; align-items:center; gap:6px; padding:0 2px 6px;
+  font-size:12px; font-weight:500; color:var(--ms-dim); border:0;
+}
+#win-overview .sect-h .ic{ width:14px; height:14px; color:var(--ms-dim); }
+#win-overview .card, #win-overview .person, #win-overview .check{
+  border:0; border-radius:12px; background:var(--ms-field); padding:10px 12px; box-shadow:none;
+}
+#win-overview .card-t{ font-size:14px; font-weight:500; }
+#win-overview .card-row{ font-size:12px; color:var(--ms-dim); }
+
+/* 사건 브리핑 */
+#win-overview .ov-brief{ padding:12px; border-radius:14px; background:var(--ms-field); }
+#win-overview .ov-brief .sect-h{ padding:0 0 8px; }
+#win-overview .bf-id{ font-size:16px; font-weight:600; letter-spacing:-.01em; }
+#win-overview .bf-no{ color:var(--info); font-weight:600; }
+#win-overview .bf-meta{ margin-top:4px; font-size:12px; color:var(--ms-dim); display:flex; flex-wrap:wrap; gap:4px 10px; }
+#win-overview .bf-alert{ color:var(--pri-crit); font-weight:600; }
+#win-overview .brief-sum{ margin:10px 0 12px; font-size:14px; line-height:1.6; color:var(--mc-fg); }
+#win-overview .brief-sub{ margin:14px 0 6px; font-size:12px; color:var(--ms-dim); }
+#win-overview .fact{ padding:8px 10px; border:0; border-radius:10px; background:var(--mc-press); }
+#win-overview .cert-bar{ border-radius:999px; overflow:hidden; }
+
+/* 사건 목록 */
+#win-overview .ovx-index{ border:0; background:transparent; }
+#win-overview .ovx-index-h{ border:0; padding:0 2px 8px; }
+#win-overview .ovx-index-title{ font-size:14px; font-weight:600; }
+#win-overview .ovx-count{ margin-left:6px; font-size:12px; font-weight:400; color:var(--ms-dim); }
+#win-overview .ovx-hint{ font-size:12px; color:var(--ms-dim); }
+#win-overview .field{
+  height:32px; padding:0 10px; border:0; border-radius:9px; background:var(--ms-field);
+  display:inline-flex; align-items:center; gap:6px;
+}
+#win-overview .field .ic{ width:15px; height:15px; color:var(--ms-dim); }
+#win-overview .field input, #win-overview .field select{
+  border:0; outline:0; background:transparent; font-family:var(--font); font-size:14px; color:var(--mc-fg);
+}
+#win-overview .field select{
+  appearance:none; -webkit-appearance:none; padding-right:20px; cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.4 1.6 6 6.2l4.6-4.6' fill='none' stroke='rgba(0,0,0,.55)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 2px center; background-size:11px 8px;
+}
+:root[data-theme="dark"] #win-overview .field select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1.4 1.6 6 6.2l4.6-4.6' fill='none' stroke='rgba(255,255,255,.7)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+#win-overview .field:hover{ background:var(--mc-press); }
+#win-overview .field:focus-within{ box-shadow:0 0 0 3px rgba(10,132,255,.25); }
+#win-overview .ovx-reset{ border:0; border-radius:8px; background:transparent; color:var(--info); font-size:12px; }
+#win-overview .ovx-reset:hover{ background:var(--mc-press); }
+
+#win-overview .ovx-list{ display:flex; flex-direction:column; gap:2px; border:0; }
+#win-overview .ovx-row{
+  border:0; border-radius:10px; padding:9px 10px; background:transparent;
+  transition:background-color .15s ease;
+}
+#win-overview .ovx-row + .ovx-row{ border-top:1px solid var(--mc-sep); border-radius:10px; }
+#win-overview .ovx-row:hover{ background:var(--mc-press); }
+#win-overview .ovx-row.is-sel{ background:color-mix(in srgb, var(--info) 14%, transparent); border-top-color:transparent; }
+#win-overview .ovx-row:focus-visible{ outline:2px solid var(--info); outline-offset:-2px; }
+#win-overview .ovx-id{ font-size:12px; color:var(--ms-dim); font-variant-numeric:tabular-nums; }
+#win-overview .ovx-type{ font-size:14px; font-weight:500; color:var(--mc-fg); }
+#win-overview .ovx-place, #win-overview .ovx-meta{ font-size:12px; color:var(--ms-dim); }
+#win-overview .ovx-prio{ font-size:12px; font-weight:600; color:var(--ms-dim); }
+#win-overview .ovx-prio.is-crit{ color:var(--pri-crit); }
+#win-overview .ovx-status{ font-size:12px; color:var(--ms-dim); }
+#win-overview .empty-note{ padding:14px 10px; font-size:12px; color:var(--ms-dim); }
+
+/* 스크롤바는 지도 사이드바와 같은 얇은 모양 */
+#win-overview .win-body::-webkit-scrollbar{ width:8px; }
+#win-overview .win-body::-webkit-scrollbar-track{ background:transparent; }
+#win-overview .win-body::-webkit-scrollbar-thumb{ background:var(--mc-sep); border:2px solid transparent; background-clip:padding-box; border-radius:4px; }
