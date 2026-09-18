@@ -3248,3 +3248,13 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
   color:rgba(255,255,255,.95); font-size:13px;
 }
 #win-ar .arx-batt .batt{ gap:7px; }
+
+/* 배터리는 알약 없이 아이콘과 숫자만 (영상 위에서 읽히도록 흰 글자 + 옅은 그림자) */
+#win-ar .arx-batt{
+  padding:0; border:0; background:transparent; box-shadow:none;
+  backdrop-filter:none; -webkit-backdrop-filter:none;
+  text-shadow:0 1px 3px rgba(0,0,0,.6);
+}
+#win-ar .arx-batt .batt-b{ border-color:rgba(255,255,255,.85); filter:drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+#win-ar .arx-batt .batt-b i{ background:rgba(255,255,255,.95); }
+#win-ar .arx-batt .mono{ color:rgba(255,255,255,.95); }
