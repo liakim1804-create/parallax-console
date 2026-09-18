@@ -977,7 +977,8 @@ function paintStatus() {
   alertEl.textContent = `긴급 알림 ${crit}건`;
   $$('[data-ctx]').forEach(el => {
     const a = APPS.find(x => x.id === el.dataset.ctx);
-    el.textContent = a && a.ctx ? a.ctx() : `${inc.id} ${inc.type}`;
+    // ctx: null 인 앱은 창 이름 옆에 아무것도 붙이지 않는다
+    el.textContent = a && a.ctx === null ? '' : a && a.ctx ? a.ctx() : `${inc.id} ${inc.type}`;
   });
 }
 
@@ -2278,7 +2279,7 @@ const CHANNELS = ['지휘통제실', '현장 경찰', '후속 인력'];
 defApp({
   id: 'messages', name: '메시지·긴급 알림', short: '메시지', icon: 'ic-message', defW: .3, defH: .5,
   desc: '지휘통제실·현장 경찰·후속 인력 3방향 통신 및 알림 기록',
-  ctx: () => { const n = S.msgs.filter(m => m.inc === S.sel && !m.read).length; return `${S.sel} · 미확인 ${n}건`; },
+  ctx: null,   // 창 이름 옆 사건 번호·미확인 건수는 쓰지 않는다
   render() {
     const u = S.ui, inc = curInc();
     const all = S.msgs.filter(m => m.inc === inc.id || m.system);

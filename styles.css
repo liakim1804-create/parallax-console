@@ -2667,3 +2667,73 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .mcd-sec + .mcd-sec{ margin-top:10px; }
 .mcd-sec:first-of-type{ margin-top:12px; }
 .mcd-h{ padding:0 8px 1px; }
+
+/* =========================================================================
+   메시지·긴급 알림 창: 작전 지도와 같은 맥 글래스모피즘
+   ========================================================================= */
+#win-messages{
+  background:var(--ms-bg); backdrop-filter:var(--ms-blur); -webkit-backdrop-filter:var(--ms-blur);
+  border:.5px solid var(--mc-line); box-shadow:inset 0 .5px 0 var(--mc-hi), var(--mc-shadow);
+}
+#win-messages .win-bar{ height:38px; background:transparent; color:var(--mc-fg); }
+#win-messages .win-body{ background:transparent; color:var(--mc-fg); }
+
+/* 채널 탭: 맥 세그먼트 컨트롤 */
+#win-messages .chat-tabs{
+  margin:2px 12px 8px; padding:2px; gap:2px; display:flex;
+  border:0; border-bottom:0; border-radius:9px; background:var(--ms-field);
+}
+#win-messages .chat-tab{
+  flex:1; min-width:0; height:26px; display:flex; align-items:center; justify-content:center; gap:4px;
+  border:0; border-radius:7px; background:transparent; color:var(--mc-fg);
+  font-family:var(--font); font-size:12px; font-weight:500; letter-spacing:-.01em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:background-color .15s ease;
+}
+#win-messages .chat-tab:hover{ background:var(--mc-press); }
+#win-messages .chat-tab.is-on{ background:rgba(255,255,255,.92); box-shadow:0 1px 2px rgba(0,0,0,.12); }
+:root[data-theme="dark"] #win-messages .chat-tab.is-on{ background:rgba(118,118,128,.42); box-shadow:none; }
+#win-messages .chat-tab .cnt{
+  padding:0 5px; border-radius:8px; background:var(--mk-incident); color:#ffffff;
+  font-size:12px; font-weight:600; line-height:16px;
+}
+
+/* 고정한 메시지 줄 */
+#win-messages .pinned{
+  margin:0 12px 8px; padding:4px 6px; border:0; border-radius:10px; background:var(--ms-field);
+}
+#win-messages .pin-row{ border:0; padding:4px 6px; border-radius:7px; }
+#win-messages .pin-row + .pin-row{ border-top:1px solid var(--mc-sep); border-radius:0; }
+
+/* 말풍선 */
+#win-messages .chat-log{ padding:2px 12px 10px; gap:8px; }
+#win-messages .msg{
+  max-width:86%; padding:8px 12px; border:0; border-radius:16px;
+  background:rgba(118,118,128,.14); color:var(--mc-fg); box-shadow:none;
+}
+:root[data-theme="dark"] #win-messages .msg{ background:rgba(118,118,128,.28); }
+#win-messages .msg.is-mine{ background:var(--info); color:#ffffff; }
+#win-messages .msg.is-mine .dim, #win-messages .msg.is-mine .msg-h, #win-messages .msg.is-mine .msg-f{ color:rgba(255,255,255,.82); }
+#win-messages .msg.is-mine .btn{ background:rgba(255,255,255,.18); border-color:transparent; color:#ffffff; }
+#win-messages .msg.is-crit{ background:color-mix(in srgb, var(--mk-incident) 16%, transparent); }
+#win-messages .msg.is-warn{ background:color-mix(in srgb, #ff9500 18%, transparent); }
+#win-messages .msg.is-system{ max-width:100%; }
+#win-messages .msg-h{ margin-bottom:3px; font-size:12px; color:var(--ms-dim); }
+#win-messages .msg-b{ font-size:14px; line-height:1.45; }
+#win-messages .msg-f{ margin-top:5px; font-size:12px; color:var(--ms-dim); }
+#win-messages .msg-att{
+  margin-top:6px; padding:6px 8px; border:0; border-radius:10px; background:rgba(118,118,128,.16); font-size:12px;
+}
+
+/* 작성 칸 */
+#win-messages .cmx{
+  margin:0 12px 12px; padding:8px; gap:6px; border:.5px solid var(--mc-line); border-radius:14px;
+  background:var(--ms-field);
+}
+#win-messages .cmx-field, #win-messages .cmx-att{ font-size:12px; color:var(--ms-dim); }
+#win-messages .cmx-field select{ font-size:12px; color:var(--mc-fg); }
+#win-messages .cmx-input .textarea{
+  height:34px; min-height:34px; padding:8px 10px; border:0; border-radius:10px;
+  background:var(--ms-bg); color:var(--mc-fg); font-size:14px;
+}
+#win-messages .cmx .btn{ border-radius:8px; }
+#win-messages .cmx .btn-primary, #win-messages .cmx .btn-crit{ border-radius:999px; padding:5px 12px; }
