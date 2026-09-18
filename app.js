@@ -561,15 +561,10 @@ function winChrome(app) {
     <span class="win-title">${esc(app.name)}</span>
     <span class="win-ctx" data-ctx="${app.id}"></span>
     <div class="win-btns">
-      ${b('w-front', 'ic-front', '맨 앞으로 가져오기', 'wb-opt')}
-      ${b('w-left', 'ic-split2', '화면 왼쪽 절반으로 (Alt+왼쪽)', 'wb-opt')}
-      ${b('w-right', 'ic-split2', '화면 오른쪽 절반으로 (Alt+오른쪽)', 'wb-opt')}
-      ${b('w-quad', 'ic-split4', '4분할 위치로 이동 (누를 때마다 사분면 변경)', 'wb-opt')}
-      ${b('w-reset', 'ic-reset', '이 창 위치 초기화', 'wb-opt')}
+      <!-- 배치 관련 버튼은 반응형 작업 때 다시 붙인다 (기능과 단축키는 그대로 남아 있다) -->
       <span class="win-lights">
-        ${b('w-close', 'ic-close', '닫기', 'wb-light wb-close')}
-        ${b('w-min', 'ic-dash', '최소화', 'wb-light wb-min')}
         ${b('w-max', 'ic-expand', '최대화 / 복원 (Alt+위)', 'wb-light wb-max')}
+        ${b('w-close', 'ic-close', '닫기', 'wb-light wb-close')}
       </span>
     </div>
   </header>
