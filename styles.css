@@ -3120,3 +3120,12 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-overview .win-body::-webkit-scrollbar{ width:8px; }
 #win-overview .win-body::-webkit-scrollbar-track{ background:transparent; }
 #win-overview .win-body::-webkit-scrollbar-thumb{ background:var(--mc-sep); border:2px solid transparent; background-clip:padding-box; border-radius:4px; }
+
+/* 작전 지도 창 버튼: 창 전체가 아니라 왼쪽 위에 마우스를 올렸을 때만 보인다 */
+#win-map .win-bar{
+  top:0; left:0; width:180px; height:54px; padding:14px 0 0 16px; align-items:flex-start;
+}
+#win-map:hover .win-bar{ opacity:0; }
+#win-map .win-bar:hover, #win-map .win-bar:focus-within{ opacity:1; }
+/* 사이드바를 접으면 왼쪽 위 사이드바 버튼을 가리지 않게 옆으로 */
+#win-map:has(.mapx.is-side-closed) .win-bar{ left:58px; top:6px; width:130px; height:52px; padding:12px 0 0 4px; }
