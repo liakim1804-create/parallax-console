@@ -2314,14 +2314,11 @@ defApp({
     const list = tg ? all.filter(m => inScope(m, tg)) : [];
     const pinned = all.filter(m => m.pin && !m.system && inScope(m, tg));
     // 받는 대상 한 줄: 팀별로 묶은 드롭다운 (상단 팀 탭을 대신한다)
-    const unreadOf = x => all.filter(m => !m.read && !m.mine && inScope(m, x)).length;
     const groups = CHAT_TABS.map(t => {
       const ts = chatTargets(t.k);
       return ts.length
-        ? `<optgroup label="${esc(t.t)}">${ts.map(x => {
-            const n = unreadOf(x);
-            return `<option value="${esc(t.k)}|${esc(x.id)}" ${u.chatTab === t.k && tg && tg.id === x.id ? 'selected' : ''}>${esc(x.label)}${n ? ` (${n})` : ''}</option>`;
-          }).join('')}</optgroup>`
+        ? `<optgroup label="${esc(t.t)}">${ts.map(x =>
+            `<option value="${esc(t.k)}|${esc(x.id)}" ${u.chatTab === t.k && tg && tg.id === x.id ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</optgroup>`
         : `<optgroup label="${esc(t.t)}"><option disabled>등록된 대상이 없습니다</option></optgroup>`;
     }).join('');
 
@@ -2342,12 +2339,13 @@ defApp({
       }
       const cls = m.kind === '긴급' ? 'is-crit' : m.kind === '중요' ? 'is-warn' : '';
       // 시각·확인 여부는 말풍선 밖(옆)에, 고정은 오른쪽 클릭 메뉴에서 (카카오톡 방식)
-      const state = m.mine ? (m.read ? '확인' : '전송됨') : (m.read ? '확인' : '');
-      // 보낸이 이름은 말풍선 밖에 두어, 말풍선 폭이 글자 길이를 따르게 한다
+      const state = m.mine ? (m.read ? '확인' : '전송됨') : (m.read ? '확인' : '미확인');
+      // 보낸이·내용·시각/확인 여부를 모두 말풍선 안에 둔다
       return `<div class="msg-row ${m.mine ? 'is-mine' : ''}" data-msg="${m.id}">
-      <div class="msg-wrap">
-        <div class="msg-name"><b>${esc(m.from)}</b> <span aria-hidden="true">→</span> ${esc(m.to)}${m.kind !== '일반' ? ` ${badge(m.kind, m.kind === '긴급' ? 'badge-crit' : 'badge-warn', m.kind === '긴급' ? 'badge-tri' : 'badge-sq')}` : ''}</div>
       <div class="msg ${m.mine ? 'is-mine' : ''} ${cls} ${m.pin ? 'is-pin' : ''}">
+        <div class="msg-h"><span class="who">${esc(m.from)}</span><span aria-hidden="true">→</span><span>${esc(m.to)}</span>
+          ${m.kind !== '일반' ? badge(m.kind, m.kind === '긴급' ? 'badge-crit' : 'badge-warn', m.kind === '긴급' ? 'badge-tri' : 'badge-sq') : ''}
+          ${m.pin ? `<span class="msg-pin" title="고정된 메시지">${icon('ic-pushpin')}</span>` : ''}</div>
         <div class="msg-b">${esc(m.text)}</div>
         ${m.att ? (m.att.type === '음성'
           ? `<div class="msg-att voice" data-voice="${m.id}"><button class="btn btn-sm" type="button" data-act="voice-play" data-id="${m.id}">${icon('ic-play', 'ic-sm')}재생</button>
@@ -2355,13 +2353,11 @@ defApp({
              <span class="dim">${esc(m.att.label)}</span></div>`
           : `<div class="msg-att">${icon(m.att.type === '위치' ? 'ic-pin' : 'ic-capture', 'ic-sm')}${esc(m.att.label)}
              ${m.att.type === '이미지' ? '<span class="dim">(가상 이미지 첨부 모형)</span>' : ''}</div>`) : ''}
-      </div></div>
-      <div class="msg-meta">
-        ${m.pin ? `<span class="msg-pin" title="고정된 메시지">${icon('ic-pushpin')}</span>` : ''}
-        ${!m.mine && !m.read
-        ? `<button class="msg-ack" type="button" data-act="msg-read" data-id="${m.id}" title="이 메시지를 확인 처리">확인</button>`
-        : state ? `<span class="msg-state ${m.read ? 'is-read' : ''}">${state}</span>` : ''}
-        <span class="msg-time">${esc(m.t)}</span>
+        <div class="msg-f">
+          <span class="msg-time">${esc(m.t)}</span>
+          <span class="msg-state ${m.read ? 'is-read' : ''}">${state}</span>
+          ${!m.mine && !m.read ? `<button class="msg-ack" type="button" data-act="msg-read" data-id="${m.id}" title="이 메시지를 확인 처리">확인</button>` : ''}
+        </div>
       </div></div>`;
     };
 
