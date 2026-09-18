@@ -2374,8 +2374,8 @@ defApp({
           <button class="btn btn-sm ${u.chatAtt === '이미지' ? 'btn-on' : ''}" type="button" data-act="chat-att" data-v="이미지" title="가상 이미지 첨부 모형" aria-label="이미지 첨부">${icon('ic-capture', 'ic-sm')}<span class="btn-t">이미지</span></button>
         </div>
         <div class="cmx-row cmx-input">
-          <textarea class="textarea" rows="1" placeholder="전달할 내용을 입력하십시오. 긴급 종류로 보내면 모든 앱 위에 알림이 표시됩니다."
-            data-model="chatText" aria-label="메시지 입력">${esc(u.chatText)}</textarea>
+          <textarea class="textarea" rows="1" placeholder="전달할 내용을 입력하십시오. Enter 로 전송, Shift+Enter 로 줄바꿈."
+            title="Enter: 전송 · Shift+Enter: 줄바꿈" data-model="chatText" aria-label="메시지 입력 (Enter 로 전송, Shift+Enter 로 줄바꿈)">${esc(u.chatText)}</textarea>
           <button class="btn btn-sm ${u.chatKind === '긴급' ? 'btn-crit' : 'btn-primary'}" type="button" data-act="chat-send">
             ${icon('ic-send', 'ic-sm')}${u.chatKind === '긴급' ? '긴급 알림 전송' : '메시지 전송'}</button>
         </div>
@@ -2770,7 +2770,7 @@ const ACT = {
     if (u.chatKind === '긴급') pushAlert('긴급', '긴급 지시 발신', `${u.chatTo} 대상: ${text}`, { app: 'messages' });
     else if (u.chatKind === '중요') pushAlert('중요', '중요 지시 발신', `${u.chatTo} 대상: ${text}`, { app: 'messages' });
     u.chatText = ''; u.chatAtt = null;
-    render('messages');
+    renderForce('messages');   // 입력칸에 focus 가 있어도 비운 내용으로 다시 그린다
     setTimeout(() => { m.delivered = true; m.read = true; if (winOf('messages')) render('messages'); }, 2200);
     setTimeout(() => {
       const who = OFFICERS.find(o => o.call === u.chatTo) || incOfficers(S.sel)[0];
@@ -2908,6 +2908,14 @@ document.addEventListener('input', e => {
   if (k === 'txNote') { S.ui.compose.note = el.value; return; }
   S.ui[k] = el.value;
   if (['listQ', 'listPrio', 'listStatus'].includes(k)) renderForce('overview');
+});
+// 메시지 입력칸: Enter 로 전송, Shift+Enter 로 줄바꿈 (한글 입력 조합 중에는 전송하지 않는다)
+document.addEventListener('keydown', e => {
+  const el = e.target.closest('[data-model="chatText"]'); if (!el) return;
+  if (e.key !== 'Enter' || e.shiftKey || e.isComposing || e.keyCode === 229) return;
+  e.preventDefault();
+  S.ui.chatText = el.value;
+  ACT['chat-send']();
 });
 document.addEventListener('change', e => {
   const el = e.target.closest('[data-model]'); if (!el) return;
