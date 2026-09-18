@@ -2977,3 +2977,8 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-messages .msg-kind.is-warn{ color:#ff9500; }
 #win-messages .msg.is-mine .msg-kind.is-crit{ color:#ffd0cb; }
 #win-messages .msg.is-mine .msg-kind.is-warn{ color:#ffe1b0; }
+
+/* 다크 모드에서도 내가 보낸 말풍선은 파란색 (어두운 회색 규칙에 묻히지 않게) */
+:root[data-theme="dark"] #win-messages .msg.is-mine,
+:root[data-theme="dark"] #win-messages .msg.is-mine.is-crit,
+:root[data-theme="dark"] #win-messages .msg.is-mine.is-warn{ background:var(--info); color:#ffffff; }
