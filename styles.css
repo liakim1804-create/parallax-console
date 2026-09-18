@@ -2626,3 +2626,21 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .mcd-row.is-sel{ background:var(--mc-sep); }
 .mcd-row.is-sel .mcd-t{ font-weight:500; }
 .mcd-eta, .mcd-eta.is-move{ font-weight:400; color:var(--ms-dim); }
+
+/* ---------- 글자 위계는 크기로만: 연한 회색 글자를 최소화 ----------
+   보조 글자도 읽기 쉬운 진하기로 올리고, 정말 부수적인 것(입력 안내 문구·지도 출처·사용 불가 버튼)만 연하게 남긴다 */
+:root{
+  --tx-2:#2c313a;                 /* 보조 글자: 본문에 가깝게 */
+  --tx-3:#585e69;                 /* 셋째 단계: 읽을 수 있는 회색 */
+  --ms-dim:rgba(0,0,0,.66);       /* 지도 사이드바 보조 글자 */
+}
+:root[data-theme="dark"]{
+  --tx-2:rgba(235,235,245,.88);
+  --tx-3:rgba(235,235,245,.68);
+  --ms-dim:rgba(235,235,245,.76);
+}
+/* 예외: 입력 안내 문구는 입력한 글자와 구분되도록 연하게 */
+.msearch input::placeholder, input::placeholder, textarea::placeholder{ color:rgba(60,60,67,.42); }
+:root[data-theme="dark"] .msearch input::placeholder,
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder{ color:rgba(235,235,245,.38); }
