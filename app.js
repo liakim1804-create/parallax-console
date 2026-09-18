@@ -1866,17 +1866,18 @@ function caseListHTML() {
   const items = CASES.map(c => {
     const d = caseData(c.id);
     return `
-      <button class="mcase-item" type="button" data-act="map-case" data-id="${c.id}" title="${esc(c.title)} 자세히 보기">
-        <span class="mcase-dot pri-${PRI_TONE[d.pri]}" aria-label="${esc(d.pri)}"></span>
-        <span class="mcase-tx"><span class="mcase-t">${esc(c.title)}</span>
-          <span class="mcase-s">${d.reports.length > 1 ? `신고 ${d.reports.length} · ` : ''}인력 ${d.officers.length + d.vehicles.length} · CCTV ${d.cams.length}</span></span>
-        ${icon('ic-chev-r', 'mcase-go')}
+      <button class="mrow${MAPV.caseSel === c.id ? ' is-sel' : ''}" type="button" data-act="map-case" data-id="${c.id}" title="${esc(c.title)} 자세히 보기">
+        <span class="mrow-tx">
+          <span class="mrow-t">${esc(c.title)}</span>
+          <span class="mrow-s"><i class="mrow-dot pri-${PRI_TONE[d.pri]}"></i>${esc(d.pri)} · ${d.reports.length > 1 ? `신고 ${d.reports.length} · ` : ''}인력 ${d.officers.length + d.vehicles.length} · CCTV ${d.cams.length}</span>
+        </span>
+        ${icon('ic-chev-r', 'mrow-go')}
       </button>`;
   }).join('');
   return `
     <div class="mcase">
       <div class="mcase-list"><div class="mcase-in">
-        ${items}
+        <div class="mlist">${items}</div>
         <button class="mcase-add" type="button" title="여러 신고를 하나의 사건으로 묶기 (다음 단계에서 구성)">${icon('ic-plus')}<span>사건 묶기</span></button>
       </div></div>
     </div>`;

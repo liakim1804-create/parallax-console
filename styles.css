@@ -2535,3 +2535,44 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 .umenu-it.is-danger:hover{ background:#ff3b30; color:#ffffff; }
 .umenu-sep{ height:1px; margin:4px 6px; background:var(--mc-sep); }
 .umenu-empty{ padding:7px 9px; font-size:12px; color:var(--ms-dim); }
+
+/* ---------- 사건 목록: macOS Finder·시스템 설정 목록 방식 ----------
+   중성 회색 바탕 · 하나로 이어진 목록 · 촘촘한 행 · 작은 모서리 · 절제된 파란 선택
+   긴급도 색은 작은 점으로만 쓰고, 선택 표시(파랑)와 섞지 않는다 */
+.mcase-in{ padding:0; }
+.mside.is-case-open .mcase-in{ padding:6px 0 4px; }
+.mlist{
+  display:flex; flex-direction:column;
+  border-radius:6px; background:var(--ms-field); overflow:hidden;
+}
+.mrow{
+  position:relative; width:100%; height:68px; display:flex; align-items:center; gap:6px; padding:0 8px 0 10px;
+  border:0; border-radius:0; background:transparent; color:var(--mc-fg); text-align:left; cursor:pointer;
+  font-family:var(--font);
+}
+/* 행 사이 실선 하나로 이어지는 목록 (마지막 행은 선 없음) */
+.mrow + .mrow::before{
+  content:""; position:absolute; left:10px; right:0; top:0; height:1px; background:var(--mc-sep);
+}
+.mrow:hover{ background:var(--mc-press); }
+.mrow:focus-visible{ outline:2px solid var(--info); outline-offset:-2px; }
+.mrow.is-sel{ background:color-mix(in srgb, var(--info) 14%, transparent); }
+.mrow.is-sel .mrow-t{ font-weight:500; }
+.mrow-tx{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.mrow-t, .mrow-s{ overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.mrow-t{ font-size:16px; font-weight:500; letter-spacing:-.01em; line-height:1.25; }
+.mrow-s{ display:flex; align-items:center; gap:5px; font-size:14px; font-weight:400; color:var(--ms-dim); line-height:1.3; }
+.mrow-dot{ flex:none; width:7px; height:7px; border-radius:50%; background:var(--p); }
+.mrow-go{ flex:none; width:12px; height:12px; stroke-width:2.4; color:var(--ms-dim); }
+
+/* 사건 묶기: 장식 없는 목록 끝 줄 */
+.mcase-add{
+  width:100%; height:32px; margin:4px 0 0; display:flex; align-items:center; justify-content:flex-start; gap:6px; padding:0 10px;
+  border:0; border-radius:5px; background:transparent; color:var(--info);
+  font-family:var(--font); font-size:14px; font-weight:400; letter-spacing:-.01em; cursor:pointer;
+}
+.mcase-add:hover{ background:var(--mc-press); }
+.mcase-add .ic{ width:14px; height:14px; stroke-width:2.2; }
+
+/* 삭제 메뉴: 글자만 빨강, 가리켰을 때는 회색 바탕 */
+.umenu-it.is-danger:hover{ background:var(--mc-sep); color:#ff3b30; }
