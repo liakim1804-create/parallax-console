@@ -3258,3 +3258,25 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-ar .arx-batt .batt-b{ border-color:rgba(255,255,255,.85); filter:drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
 #win-ar .arx-batt .batt-b i{ background:rgba(255,255,255,.95); }
 #win-ar .arx-batt .mono{ color:rgba(255,255,255,.95); }
+
+/* 전체 상황: 글자 색은 최소화하고, 위험도는 작전 지도와 같은 색의 원으로만 구분 */
+#win-overview .ov-item b,
+#win-overview .ov-item.is-crit b,
+#win-overview .ov-item.is-warn b{ color:var(--mc-fg); }
+#win-overview .ov-item.is-crit::before{ background:var(--pri-crit); }
+#win-overview .ov-item.is-warn::before{ background:var(--pri-warn); }
+#win-overview .bf-no{ color:var(--mc-fg); }
+#win-overview .bf-alert{
+  display:inline-flex; align-items:center; gap:6px; color:var(--mc-fg); font-weight:400;
+}
+#win-overview .bf-alert::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--pri-crit); }
+#win-overview .ovx-prio{ display:inline-flex; align-items:center; gap:5px; color:var(--mc-fg); font-weight:400; }
+#win-overview .ovx-prio::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--pri-idle); }
+#win-overview .ovx-prio.is-crit{ color:var(--mc-fg); }
+#win-overview .ovx-prio.is-crit::before{ background:var(--pri-crit); }
+#win-overview .ovx-prio.is-warn::before{ background:var(--pri-warn); }
+#win-overview .sect-h .ic{ color:var(--ms-dim); }
+#win-overview .badge{ color:var(--mc-fg); }
+#win-overview .badge-crit::before{ background:var(--pri-crit); }
+#win-overview .badge-warn::before{ background:var(--pri-warn); }
+#win-overview .badge-info::before, #win-overview .badge-ok::before, #win-overview .badge-idle::before{ background:var(--pri-idle); }

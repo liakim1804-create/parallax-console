@@ -1358,7 +1358,7 @@ defApp({
               <span class="ovx-place">${esc(i.place)} · 발생 ${esc(i.reportedAt)}</span>
             </span>
             <span class="ovx-state">
-              <span class="ovx-prio ${i.priority === '긴급' ? 'is-crit' : ''}">${esc(i.priority)}</span>
+              <span class="ovx-prio ${i.priority === '긴급' ? 'is-crit' : i.priority === '주의' ? 'is-warn' : 'is-idle'}">${esc(i.priority)}</span>
               <span class="ovx-status">${esc(i.status)}</span>
             </span>
             <span class="ovx-meta">위험도 ${riskLabel(i.risk)} ${Math.round(i.risk)} · ${esc(STAGE_NAMES[st.at])} ${st.at + 1}/8 · 투입 ${incOfficers(i.id).length}명 · ${esc(i.team)} · 마지막 갱신 ${esc(i.updatedAt)} (${agoText(i.updatedAt)})</span>
