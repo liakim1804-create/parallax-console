@@ -2345,8 +2345,9 @@ defApp({
       // 보낸이·내용·시각/확인 여부를 모두 말풍선 안에 둔다
       return `<div class="msg-row ${m.mine ? 'is-mine' : ''}" data-msg="${m.id}">
       <div class="msg ${m.mine ? 'is-mine' : ''} ${cls} ${m.pin ? 'is-pin' : ''}">
-        <div class="msg-h"><span class="who">${esc(m.from)}</span><span aria-hidden="true">→</span><span>${esc(m.to)}</span>
+        <div class="msg-h">
           ${m.kind !== '일반' ? `<span class="msg-kind ${m.kind === '긴급' ? 'is-crit' : 'is-warn'}"><i aria-hidden="true"></i>${esc(m.kind)}</span>` : ''}
+          <span class="who">${esc(m.from)}</span><span aria-hidden="true">→</span><span>${esc(m.to)}</span>
           ${m.pin ? `<span class="msg-pin" title="고정된 메시지">${icon('ic-pushpin')}</span>` : ''}</div>
         <div class="msg-b">${esc(m.text)}</div>
         ${m.att ? (m.att.type === '음성'

@@ -2982,3 +2982,18 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 :root[data-theme="dark"] #win-messages .msg.is-mine,
 :root[data-theme="dark"] #win-messages .msg.is-mine.is-crit,
 :root[data-theme="dark"] #win-messages .msg.is-mine.is-warn{ background:var(--info); color:#ffffff; }
+
+/* 중요도는 맨 앞에, 글자 사이 여백은 6px 로 통일. 긴급(빨강)과 중요(주황)를 또렷하게 */
+#win-messages .msg-h{ gap:6px; }
+#win-messages .msg-kind{ gap:5px; font-weight:700; }
+#win-messages .msg-kind i{ width:8px; height:8px; }
+#win-messages .msg-kind.is-crit{ color:#e5342a; }
+#win-messages .msg-kind.is-warn{ color:#c76a00; }
+:root[data-theme="dark"] #win-messages .msg-kind.is-crit{ color:#ff6b61; }
+:root[data-theme="dark"] #win-messages .msg-kind.is-warn{ color:#ffab2e; }
+/* 파란 말풍선 위에서는 흰 알약 안에 색 글자로 (배경과 섞이지 않게) */
+#win-messages .msg.is-mine .msg-kind{ padding:1px 8px; border-radius:999px; background:#ffffff; }
+#win-messages .msg.is-mine .msg-kind.is-crit,
+:root[data-theme="dark"] #win-messages .msg.is-mine .msg-kind.is-crit{ color:#e5342a; }
+#win-messages .msg.is-mine .msg-kind.is-warn,
+:root[data-theme="dark"] #win-messages .msg.is-mine .msg-kind.is-warn{ color:#b35f00; }
