@@ -2644,3 +2644,9 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 :root[data-theme="dark"] .msearch input::placeholder,
 :root[data-theme="dark"] input::placeholder,
 :root[data-theme="dark"] textarea::placeholder{ color:rgba(235,235,245,.38); }
+
+/* 사건 상세: 칸(신고 · 배정 인력 · 차량 · CCTV)끼리 충분히 띄워 구분되게 */
+.mcd-sec{ margin-top:22px; }
+.mcd-sec:first-of-type{ margin-top:14px; }
+.mcd-h{ padding:0 8px 6px; font-weight:500; }
+.mcd-add{ margin-top:6px; }
