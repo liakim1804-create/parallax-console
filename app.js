@@ -2342,13 +2342,12 @@ defApp({
       }
       const cls = m.kind === '긴급' ? 'is-crit' : m.kind === '중요' ? 'is-warn' : '';
       // 시각·확인 여부는 말풍선 밖(옆)에, 고정은 오른쪽 클릭 메뉴에서 (카카오톡 방식)
-      const state = m.mine ? (m.read ? '읽음' : '전송됨') : (m.read ? '' : '미확인');
+      const state = m.mine ? (m.read ? '확인' : '전송됨') : (m.read ? '확인' : '');
       // 보낸이 이름은 말풍선 밖에 두어, 말풍선 폭이 글자 길이를 따르게 한다
       return `<div class="msg-row ${m.mine ? 'is-mine' : ''}" data-msg="${m.id}">
       <div class="msg-wrap">
-        ${m.mine ? '' : `<div class="msg-name">${esc(m.from)}${m.kind !== '일반' ? ` ${badge(m.kind, m.kind === '긴급' ? 'badge-crit' : 'badge-warn', m.kind === '긴급' ? 'badge-tri' : 'badge-sq')}` : ''}</div>`}
+        <div class="msg-name"><b>${esc(m.from)}</b> <span aria-hidden="true">→</span> ${esc(m.to)}${m.kind !== '일반' ? ` ${badge(m.kind, m.kind === '긴급' ? 'badge-crit' : 'badge-warn', m.kind === '긴급' ? 'badge-tri' : 'badge-sq')}` : ''}</div>
       <div class="msg ${m.mine ? 'is-mine' : ''} ${cls} ${m.pin ? 'is-pin' : ''}">
-        ${m.mine && m.kind !== '일반' ? `<div class="msg-h">${badge(m.kind, m.kind === '긴급' ? 'badge-crit' : 'badge-warn', m.kind === '긴급' ? 'badge-tri' : 'badge-sq')}</div>` : ''}
         <div class="msg-b">${esc(m.text)}</div>
         ${m.att ? (m.att.type === '음성'
           ? `<div class="msg-att voice" data-voice="${m.id}"><button class="btn btn-sm" type="button" data-act="voice-play" data-id="${m.id}">${icon('ic-play', 'ic-sm')}재생</button>
@@ -2359,7 +2358,9 @@ defApp({
       </div></div>
       <div class="msg-meta">
         ${m.pin ? `<span class="msg-pin" title="고정된 메시지">${icon('ic-pushpin')}</span>` : ''}
-        ${state ? `<span class="msg-state ${m.read ? 'is-read' : ''}">${state}</span>` : ''}
+        ${!m.mine && !m.read
+        ? `<button class="msg-ack" type="button" data-act="msg-read" data-id="${m.id}" title="이 메시지를 확인 처리">확인</button>`
+        : state ? `<span class="msg-state ${m.read ? 'is-read' : ''}">${state}</span>` : ''}
         <span class="msg-time">${esc(m.t)}</span>
       </div></div>`;
     };

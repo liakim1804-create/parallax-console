@@ -2914,3 +2914,14 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 /* 받는 대상 드롭다운: 고른 뒤 파란 테두리를 남기지 않는다 (키보드로 옮길 때만 표시) */
 #win-messages .chat-to select:focus{ outline:none; }
 #win-messages .chat-to select:focus-visible{ outline:2px solid var(--info); outline-offset:1px; }
+
+/* 말풍선 위 표식: 보낸이 → 받는이 (내 메시지도 표시) */
+#win-messages .msg-name{ display:flex; align-items:center; gap:4px; font-size:12px; font-weight:400; color:var(--ms-dim); }
+#win-messages .msg-name b{ font-weight:600; color:var(--mc-fg); }
+/* 받은 메시지의 확인 버튼 */
+#win-messages .msg-ack{
+  padding:1px 7px; border:0; border-radius:999px; background:color-mix(in srgb, var(--info) 14%, transparent);
+  color:var(--info); font-family:var(--font); font-size:12px; font-weight:500; cursor:pointer;
+}
+#win-messages .msg-ack:hover{ background:color-mix(in srgb, var(--info) 24%, transparent); }
+#win-messages .msg-ack:focus-visible{ outline:2px solid var(--info); outline-offset:1px; }
