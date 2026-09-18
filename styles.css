@@ -2838,3 +2838,19 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 /* 받는 대상 알약: 왼쪽 정렬, 아래 구분선 없음 */
 #win-messages .chat-to{ justify-content:flex-start; padding:6px 46px 6px 12px; border-bottom:0; }
 #win-messages .chat-to select{ text-align:left; text-align-last:left; }
+
+/* 창 제목 줄 버튼: 왼쪽 앱 아이콘과 같은 크기·여백, 상단에 마우스를 올렸을 때만 보이기 */
+.win-bar > .ic{ width:18px; height:18px; }
+.win-btns{ gap:2px; }
+.wb, .wb.wb-light, .wb.wb-close, .wb.wb-min, .wb.wb-max{
+  width:28px; height:28px; border-radius:8px;
+}
+.wb .ic, .wb.wb-light .ic{ width:18px; height:18px; stroke-width:1.7; }
+.win-btns{ opacity:0; transition:opacity .15s ease; }
+.win-bar:hover .win-btns,
+.win-btns:focus-within{ opacity:1; }
+
+/* 오른쪽 버튼의 아이콘이 왼쪽 앱 아이콘과 같은 거리(14px)에 놓이도록 (창별 규칙보다 뒤에 둔다) */
+#win-overview .win-bar, #win-map .win-bar, #win-field .win-bar, #win-cctv .win-bar,
+#win-messages .win-bar, #win-progress .win-bar, #win-ar .win-bar,
+#win-transmit .win-bar, #win-handover .win-bar, .win .win-bar{ padding-right:9px; }
