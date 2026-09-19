@@ -3366,3 +3366,15 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 
 /* 검색칸과 목록 사이도 같은 간격 (8px) */
 #win-overview .ovx-filters{ margin:0; }
+
+/* 확인 정보·사건 목록: 회색 상자 대신 얇은 선으로 나누고, 모든 글을 같은 왼쪽 선(15px)에 맞춘다.
+   가리키거나 선택했을 때의 바탕만 창 끝까지 넓게 깔린다 (Finder 목록 방식) */
+#win-overview .fact{ margin:0; padding:10px 0; border-radius:0; background:transparent; }
+#win-overview .fact + .fact{ border-top:1px solid var(--mc-sep); }
+#win-overview .fact:first-of-type{ padding-top:0; }
+#win-overview .fact:last-of-type{ padding-bottom:0; }
+#win-overview .ovx-list{ margin:0 -14px; padding:0; }
+#win-overview .ovx-row{ padding:10px 14px; border-radius:0; }
+#win-overview .ovx-row + .ovx-row{ border-top:1px solid var(--mc-sep); }
+#win-overview .ovx-row.is-sel{ border-top-color:transparent; }
+#win-overview .brief-row{ padding:0; background:transparent; }
