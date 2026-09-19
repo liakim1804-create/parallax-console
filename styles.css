@@ -3338,3 +3338,31 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 /* 사건 브리핑: 위험도 글자 대신 사건 이름 왼쪽의 색 원 (작전 지도와 같은 방식) */
 #win-overview .bf-id{ align-items:center; gap:8px; }
 #win-overview .bf-dot{ flex:none; width:9px; height:9px; border-radius:50%; background:var(--p); }
+
+/* =========================================================================
+   전체 상황: 세로 간격을 한 가지 기준으로 통일
+   큰 덩어리 20px · 제목과 내용 8px · 같은 덩어리 안의 줄 8px
+   ========================================================================= */
+#win-overview{ --sp-block:20px; --sp-title:8px; --sp-item:8px; }
+#win-overview .ov-strip{ margin:0 0 var(--sp-block); padding:0; }
+#win-overview .sect{ margin:0 0 var(--sp-block); }
+#win-overview .ov-brief .sect-h.bf-head{ padding:0 0 var(--sp-title); }
+#win-overview .bf-id{ margin:0; }
+#win-overview .bf-meta{ margin:6px 0 0; }
+#win-overview .brief-sum{ margin:var(--sp-block) 0 0; }
+#win-overview .cert-legend{ margin:var(--sp-block) 0 var(--sp-title); }
+#win-overview .cert-bar{ margin:0 0 var(--sp-block); }
+#win-overview .fact{ margin:0 -10px var(--sp-item); }
+#win-overview .fact:last-of-type{ margin-bottom:0; }
+#win-overview .brief-sub{ margin:var(--sp-block) 0 var(--sp-title); }
+#win-overview .brief-call{ margin:0 0 var(--sp-title); }
+#win-overview .brief-row, #win-overview .card-row{ margin:0 0 var(--sp-item); }
+#win-overview .brief-more, #win-overview .card-acts{ margin:var(--sp-block) 0 0; }
+#win-overview .ovx-index{ padding:0; }
+#win-overview .ovx-index-h{ padding:0 0 var(--sp-title); }
+#win-overview .ovx-filters{ margin:0 0 var(--sp-item); }
+#win-overview .ovx-list{ margin:0 -10px; }
+#win-overview .ovx-row + .ovx-row{ border-top:1px solid var(--mc-sep); }
+
+/* 검색칸과 목록 사이도 같은 간격 (8px) */
+#win-overview .ovx-filters{ margin:0; }
