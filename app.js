@@ -1248,9 +1248,9 @@ function briefHTML(inc) {
   return `<div class="sect ov-brief" aria-label="${esc(inc.id)} 사건 브리핑">
     <div class="sect-h bf-head">사건 브리핑<span class="spacer"></span><span class="bf-stage">${esc(STAGE_NAMES[st.at])} ${st.at + 1}/8</span></div>
     <div class="sect-b">
-      <div class="bf-id"><span class="bf-no">${esc(inc.id)}</span><span class="bf-name">${esc(inc.type)}</span></div>
+      <div class="bf-id"><i class="bf-dot pri-${inc.priority === '긴급' ? 'crit' : inc.priority === '주의' ? 'warn' : 'idle'}"
+          title="${esc(inc.priority)}" aria-label="${esc(inc.priority)}"></i><span class="bf-no">${esc(inc.id)}</span><span class="bf-name">${esc(inc.type)}</span></div>
       <div class="bf-meta">
-        <span class="${inc.priority === '긴급' || inc.risk >= 70 ? 'bf-alert' : ''}">${esc(inc.priority)} · 위험도 ${esc(riskLabel(inc.risk))} ${Math.round(inc.risk)}</span>
         <span>담당 ${esc(inc.team)}</span>
         <span class="detail">${esc(inc.place)}</span>
       </div>

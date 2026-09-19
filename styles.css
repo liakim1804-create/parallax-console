@@ -3334,3 +3334,7 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-overview .ovx-type{ margin-bottom:6px; }
 #win-overview .ovx-place{ margin-bottom:2px; }
 #win-overview .ovx-meta{ margin-top:0; }
+
+/* 사건 브리핑: 위험도 글자 대신 사건 이름 왼쪽의 색 원 (작전 지도와 같은 방식) */
+#win-overview .bf-id{ align-items:center; gap:8px; }
+#win-overview .bf-dot{ flex:none; width:9px; height:9px; border-radius:50%; background:var(--p); }
