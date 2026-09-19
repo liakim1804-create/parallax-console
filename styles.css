@@ -3328,3 +3328,9 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-overview .fact:last-of-type{ margin-bottom:0; }
 #win-overview .fact .fact-t{ margin-bottom:4px; }
 #win-overview .fact .fact-m{ display:flex; align-items:center; flex-wrap:wrap; gap:4px 10px; }
+
+/* 사건 목록 줄 안의 위계: 이름 아래는 넉넉히, 같은 크기 줄끼리는 촘촘히 */
+#win-overview .ovx-row{ row-gap:0; }
+#win-overview .ovx-type{ margin-bottom:6px; }
+#win-overview .ovx-place{ margin-bottom:2px; }
+#win-overview .ovx-meta{ margin-top:0; }
