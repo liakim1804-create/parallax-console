@@ -1354,12 +1354,9 @@ defApp({
               title="${esc(i.id)} ${esc(i.type)} · ${esc(i.place)} - 선택 시 모든 앱 동기화">
             <span class="ovx-id">${esc(i.id)}</span>
             <span class="ovx-main">
-              <span class="ovx-type">${esc(i.type)}</span>
+              <span class="ovx-type"><i class="ovx-dot pri-${i.priority === '긴급' ? 'crit' : i.priority === '주의' ? 'warn' : 'idle'}"
+                title="${esc(i.priority)}" aria-label="${esc(i.priority)}"></i>${esc(i.type)}</span>
               <span class="ovx-place">${esc(i.place)} · 발생 ${esc(i.reportedAt)}</span>
-            </span>
-            <span class="ovx-state">
-              <span class="ovx-prio ${i.priority === '긴급' ? 'is-crit' : i.priority === '주의' ? 'is-warn' : 'is-idle'}">${esc(i.priority)}</span>
-              <span class="ovx-status">${esc(i.status)}</span>
             </span>
             <span class="ovx-meta">위험도 ${riskLabel(i.risk)} ${Math.round(i.risk)} · ${esc(STAGE_NAMES[st.at])} ${st.at + 1}/8 · 투입 ${incOfficers(i.id).length}명 · ${esc(i.team)} · 마지막 갱신 ${esc(i.updatedAt)} (${agoText(i.updatedAt)})</span>
           </li>`;

@@ -3313,3 +3313,12 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-overview .ov-brief > .sect-b,
 #win-overview .sect-h:not(.bf-head),
 #win-overview .ovx-index-h{ padding-left:0; padding-right:0; }
+
+/* 사건 목록: 오른쪽 상태 표시 대신 사건 이름 왼쪽의 색 원 (작전 지도와 같은 방식) */
+#win-overview .ovx-row{ grid-template-columns:46px minmax(0,1fr); }
+#win-overview .ovx-state{ display:none; }
+#win-overview .ovx-type{ display:flex; align-items:center; gap:7px; }
+#win-overview .ovx-dot{ flex:none; width:8px; height:8px; border-radius:50%; background:var(--p); }
+/* '사건 브리핑'과 '사건 목록'의 글자 위계를 같게 */
+#win-overview .ov-brief .sect-h.bf-head{ font-size:14px; font-weight:600; color:var(--mc-fg); }
+#win-overview .ovx-index-title{ font-size:14px; font-weight:600; color:var(--mc-fg); }
