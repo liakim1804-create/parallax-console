@@ -3322,3 +3322,9 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 /* '사건 브리핑'과 '사건 목록'의 글자 위계를 같게 */
 #win-overview .ov-brief .sect-h.bf-head{ font-size:14px; font-weight:600; color:var(--mc-fg); }
 #win-overview .ovx-index-title{ font-size:14px; font-weight:600; color:var(--mc-fg); }
+
+/* 확인 정보 칸끼리 붙지 않게 간격과 안쪽 여백을 준다 */
+#win-overview .fact{ margin:0 -10px 8px; padding:10px; }
+#win-overview .fact:last-of-type{ margin-bottom:0; }
+#win-overview .fact .fact-t{ margin-bottom:4px; }
+#win-overview .fact .fact-m{ display:flex; align-items:center; flex-wrap:wrap; gap:4px 10px; }
