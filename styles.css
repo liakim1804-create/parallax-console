@@ -3378,3 +3378,9 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-overview .ovx-row + .ovx-row{ border-top:1px solid var(--mc-sep); }
 #win-overview .ovx-row.is-sel{ border-top-color:transparent; }
 #win-overview .brief-row{ padding:0; background:transparent; }
+
+/* 섹션 구분: 상황 요약 / 사건 브리핑 / 사건 목록 사이에 얇은 선 (작전 지도 사이드바와 같은 색) */
+#win-overview .ov-strip{ padding:0 0 var(--sp-block); margin:0 0 var(--sp-block); border-bottom:1px solid var(--mc-sep); }
+#win-overview .ov-brief{ padding:0 0 var(--sp-block); margin:0 0 var(--sp-block); border-bottom:1px solid var(--mc-sep); }
+#win-overview .ov-brief > .sect-b{ padding-bottom:0; }
+#win-overview .ovx-index{ margin:0; }
