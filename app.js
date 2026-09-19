@@ -1306,7 +1306,6 @@ defApp({
       if (q && !(`${i.id} ${i.type} ${i.place} ${i.team}`.includes(q))) return false;
       return true;
     });
-    const statuses = ['전체', ...new Set(INCIDENTS.map(i => i.status))];
     return `
     <div class="ov-strip" aria-label="상황 요약">
       ${[
@@ -1336,16 +1335,7 @@ defApp({
         <div class="ovx-filters">
           <label class="field ovx-search" title="사건번호·유형·위치·담당팀 검색">${icon('ic-search', 'ic-sm')}
             <input type="search" placeholder="사건 검색" value="${esc(u.listQ)}" data-model="listQ" aria-label="사건 검색"></label>
-          <label class="field ovx-sel" title="긴급도 필터"><span class="dim">긴급도</span>
-            <select data-model="listPrio" aria-label="긴급도 필터">
-              ${['전체', '긴급', '주의', '일반'].map(v => `<option ${u.listPrio === v ? 'selected' : ''}>${v}</option>`).join('')}
-            </select></label>
-          <label class="field ovx-sel" title="상태 필터"><span class="dim">상태</span>
-            <select data-model="listStatus" aria-label="상태 필터">
-              ${statuses.map(v => `<option ${u.listStatus === v ? 'selected' : ''}>${v}</option>`).join('')}
-            </select></label>
         </div>
-        <p class="ovx-hint detail">행을 누르면 위 브리핑과 모든 앱이 해당 사건으로 바뀝니다</p>
       </header>
       ${rows.length ? `<ol class="ovx-list">
         ${rows.map(i => {
