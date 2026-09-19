@@ -1348,7 +1348,7 @@ defApp({
                 title="${esc(i.priority)}" aria-label="${esc(i.priority)}"></i>${esc(i.type)}</span>
               <span class="ovx-place">${esc(i.place)} · 발생 ${esc(i.reportedAt)}</span>
             </span>
-            <span class="ovx-meta">위험도 ${riskLabel(i.risk)} ${Math.round(i.risk)} · ${esc(STAGE_NAMES[st.at])} ${st.at + 1}/8 · 투입 ${incOfficers(i.id).length}명 · ${esc(i.team)} · 마지막 갱신 ${esc(i.updatedAt)} (${agoText(i.updatedAt)})</span>
+            <span class="ovx-meta">${esc(STAGE_NAMES[st.at])} ${st.at + 1}/8 · 투입 ${incOfficers(i.id).length}명 · ${esc(i.team)}</span>
           </li>`;
         }).join('')}
       </ol>` : '<div class="empty-note">조건에 맞는 사건이 없습니다. 필터를 확인하십시오.</div>'}
