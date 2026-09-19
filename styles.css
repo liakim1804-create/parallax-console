@@ -3384,3 +3384,9 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-overview .ov-brief{ padding:0 0 var(--sp-block); margin:0 0 var(--sp-block); border-bottom:1px solid var(--mc-sep); }
 #win-overview .ov-brief > .sect-b{ padding-bottom:0; }
 #win-overview .ovx-index{ margin:0; }
+
+/* 상황 요약 줄: 상자 모양(둥근 모서리)을 없애고 아래 선만 남긴다 */
+#win-overview .ov-strip{
+  border:0; border-bottom:1px solid var(--mc-sep); border-radius:0; background:transparent;
+  padding:0 0 var(--sp-block); margin:0 0 var(--sp-block);
+}
