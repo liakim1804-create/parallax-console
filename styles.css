@@ -3285,3 +3285,31 @@ body{ background:var(--bg-0); letter-spacing:-.01em; -webkit-font-smoothing:anti
 #win-overview .ov-brief{ padding:0; border-radius:0; background:transparent; }
 #win-overview .ov-brief .sect-h{ padding:0 2px 6px; }
 #win-overview .ov-brief .sect-b{ padding:0 2px; }
+
+/* 전체 상황: 모든 글이 같은 왼쪽 선(창 여백 14px)에서 시작하도록 정렬 */
+#win-overview .win-body{ padding:0 14px 14px; }
+#win-overview .ov-strip{ margin:0 0 14px; padding:8px 0; background:transparent; }
+#win-overview .ov-brief .sect-h, #win-overview .ov-brief .sect-b,
+#win-overview .ovx-index-h, #win-overview .sect-h{ padding-left:0; padding-right:0; }
+/* 줄 배경은 바깥으로 넓히고 글자는 기준선에 맞춘다 (macOS 목록 방식) */
+#win-overview .ovx-list{ margin:0 -10px; }
+#win-overview .ovx-row{ padding:9px 10px; }
+#win-overview .fact{ margin:0 -10px; }
+#win-overview .card, #win-overview .person, #win-overview .check{ margin-left:-12px; margin-right:-12px; }
+#win-overview .ovx-hint{ padding-left:0; }
+
+/* 목록 행: 선택해도 글자색은 그대로 (옅은 파란 바탕 위에서 읽히도록) */
+#win-overview .ovx-row.is-sel .ovx-id, #win-overview .ovx-row.is-sel .ovx-place,
+#win-overview .ovx-row.is-sel .ovx-state, #win-overview .ovx-row.is-sel .ovx-meta,
+#win-overview .ovx-row.is-sel .ovx-status{ color:var(--ms-dim); }
+#win-overview .ovx-row.is-sel .ovx-type, #win-overview .ovx-row.is-sel .ovx-prio{ color:var(--mc-fg); }
+#win-overview .ovx-row.is-sel .ovx-prio.is-crit{ color:var(--mc-fg); }
+
+/* 목록 자체의 안쪽 여백을 없애고 행 배경만 바깥으로 넓힌다 (글자는 14px 기준선) */
+#win-overview .ovx-list{ padding:0; margin:0 -10px; }
+
+/* 브리핑 머리말·본문도 같은 왼쪽 선에 (예전 여백 규칙 덮어쓰기) */
+#win-overview .ov-brief .sect-h.bf-head,
+#win-overview .ov-brief > .sect-b,
+#win-overview .sect-h:not(.bf-head),
+#win-overview .ovx-index-h{ padding-left:0; padding-right:0; }
