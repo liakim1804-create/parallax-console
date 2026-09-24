@@ -2465,6 +2465,137 @@ body.show-void #dk-void { display: block; }
 .dk-body.row > .stk.over-top { box-shadow: -3px 0 0 var(--accent), var(--dk-shadow); }
 .dk-body.row > .stk.over-bot { box-shadow: 3px 0 0 var(--accent), var(--dk-shadow); }
 </style>
+<style>
+/* ===== delivery.css =====
+   전달 보증(5·7·8번)의 표시. 색 규칙은 기능설명서 4-3 표를 따른다.
+     ✅ 초록 확인·수락 / 🟡 노랑 지연·불안정 / 🔴 빨강 놓쳤을 수 있음
+     ⏸ 회색 연결 끊김·대기 / ⏳ 파랑 수락 기다리는 중
+   같은 색은 어느 창에서든 같은 뜻이다. */
+
+/* ── 현장 정보 전송 창의 수신 상태 줄 ───────────────── */
+.dv-strip {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid var(--dk-line);
+}
+.dv-h { display: flex; align-items: center; gap: 6px; }
+.dv-h b { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.dv-sum { font-size: 11px; color: var(--ink-3); margin-left: auto; }
+.dv-fold {
+  width: 20px; height: 20px; flex: none;
+  border: 0; border-radius: 6px; background: transparent;
+  display: grid; place-items: center; cursor: pointer; color: var(--ink-3);
+}
+.dv-fold:hover { background: var(--fill-1); color: var(--ink); }
+.dv-strip.off .dv-fold { transform: rotate(180deg); }
+.dv-rows { display: flex; flex-direction: column; gap: 3px; }
+
+.dv-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;            /* 창이 좁아지면 줄이 접힌다 — 글자가 잘리지 않게 */
+  gap: 4px 8px;
+  min-height: 24px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+.dv-who { font-weight: 600; flex: none; }
+.dv-dev { color: var(--ink-3); flex: none; }
+.dv-st { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; white-space: nowrap; }
+.dv-st .ic { font-size: 11px; }
+.dv-note { font-size: 11px; color: var(--ink-3); flex: none; }
+/* 상태 색 */
+.dv-row.ok .dv-st { color: var(--c-safe, #1b9c5a); }
+.dv-row.warn .dv-st { color: var(--c-caution); }
+.dv-row.bad { background: color-mix(in srgb, var(--c-urgent) 12%, transparent); }
+.dv-row.bad .dv-st { color: var(--c-urgent); font-weight: 600; }
+.dv-row.off .dv-st { color: var(--ink-3); }
+.dv-row.wait .dv-st { color: var(--accent); }
+.dv-act {
+  flex: none;
+  height: 22px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--c-urgent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dv-act:hover { filter: brightness(1.08); }
+
+/* ── 공간 3D 창의 「후속팀에 인계」 단추 ──────────────── */
+.dv-ho {
+  position: absolute;
+  left: 12px; bottom: 12px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--dk-edge);
+  background: var(--dk-bg);
+  -webkit-backdrop-filter: var(--dk-blur);
+  backdrop-filter: var(--dk-blur);
+  box-shadow: var(--dk-shadow);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dv-ho:hover { border-color: var(--accent); color: var(--accent); }
+.dv-ho.sent { background: var(--accent); color: #fff; border-color: transparent; }
+.dv-ho.waiting { box-shadow: var(--dk-shadow), 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
+
+/* ── 기록·회의록 창의 인계 기록 ───────────────────────── */
+.dv-log { padding: 12px 14px 0; display: flex; flex-direction: column; gap: 6px; }
+.dv-log:empty { display: none; }
+.dv-log-h { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.dv-log-row {
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.dv-log-t { font-size: 12px; font-weight: 600; }
+.dv-log-s { display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--ink-3); }
+.dv-log-s .ok { color: var(--c-safe, #1b9c5a); font-weight: 600; }
+.dv-log-s .wait { color: var(--accent); }
+
+/* ── 사이드바 맨 아래 미해결 한 줄 ────────────────────── */
+.dv-unres {
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 0;
+  border-top: 1px solid var(--dk-line);
+  background: color-mix(in srgb, var(--c-urgent) 10%, transparent);
+  color: var(--c-urgent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+.dv-unres .ic { font-size: 12px; flex: none; }
+.dv-unres .dv-u2 { margin-left: auto; }
+.dv-unres.none { background: transparent; color: var(--ink-3); font-weight: 500; }
+.dv-unres:hover { filter: brightness(1.04); }
+</style>
 </head>
 <body>
 
@@ -3032,6 +3163,10 @@ window.PX = window.PX || {};
         });
       }
       this.emit('messages');
+      /* 여기서부터는 **전달 보증**(delivery.js)이 맡는다 —
+         받는 사람의 기기 연결 상태에 따라 확인·지연·끊김이 갈린다.
+         delivery.js 가 없을 때만 예전처럼 무조건 확인 처리한다. */
+      if (PX.delivery && PX.delivery.handleSend) { PX.delivery.handleSend(target, msg, kind || '일반'); return; }
       // 잠시 뒤 상대가 확인하고 답신한다 (가상 동작)
       setTimeout(() => { msg.isRead = true; this.emit('messages'); }, 2200);
       setTimeout(() => {
@@ -5360,6 +5495,7 @@ window.PX = window.PX || {};
           m.mode = d.mode || m.mode;
           m.cover = typeof d.cover === 'number' ? d.cover : null;
           m.gaps = d.gaps || 0;
+          PX.__space = m;                 // 인계 묶음이 「남은 곳」 숫자를 읽어 간다 (delivery.js)
           m.phase = { kind: 'ready' };
           send({ p: 'orbit', on: true });
           drawAll();
@@ -6862,6 +6998,430 @@ window.PX = window.PX || {};
 
   restoreWidths();
   apply(false);
+})(window.PX);
+</script>
+<script>
+/* ===== delivery.js =====
+   「전달 보증」 — 보내고 끝내지 않고, 받을 때까지 따라간다.
+   기능설명서의 5번·8번·7번을 한 덩어리로 얹는다. 새 창은 만들지 않는다.
+
+     5번  보낸 것마다 시계를 걸어 ✅확인 / 🟡지연 / 🔴놓쳤을 수 있음 으로 색을 바꾼다
+     8번  끊긴 기기는 ⏸대기함에 모아 두었다가 복구되면 **최신 것만** 보내고,
+          🔴에는 「무전으로」 단추를 달아 다음 기기로 넘긴다
+     7번  공간 3D 의 남은 곳을 묶어 후속팀에 인계하고, ⏳수락까지 받아야 끝난다
+
+   상태는 이 파일 안에서만 돈다. 기존 화면은 자리만 빌려 준다. */
+(function (PX) {
+  'use strict';
+
+  const store = PX.store;
+  if (!store) return;
+
+  /* ── 팀이 정할 값 (기능설명서 1-2 표) ───────────────────────
+     기다리는 시간(초). 전시에서는 30초를 서서 기다릴 수 없어 시계를 빠르게 돌린다.
+     SPEED 를 1 로 두면 표의 실제 시간 그대로다. */
+  const WAIT = { '긴급': [30, 60], '중요': [60, 120], '일반': [180, 360] };
+  const SPEED = 4;                 // 4배 빠른 시연 시계
+  const RECOVER_MS = 20000;        // 끊긴 기기가 다시 붙기까지
+  const ACCEPT_MS = 6000;          // 2조가 폴더블에서 수락하기까지
+  /* 기기 순서 — 앞이 막히면 다음으로 넘긴다 */
+  const CHAIN = ['AR 글래스', '무전', '폴더블', '차량 화면'];
+
+  const items = [];                // 전달 기록 (사람 한 명 = 한 줄)
+  const queues = {};               // 끊긴 사람별 대기함
+  const timers = {};               // 복구 예약
+  const subs = [];
+  let pendingHandover = null;      // 지금 보내는 것이 인계 묶음인가
+
+  const emit = () => subs.forEach(f => { try { f(); } catch (e) { /* 화면마다 다르다 */ } });
+  const now = () => Date.now();
+  const two = n => (n < 10 ? '0' : '') + n;
+  const clock = t => { const d = new Date(t); return two(d.getHours()) + ':' + two(d.getMinutes()) + ':' + two(d.getSeconds()); };
+  const mmss = s => Math.floor(s / 60) + ':' + two(Math.floor(s % 60));
+
+  const officerByCall = c => store.officers.find(o => o.call === c) || null;
+  /* 어떤 기기로 받고 있나 — 출동한 사람은 글래스, 아직 차에 있는 사람은 차량 화면 */
+  const deviceOf = o => (!o ? '폴더블' : (o.incidentID ? 'AR 글래스' : '차량 화면'));
+  const linkOf = o => (o ? (o.ar || '연결') : '연결');
+
+  function recipients(target) {
+    const calls = target.isGroup ? (target.members || []) : [target.sendName];
+    return calls.map(c => {
+      const o = officerByCall(c);
+      return { call: c, name: o ? o.name : '', device: deviceOf(o), link: linkOf(o), work: o ? (o.state || '') : '' };
+    });
+  }
+
+  // ── 보낸 것을 기록에 올린다 ─────────────────────────────
+  /** core.js 의 store.send() 가 메시지를 만든 직후 불러 준다 */
+  function handleSend(target, msg, kind) {
+    const list = recipients(target);
+    const hand = pendingHandover; pendingHandover = null;
+    if (!list.length) {                       // 받는 사람을 모르면 예전처럼 둔다
+      setTimeout(() => { msg.isRead = true; store.emit('messages'); }, 2200);
+      return;
+    }
+    if (hand) {
+      /* 인계는 **팀 단위로 한 줄**이다. 사람마다 줄이 늘면
+         「인계 대기 4」처럼 읽혀 무엇이 안 끝났는지 알 수 없다. */
+      const lead = list.find(r => r.link === '연결') || list[0];
+      push({ type: 'handover', r: { call: target.sendName, name: '', device: lead.device, link: lead.link, work: '' },
+             msg: msg, kind: kind, extra: hand });
+    } else {
+      list.forEach(r => push({ type: 'msg', r: r, msg: msg, kind: kind, extra: null }));
+    }
+    emit();
+  }
+
+  function push(o) {
+    const it = {
+      id: 'd' + Math.random().toString(36).slice(2, 8),
+      type: o.type, incidentID: store.selectedIncidentID,
+      call: o.r.call, name: o.r.name, device: o.r.device, link: o.r.link, work: o.r.work,
+      kind: o.kind || '일반', text: o.msg ? o.msg.text : '', msg: o.msg || null,
+      extra: o.extra || null,
+      sentAt: now(), deliveredAt: null, ackAt: null, via: null, dropped: 0,
+      sentLabel: PX.now(true), ackLabel: null, deliveredLabel: null,
+      state: 'sent'
+    };
+    items.push(it);
+    route(it);
+    return it;
+  }
+
+  /** 지금 이 사람의 연결 상태를 보고 갈 길을 정한다 */
+  function route(it) {
+    if (it.link === '두절' || it.link === '미연결') {
+      it.state = 'queued';                    // ⏸ 대기함에 모아 둔다
+      const q = queues[it.call] || (queues[it.call] = []);
+      q.forEach(old => { if (!old.ackAt) old.state = 'superseded'; });   // 옛 내용은 보내지 않는다
+      q.push(it);
+      recover(it.call);
+      return;
+    }
+    it.deliveredAt = now();
+    it.deliveredLabel = PX.now(true);
+    it.state = 'delivered';
+    /* 신호가 불안정하거나 **이동 중**인 사람은 확인을 못 누른다 — 손이 바쁘다.
+       그래서 🟡 지연을 거쳐 🔴 가 되고, 요원이 「무전으로」를 눌러야 닿는다.
+       (기능설명서 1-1 의 「너무 바빠서 못 봤습니다」가 이 경우다) */
+    if (it.link === '불안정' || /이동/.test(it.work || '')) return;
+    setTimeout(() => confirm(it, it.device), 2400 + Math.random() * 700);
+  }
+
+  /** 다시 연결되면 — 밀린 것 중 **최신 하나만** 보낸다 */
+  function recover(call) {
+    if (timers[call]) return;
+    timers[call] = setTimeout(() => {
+      timers[call] = null;
+      const q = queues[call] || [];
+      const live = q.filter(x => !x.ackAt && x.state !== 'superseded');
+      const latest = live[live.length - 1];
+      const o = officerByCall(call);
+      if (o) { o.ar = '연결'; store.emit('units'); }
+      q.length = 0;
+      if (!latest) { emit(); return; }
+      latest.dropped = live.length - 1;
+      latest.link = '연결';
+      latest.deliveredAt = now();
+      latest.deliveredLabel = PX.now(true);
+      latest.state = 'delivered';
+      setTimeout(() => confirm(latest, latest.device), latest.type === 'handover' ? ACCEPT_MS : 1600);
+      emit();
+    }, RECOVER_MS);
+  }
+
+  function confirm(it, via) {
+    if (it.ackAt || it.state === 'superseded') return;
+    it.ackAt = now();
+    it.ackLabel = PX.now(true);
+    it.via = via || it.device;
+    it.state = it.type === 'handover' ? 'accepted' : 'acked';
+    if (it.msg && !it.msg.__answered) {
+      it.msg.__answered = true;
+      it.msg.isRead = true;
+      store.emit('messages');
+      setTimeout(() => answer(it), 1500);
+    }
+    emit();
+  }
+
+  /** 받은 쪽에서 한 마디 돌아온다 (가상 동작 — 예전 store.send 가 하던 일) */
+  function answer(it) {
+    const words = it.type === 'handover'
+      ? ['인계 수락했습니다. 남은 곳부터 확인하겠습니다.']
+      : ['수신했습니다.', '확인했습니다. 조치하겠습니다.', '내용 확인. 진행 중입니다.'];
+    store.messages.push({
+      id: 'm' + Math.random().toString(36).slice(2, 9),
+      incidentID: it.incidentID, from: it.call, to: '지휘통제실',
+      kind: '일반', text: words[Math.floor(Math.random() * words.length)],
+      time: PX.now(), isRead: false, isMine: false, isPinned: false
+    });
+    store.emit('messages');
+  }
+
+  // ── 시계 (5번) ──────────────────────────────────────────
+  setInterval(() => {
+    let changed = false;
+    items.forEach(it => {
+      if (it.ackAt || it.state === 'queued' || it.state === 'superseded') return;
+      const w = WAIT[it.kind] || WAIT['일반'];
+      const el = (now() - it.sentAt) / 1000 * SPEED;
+      const s = el >= w[1] ? 'missed' : el >= w[0] ? 'late' : 'delivered';
+      if (s !== it.state) {
+        it.state = s;
+        changed = true;
+        if (s === 'missed') warn(it);
+      }
+    });
+    emit();                     // 줄마다 시간이 흐르므로 매 박자 다시 그린다
+    if (changed) { /* 색이 바뀐 것은 위에서 이미 알렸다 */ }
+  }, 500);
+
+  /** 🔴 가 되면 화면 위 알림으로도 알려 준다 */
+  function warn(it) {
+    store.alerts.unshift({
+      id: 'a' + Math.random().toString(36).slice(2, 9),
+      level: '긴급', title: '확인되지 않은 지시',
+      detail: it.call + ' · ' + it.device + ' — 다른 기기로 보낼까요?',
+      time: PX.now(true), incidentID: it.incidentID, seen: false, isMine: false
+    });
+    store.emit('alerts');
+  }
+
+  // ── 다른 기기로 보내기 (8번) ────────────────────────────
+  function resend(id) {
+    const it = items.find(x => x.id === id);
+    if (!it || it.ackAt) return;
+    const i = CHAIN.indexOf(it.device);
+    const next = CHAIN[(i < 0 ? 0 : i) + 1] || '폴더블';
+    it.device = next;
+    it.link = '연결';
+    it.sentAt = now();
+    it.deliveredAt = now();
+    it.state = 'delivered';
+    it.shortened = (next === '무전');          // 무전은 한 문장으로 줄여 읽어 준다
+    setTimeout(() => confirm(it, next), 1200);
+    emit();
+  }
+
+  // ── 인계 (7번) ──────────────────────────────────────────
+  /** 공간 3D 의 「남은 곳」을 묶어 후속팀에 보낸다. 수락까지 와야 끝난다. */
+  function handover(info) {
+    const group = (store.chatTargets.find(g => g.title === '후속팀') || { targets: [] }).targets[0];
+    if (!group) return { ok: false, why: '후속팀이 없습니다' };
+    const inc = store.selectedIncident;
+    const gaps = info && info.gaps || 0;
+    const hazards = (inc && inc.hazards) || [];
+    const orders = items.filter(x => x.type === 'msg' && x.incidentID === (inc && inc.id)).length;
+    pendingHandover = { gaps: gaps, hazards: hazards.slice(), orders: orders };
+    const text = '[인계] ' + (inc ? inc.id + ' ' : '') + '남은 곳 ' + gaps + '곳 · 위험 요소 ' +
+      hazards.length + '건 · 보낸 지시 ' + orders + '건. 도착 후 폴더블에서 수락해 주세요.';
+    store.send(group, text, '중요');
+    return { ok: true, gaps: gaps };
+  }
+
+  // ── 셈 ──────────────────────────────────────────────────
+  function counts() {
+    let unack = 0, hand = 0, queued = 0;
+    items.forEach(it => {
+      if (it.state === 'superseded') return;
+      if (it.ackAt) return;
+      if (it.type === 'handover') hand++; else unack++;
+      if (it.state === 'queued') queued++;
+    });
+    return { unack: unack, hand: hand, queued: queued };
+  }
+
+  /** 사람마다 마지막 한 줄만 보여 준다 (지난 것은 기록에만 남는다) */
+  function rows() {
+    const by = {};
+    items.forEach(it => {
+      if (it.state === 'superseded') return;
+      by[it.call + '|' + it.type] = it;
+    });
+    const order = c => { const i = store.officers.findIndex(o => o.call === c); return i < 0 ? 99 : i; };
+    return Object.keys(by).map(k => by[k]).sort((a, b) =>
+      (a.type === b.type ? order(a.call) - order(b.call) : (a.type === 'handover' ? 1 : -1)));
+  }
+
+  function queueCount(call) {
+    const q = queues[call] || [];
+    return q.filter(x => !x.ackAt && x.state !== 'superseded').length;
+  }
+
+  /** 줄 하나를 어떻게 보여 줄 것인가 — 색 규칙은 기능설명서 4-3 표 그대로 */
+  function look(it) {
+    const el = Math.round((now() - it.sentAt) / 1000 * SPEED);
+    if (it.state === 'acked') return { cls: 'ok', mark: 'check', text: '확인 ' + (it.ackLabel || clock(it.ackAt)) };
+    if (it.state === 'accepted') return { cls: 'ok', mark: 'check', text: '수락 ' + (it.ackLabel || clock(it.ackAt)) };
+    if (it.state === 'queued') return { cls: 'off', mark: 'pause', text: '연결 끊김 · 대기 ' + queueCount(it.call) + '건' };
+    if (it.state === 'missed') return { cls: 'bad', mark: 'warning', text: '놓쳤을 수 있음 ' + mmss(el) };
+    if (it.state === 'late') return { cls: 'warn', mark: 'progress', text: (it.link === '불안정' ? '불안정 · ' : '') + '지연 ' + mmss(el) };
+    if (it.state === 'delivered' && it.type !== 'handover' && it.via) return { cls: 'sent', mark: 'send', text: it.via + ' 재발신 ' + mmss(el) };
+    if (it.type === 'handover') return { cls: 'wait', mark: 'progress', text: '수락 기다리는 중 ' + mmss(el) };
+    return { cls: 'sent', mark: 'send', text: '확인 대기 ' + mmss(el) };
+  }
+
+  PX.delivery = {
+    items: items, rows: rows, counts: counts, look: look, resend: resend,
+    handover: handover, handleSend: handleSend, queueCount: queueCount,
+    subscribe(f) { subs.push(f); return () => { const i = subs.indexOf(f); if (i >= 0) subs.splice(i, 1); }; },
+    WAIT: WAIT, SPEED: SPEED
+  };
+
+  // ══ 화면에 얹기 ════════════════════════════════════════
+  // 새 창을 만들지 않는다 — 이미 있는 세 창과 사이드바에 자리만 빌린다.
+
+  /* ① 현장 정보 전송 창 — 받는 사람별 상태 줄 (5·8·7번이 모두 여기 보인다) */
+  const txMount = PX.screens.transmit && PX.screens.transmit.mount;
+  if (txMount) {
+    PX.screens.transmit.mount = function (body, ctx) {
+      const inst = txMount.call(this, body, ctx);
+      try { statusStrip(body); } catch (e) { console.error('수신 상태 줄을 못 붙였습니다', e); }
+      return inst;
+    };
+  }
+
+  function statusStrip(body) {
+    const root = body.querySelector('.tx-root');
+    const head = root && root.querySelector('.tx-head');
+    if (!root || !head) return;
+    const el = PX.el(
+      `<section class="dv-strip">
+         <header class="dv-h">
+           <button class="dv-fold" type="button" title="펴고 접기">${PX.icon('chev-ud')}</button>
+           <b>수신 상태</b><span class="dv-sum"></span>
+         </header>
+         <div class="dv-rows"></div>
+       </section>`);
+    head.insertAdjacentElement('afterend', el);
+    const rowsEl = el.querySelector('.dv-rows');
+    const sumEl = el.querySelector('.dv-sum');
+    el.querySelector('.dv-fold').onclick = () => { el.classList.toggle('off'); draw(); };
+    rowsEl.addEventListener('click', e => {
+      const b = e.target.closest('[data-resend]');
+      if (b) { resend(b.dataset.resend); return; }
+    });
+
+    function draw() {
+      const list = rows();
+      const c = counts();
+      sumEl.textContent = list.length
+        ? (c.unack || c.hand ? '미확인 ' + (c.unack + c.hand) + '건' : '모두 확인됨')
+        : '보낸 것이 없습니다';
+      if (el.classList.contains('off')) { rowsEl.innerHTML = ''; return; }
+      rowsEl.innerHTML = list.map(it => {
+        const k = look(it);
+        const dev = it.type === 'handover' ? '인계' : it.device;
+        const act = it.state === 'missed'
+          ? `<button class="dv-act" type="button" data-resend="${it.id}">${nextName(it.device)}(으)로</button>` : '';
+        const note = it.shortened ? '<span class="dv-note">한 문장으로 줄여 보냄</span>' :
+          (it.dropped ? `<span class="dv-note">밀린 ${it.dropped + 1}건 중 최신만 보냄</span>` : '');
+        return `<div class="dv-row ${k.cls}">
+                  <span class="dv-who">${PX.esc(it.call)}</span>
+                  <span class="dv-dev">${PX.esc(dev)}</span>
+                  <span class="dv-st">${PX.icon(k.mark)}${PX.esc(k.text)}</span>
+                  ${note}${act}
+                </div>`;
+      }).join('');
+    }
+    function nextName(dev) {
+      const i = CHAIN.indexOf(dev);
+      return CHAIN[(i < 0 ? 0 : i) + 1] || '폴더블';
+    }
+    draw();
+    const off = PX.delivery.subscribe(draw);
+    store.subscribe(w => { if (w === 'incident' || w === 'units') draw(); });
+    return off;
+  }
+
+  /* ② 공간 3D 창 — 「후속팀에 인계」 단추 */
+  const spMount = PX.screens.space && PX.screens.space.mount;
+  if (spMount) {
+    PX.screens.space.mount = function (body, ctx) {
+      const inst = spMount.call(this, body, ctx);
+      try { handoverButton(body); } catch (e) { console.error('인계 단추를 못 붙였습니다', e); }
+      return inst;
+    };
+  }
+
+  function handoverButton(body) {
+    const btn = PX.el(`<button class="dv-ho" type="button">${PX.icon('handover')}<span>후속팀에 인계</span></button>`);
+    body.appendChild(btn);
+    function label() {
+      const gaps = (PX.__space && PX.__space.gaps) || 0;
+      btn.querySelector('span').textContent = gaps ? '후속팀에 인계 · 남은 곳 ' + gaps : '후속팀에 인계';
+      const c = counts();
+      btn.classList.toggle('waiting', c.hand > 0);
+    }
+    btn.onclick = () => {
+      const r = handover({ gaps: (PX.__space && PX.__space.gaps) || 0 });
+      btn.classList.add('sent');
+      setTimeout(() => btn.classList.remove('sent'), 1200);
+      if (r.ok && PX.panels) PX.panels.reveal('alerts');     // 보낸 뒤 상태가 보이는 창으로
+    };
+    label();
+    setInterval(label, 1000);
+  }
+
+  /* ③ 기록·회의록 창 — 인계 기록 (보낸·도착·수락 시각) */
+  const hoMount = PX.screens.handover && PX.screens.handover.mount;
+  if (hoMount) {
+    PX.screens.handover.mount = function (body, ctx) {
+      const inst = hoMount.call(this, body, ctx);
+      try { handoverLog(body); } catch (e) { console.error('인계 기록을 못 붙였습니다', e); }
+      return inst;
+    };
+  }
+
+  function handoverLog(body) {
+    const scroll = body.querySelector('.ho-scroll');
+    const pad = body.querySelector('.ho-pad');
+    if (!scroll || !pad) return;
+    const el = PX.el('<div class="dv-log"></div>');
+    scroll.insertBefore(el, pad);
+    function draw() {
+      const list = items.filter(it => it.type === 'handover' && it.state !== 'superseded');
+      if (!list.length) { el.innerHTML = ''; return; }
+      el.innerHTML = '<div class="dv-log-h">인계 기록</div>' + list.map(it => {
+        const x = it.extra || {};
+        return `<div class="dv-log-row">
+            <div class="dv-log-t">${PX.esc(it.call)} · 남은 곳 ${x.gaps || 0}곳 · 위험 ${(x.hazards || []).length}건</div>
+            <div class="dv-log-s">
+              <span>보냄 ${it.sentLabel || clock(it.sentAt)}</span>
+              <span>${it.deliveredAt ? '도착 ' + (it.deliveredLabel || clock(it.deliveredAt)) : '도착 대기'}</span>
+              <span class="${it.ackAt ? 'ok' : 'wait'}">${it.ackAt ? '수락 ' + (it.ackLabel || clock(it.ackAt)) : '수락 기다리는 중'}</span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+    draw();
+    PX.delivery.subscribe(draw);
+  }
+
+  /* ④ 사이드바 맨 아래 — 미해결 한 줄 */
+  function unresolvedLine() {
+    const L = PX.panels && PX.panels.live && PX.panels.live('mapctl');
+    if (!L || !L.body) return setTimeout(unresolvedLine, 500);
+    if (L.body.querySelector('.dv-unres')) return;
+    const el = PX.el('<button class="dv-unres" type="button" title="현장 정보 전송 창에서 보기"></button>');
+    L.body.appendChild(el);
+    el.onclick = () => { if (PX.panels) PX.panels.reveal('alerts'); };
+    function draw() {
+      const c = counts();
+      el.classList.toggle('none', !c.unack && !c.hand);
+      const parts = [];
+      if (c.unack) parts.push('확인 안 된 지시 ' + c.unack);
+      if (c.hand) parts.push('인계 대기 ' + c.hand);
+      el.innerHTML = parts.length
+        ? `${PX.icon('warning')}<span>${parts.join(' · ')}</span>`
+        : `${PX.icon('check')}<span>미해결 없음</span>`;
+    }
+    draw();
+    PX.delivery.subscribe(draw);
+  }
+  unresolvedLine();
 })(window.PX);
 </script>
 <script>
