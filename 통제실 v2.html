@@ -2598,10 +2598,13 @@ body.show-void #dk-void { display: block; }
 </style>
 <style>
 /* ===== assist.css =====
-   법령·절차 도우미. 상단바 한가운데 검색바처럼 앉아 있다가,
-   누르면 화면 위쪽 가운데에 모달로 열린다.
+   PARALLAX 도우미. 상단바 한가운데 검색바처럼 앉아 있다가,
+   누르면 화면 위쪽 가운데에 대화창으로 열린다.
    탭 메뉴에 두면 「창을 하나 더 여는 일」이 되어 현장에서 안 쓴다 —
-   조회는 하던 일을 멈추지 않고 물어보는 일이라 검색바 자리가 맞다. */
+   조회는 하던 일을 멈추지 않고 물어보는 일이라 검색바 자리가 맞다.
+
+   설명 문구는 넣지 않는다. 읽지 않으면서 자리만 먹고,
+   무엇을 할 수 있는지는 빠른 질문 알약이 보여 주는 편이 빠르다. */
 
 /* ── 상단바의 검색바 ─────────────────────────────── */
 #ai-bar {
@@ -2637,8 +2640,7 @@ body.show-void #dk-void { display: block; }
   background: color-mix(in srgb, var(--ink) 8%, transparent);
   color: var(--ink-3);
 }
-/* 상단바가 좁아지면 먼저 짧아지고, 더 좁아지면 아이콘만 남는다.
-   1180px 에서 오른쪽 통계와 겹치는 것을 재어 보고 정한 값이다. */
+/* 좁아지면 먼저 짧아지고, 더 좁아지면 아이콘만 남는다 (오른쪽 통계와 겹치지 않게) */
 @media (max-width: 1440px) {
   #ai-bar { width: 300px; }
   #ai-bar .ai-kbd { display: none; }
@@ -2648,13 +2650,8 @@ body.show-void #dk-void { display: block; }
   #ai-bar .ai-ph { display: none; }
 }
 
-/* ── 모달 ────────────────────────────────────────── */
-#ai-wrap {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  display: none;
-}
+/* ── 대화창 ──────────────────────────────────────── */
+#ai-wrap { position: fixed; inset: 0; z-index: 80; display: none; }
 #ai-wrap.on { display: block; }
 #ai-scrim { position: absolute; inset: 0; background: color-mix(in srgb, #000 22%, transparent); }
 #ai-modal {
@@ -2662,7 +2659,7 @@ body.show-void #dk-void { display: block; }
   top: 54px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(720px, 94vw);
+  width: min(700px, 94vw);
   max-height: calc(100vh - 110px);
   display: flex;
   flex-direction: column;
@@ -2682,24 +2679,115 @@ body.show-void #dk-void { display: block; }
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 40px;
-  padding: 0 8px 0 14px;
+  height: 38px;
+  padding: 0 8px 0 10px;
   border-bottom: 1px solid var(--dk-line);
 }
-.ai-head b { font-size: 13px; font-weight: 600; }
-.ai-head .cap { font-size: 11px; color: var(--ink-3); }
+.ai-tt { font-size: 12.5px; font-weight: 600; }
 .ai-head .sp { flex: 1; }
+.ai-face {
+  width: 22px; height: 22px; flex: none;
+  border-radius: 7px;
+  display: grid; place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.ai-face .ic { font-size: 13px; }
+.ai-face.sm { width: 20px; height: 20px; border-radius: 6px; margin-top: 1px; }
+.ai-new {
+  flex: none;
+  height: 24px;
+  padding: 0 9px;
+  border: 0; border-radius: 7px;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 12px;
+  cursor: pointer;
+}
+.ai-new:hover { background: var(--fill-1); color: var(--ink); }
 .ai-x {
-  width: 28px; height: 28px; flex: none;
+  width: 26px; height: 26px; flex: none;
   border: 0; border-radius: 8px; background: transparent;
   display: grid; place-items: center; cursor: pointer; color: var(--ink-2);
 }
 .ai-x:hover { background: var(--fill-1); color: var(--ink); }
 
-.ai-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-.ai-empty { display: flex; flex-direction: column; gap: 10px; }
-.ai-empty-t { font-size: 12px; color: var(--ink-3); line-height: 1.6; }
-.ai-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ai-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ai-hello { padding: 2px 0; }
+
+/* 말차례 */
+.ai-msg { display: flex; gap: 8px; }
+.ai-msg.me { justify-content: flex-end; }
+.ai-msg.me .ai-bubble {
+  max-width: 78%;
+  padding: 7px 12px;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.ai-col { flex: 1; min-width: 0; }
+.ai-meta { font-size: 10.5px; color: var(--ink-3); margin-bottom: 3px; }
+.ai-meta span { opacity: .75; }
+.ai-msg.bot .ai-bubble { font-size: 13px; line-height: 1.65; color: var(--ink); }
+.ai-msg.bot p { margin: 0 0 6px; }
+.ai-msg.bot p:last-child { margin-bottom: 0; }
+.ai-t { font-size: 13.5px; }
+.ai-msg.bot h4 {
+  margin: 10px 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--ink-3);
+}
+.ai-list { margin: 4px 0; padding-left: 16px; }
+.ai-list li { margin: 3px 0; font-size: 12.5px; line-height: 1.55; }
+.ai-kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 3px 12px;
+  margin: 4px 0;
+  font-size: 12.5px;
+}
+.ai-kv .k { color: var(--ink-3); }
+.ai-law { border-left: 2px solid var(--accent); padding: 2px 0 2px 10px; margin: 5px 0; }
+.ai-law b { font-size: 12px; }
+.ai-law span { display: block; font-size: 12px; color: var(--ink-2); line-height: 1.55; }
+.ai-code {
+  margin: 6px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.ai-note { margin-top: 8px; font-size: 10.5px; color: var(--ink-3); }
+
+/* 생각하는 중 */
+.ai-dots { display: inline-flex; gap: 4px; padding: 4px 0; }
+.ai-dots i {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--ink-3);
+  animation: ai-dot 1.1s infinite ease-in-out;
+}
+.ai-dots i:nth-child(2) { animation-delay: .16s; }
+.ai-dots i:nth-child(3) { animation-delay: .32s; }
+@keyframes ai-dot { 0%, 60%, 100% { opacity: .25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+
+/* 이어서 물어볼 것 · 할 수 있는 일 */
+.ai-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .ai-chip {
   border: 1px solid var(--dk-edge);
   background: transparent;
@@ -2711,49 +2799,6 @@ body.show-void #dk-void { display: block; }
   white-space: nowrap;
 }
 .ai-chip:hover { border-color: var(--accent); color: var(--accent); }
-
-.ai-q {
-  align-self: flex-end;
-  max-width: 78%;
-  padding: 7px 12px;
-  border-radius: 14px 14px 4px 14px;
-  background: var(--accent);
-  color: #fff;
-  font-size: 13px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-.ai-a {
-  align-self: stretch;
-  font-size: 13px;
-  line-height: 1.65;
-  color: var(--ink);
-}
-.ai-a .ai-sum { margin-bottom: 8px; }
-.ai-a h4 {
-  margin: 10px 0 4px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .04em;
-  color: var(--ink-3);
-}
-.ai-law {
-  border-left: 2px solid var(--accent);
-  padding: 2px 0 2px 10px;
-  margin: 4px 0;
-}
-.ai-law b { font-size: 12px; }
-.ai-law span { display: block; font-size: 12px; color: var(--ink-2); }
-.ai-list { margin: 0; padding-left: 16px; }
-.ai-list li { margin: 2px 0; font-size: 12.5px; }
-.ai-note {
-  margin-top: 10px;
-  font-size: 11px;
-  color: var(--ink-3);
-  line-height: 1.55;
-  padding-top: 8px;
-  border-top: 1px solid var(--dk-line);
-}
 .ai-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .ai-act {
   border: 1px solid var(--dk-edge);
@@ -2766,9 +2811,8 @@ body.show-void #dk-void { display: block; }
 }
 .ai-act:hover { border-color: var(--accent); color: var(--accent); }
 .ai-act.done { border-color: transparent; background: var(--accent-soft); color: var(--accent); }
-.ai-typing { display: inline-block; width: 7px; height: 13px; vertical-align: -2px; background: var(--accent); animation: ai-blink .9s steps(2) infinite; }
-@keyframes ai-blink { 50% { opacity: 0; } }
 
+/* 입력 */
 .ai-foot { flex: none; padding: 8px; border-top: 1px solid var(--dk-line); }
 .ai-inrow { display: flex; gap: 8px; align-items: flex-end; }
 .ai-in {
@@ -2794,7 +2838,6 @@ body.show-void #dk-void { display: block; }
   display: grid; place-items: center; cursor: pointer;
 }
 .ai-send:disabled { opacity: .4; cursor: default; }
-.ai-hint { margin-top: 6px; font-size: 10.5px; color: var(--ink-3); text-align: center; }
 </style>
 </head>
 <body>
@@ -8298,199 +8341,171 @@ window.PX = window.PX || {};
 </script>
 <script>
 /* ===== assist.js =====
-   법령·절차 도우미 (상단바 가운데 검색바 → 위쪽 가운데 모달)
+   PARALLAX 도우미 — 상단바 가운데 검색바 → 위쪽 가운데 대화창 (⌘K · Ctrl+K · /)
 
    사용자 조사에서 「현장 경찰이 법률을 확인하려고 AI를 자주 쓴다」가 나왔다.
    그래서 탭 메뉴가 아니라 **검색바 자리**에 뒀다 — 조회는 창을 하나 더 여는 일이 아니라
-   하던 일을 멈추지 않고 물어보는 일이기 때문이다. (⌘K / Ctrl+K)
+   하던 일을 멈추지 않고 물어보는 일이기 때문이다.
 
-   답은 이 파일 안의 **조문 모음**에서 고른다. 전시용 파일 하나로 돌아가야 해서
-   열쇠가 필요한 모델을 넣을 수 없고, 공개 주소에 열쇠를 박아 둘 수도 없다.
-   실제 모델을 붙이려면 아래 callModel() 한 곳만 바꾸면 된다 —
-   설정에 주소와 열쇠를 넣어 두면 그쪽으로 물어본다(브라우저에만 저장된다). */
+   법령만 답하면 「법전 검색」에 그친다. 통제실 도우미라면 지금 이 화면이 들고 있는 것도
+   대답할 수 있어야 한다 — 그래서 답하는 재주(skill)를 여러 개 두고,
+   물음에 가장 잘 맞는 재주를 골라 **콘솔의 실제 자료**로 답한다.
+     법령 · 현황 · 사건 브리핑 · 인력 · 전달 상태 · 보고서 초안 · 무전 문구 · 사용법
+
+   답은 이 파일 안에서 만든다. 전시용 파일 하나로 돌아가야 해서 열쇠가 필요한 모델을
+   넣을 수 없고, 공개 주소에 열쇠를 박아 둘 수도 없다.
+   실제 모델을 붙이려면 callModel() 한 곳만 보면 된다 — 설정에 주소·열쇠를 넣으면
+   그쪽으로 묻고, 없으면 아래 재주들로 답한다. */
 (function (PX) {
   'use strict';
 
   const store = PX.store;
+  const esc = PX.esc;
 
-  /* ── 조문 모음 ──────────────────────────────────────────────
-     현장에서 자주 묻는 것부터. 조문은 요지만 옮겼으므로 원문 확인이 필요하다. */
+  /* ══ 조문 모음 ══════════════════════════════════════════════
+     현장에서 자주 묻는 것부터. 요지만 옮겼으므로 원문 확인이 필요하다. */
   const LAWS = [
     {
-      id: 'trespass',
-      keys: ['주거침입', '주거', '침입', '빈집', '무단침입', '현관', '들어가', 'a-102'],
+      keys: ['주거침입', '주거', '침입', '빈집', '무단침입', '현관', '들어가'],
       title: '주거침입 — 죄의 성립과 현장 조치',
       sum: '사람이 사는 곳에 정당한 이유 없이 들어가면 주거침입죄입니다. 침입이 진행 중이거나 막 끝난 상태라면 현행범 체포가 가능하고, 체포 현장에서는 영장 없이 수색·압수할 수 있습니다.',
       laws: [
         { n: '형법 제319조(주거침입·퇴거불응)', t: '사람의 주거·관리하는 건조물 등에 침입하면 3년 이하 징역 또는 500만원 이하 벌금. 퇴거 요구에 응하지 않아도 같습니다.' },
         { n: '형사소송법 제212조(현행범인의 체포)', t: '현행범인은 누구든지 영장 없이 체포할 수 있습니다.' },
-        { n: '형사소송법 제216조(영장에 의하지 아니한 강제처분)', t: '체포 현장에서의 수색·압수, 타인의 주거에서의 피의자 수색이 가능합니다. 압수물을 계속 가지려면 사후 영장이 필요합니다(제217조).' }
+        { n: '형사소송법 제216조(영장에 의하지 아니한 강제처분)', t: '체포 현장에서의 수색·압수, 타인의 주거에서의 피의자 수색이 가능합니다. 계속 압수하려면 사후 영장이 필요합니다(제217조).' }
       ],
-      check: [
-        '집 안에 사람이 있는지 — 있으면 구조가 먼저입니다',
-        '침입이 계속 중인지, 끝났는지 (현행범 판단의 갈림길)',
-        '문·창의 손괴 여부 — 손괴가 있으면 재물손괴가 함께 성립할 수 있습니다',
-        '체포했다면 즉시 미란다 고지 (아래 「미란다」로 물어보세요)'
-      ]
+      check: ['집 안에 사람이 있는지 — 있으면 구조가 먼저입니다',
+              '침입이 계속 중인지, 끝났는지 (현행범 판단의 갈림길)',
+              '문·창의 손괴 여부 — 재물손괴가 함께 성립할 수 있습니다',
+              '체포했다면 즉시 미란다 고지'],
+      next: ['미란다 고지 문구', '영장 없이 집에 들어가도 되나', '현행범 체포 요건']
     },
     {
-      id: 'flagrant',
-      keys: ['현행범', '체포', '요건', '체포요건', '붙잡', '긴급체포'],
+      keys: ['현행범', '체포', '요건', '붙잡', '긴급체포'],
       title: '현행범 체포 요건',
       sum: '범죄가 명백하고, 시간·장소가 범행과 붙어 있으며, 도망하거나 증거를 없앨 우려가 있어야 합니다. 세 가지가 모두 필요합니다.',
       laws: [
-        { n: '형사소송법 제211조(현행범인과 준현행범인)', t: '범죄를 실행 중이거나 실행 직후인 사람이 현행범입니다. 장물·흉기를 소지했거나 몸에 증적이 뚜렷한 사람은 준현행범으로 봅니다.' },
+        { n: '형사소송법 제211조(현행범인과 준현행범인)', t: '범죄를 실행 중이거나 실행 직후인 사람이 현행범입니다. 장물·흉기를 소지했거나 몸에 증적이 뚜렷하면 준현행범으로 봅니다.' },
         { n: '형사소송법 제212조', t: '현행범인은 영장 없이 체포할 수 있습니다.' },
         { n: '형사소송법 제214조(경미사건과 현행범인의 체포)', t: '다액 50만원 이하의 벌금·구류·과료에 해당하는 죄는 주거가 분명하지 않은 때에만 체포할 수 있습니다.' },
-        { n: '형사소송법 제200조의3(긴급체포)', t: '사형·무기 또는 장기 3년 이상의 죄를 저질렀다고 의심할 상당한 이유가 있고, 증거인멸·도망 우려가 있어 영장을 받을 시간이 없을 때입니다.' }
+        { n: '형사소송법 제200조의3(긴급체포)', t: '사형·무기 또는 장기 3년 이상의 죄를 의심할 상당한 이유가 있고, 증거인멸·도망 우려로 영장을 받을 시간이 없을 때입니다.' }
       ],
-      check: [
-        '범행과 체포 사이의 시간 간격 — 길어질수록 현행범이 아닙니다',
-        '도망·증거인멸 우려를 무엇으로 판단했는지 기록',
-        '경미사건이면 주거가 분명한지 먼저 확인',
-        '체포 시각과 고지 내용을 그 자리에서 메모'
-      ]
+      check: ['범행과 체포 사이의 시간 간격 — 길수록 현행범이 아닙니다',
+              '도망·증거인멸 우려를 무엇으로 판단했는지 기록',
+              '경미사건이면 주거가 분명한지 먼저 확인',
+              '체포 시각과 고지 내용을 그 자리에서 메모'],
+      next: ['미란다 고지 문구', '긴급체포와 현행범 체포 차이']
     },
     {
-      id: 'miranda',
       keys: ['미란다', '고지', '권리', '진술거부', '변호인'],
       title: '미란다 고지 — 무엇을 말해야 하나',
-      sum: '체포하는 그 자리에서 네 가지를 알려 주고, 변명할 기회를 줘야 합니다. 빠지면 체포 자체가 위법해질 수 있습니다.',
+      sum: '체포하는 그 자리에서 네 가지를 알려 주고 변명할 기회를 줘야 합니다. 빠지면 체포 자체가 위법해질 수 있습니다.',
       laws: [
         { n: '형사소송법 제200조의5(체포와 피의사실 등의 고지)', t: '피의사실의 요지, 체포의 이유, 변호인을 선임할 수 있음을 말하고 변명할 기회를 주어야 합니다.' },
         { n: '형사소송법 제213조의2', t: '현행범 체포에도 제200조의5를 준용합니다.' },
         { n: '형사소송법 제244조의3', t: '진술거부권과 그 행사가 불이익하지 않다는 점을 알려야 합니다.' }
       ],
-      check: [
-        '① 무슨 혐의인지 (피의사실 요지)',
-        '② 왜 체포하는지 (체포 이유)',
-        '③ 변호인을 선임할 수 있다',
-        '④ 진술을 거부할 수 있다',
-        '⑤ 변명할 기회를 준다 — 대답을 기록'
-      ]
+      check: ['① 무슨 혐의인지 (피의사실 요지)', '② 왜 체포하는지 (체포 이유)',
+              '③ 변호인을 선임할 수 있다', '④ 진술을 거부할 수 있다',
+              '⑤ 변명할 기회를 준다 — 대답을 기록'],
+      next: ['현행범 체포 요건', '체포 후 인치 시간']
     },
     {
-      id: 'enter',
-      keys: ['출입', '문 따', '강제개문', '위험방지', '들어가도', '구조', '위해'],
+      keys: ['출입', '문 따', '강제개문', '위험방지', '들어가도', '구조', '위해', '영장 없이'],
       title: '영장 없이 안으로 들어갈 수 있나',
-      sum: '사람의 생명·신체에 위해가 임박했다면 경찰관은 위험을 막기 위해 다른 사람의 건물에 들어갈 수 있습니다. 범죄 수사를 위한 진입과는 근거가 다릅니다.',
+      sum: '사람의 생명·신체에 위해가 임박했다면 위험을 막기 위해 들어갈 수 있습니다. 범죄 수사를 위한 진입과는 근거가 다릅니다.',
       laws: [
         { n: '경찰관 직무집행법 제7조(위험 방지를 위한 출입)', t: '위해가 임박한 때 그 장소에 출입하여 위해를 막을 수 있습니다. 관계인은 정당한 이유 없이 거절하지 못합니다.' },
-        { n: '경찰관 직무집행법 제6조(범죄의 예방과 제지)', t: '범죄 행위가 목전에 행해지려 하고 인명·신체에 위해가 절박한 때 이를 제지할 수 있습니다.' },
-        { n: '형사소송법 제216조 제1항 제1호', t: '체포를 위해 필요한 때에는 타인의 주거에서 피의자를 수색할 수 있습니다.' }
+        { n: '경찰관 직무집행법 제6조(범죄의 예방과 제지)', t: '범죄가 목전에 행해지려 하고 인명·신체에 위해가 절박한 때 제지할 수 있습니다.' },
+        { n: '형사소송법 제216조 제1항 제1호', t: '체포를 위해 필요한 때 타인의 주거에서 피의자를 수색할 수 있습니다.' }
       ],
-      check: [
-        '들어가는 근거가 「위험 방지」인지 「수사」인지 먼저 정리',
-        '임박한 위해의 내용(소리·연기·목격)을 기록',
-        '문을 여는 방법과 시각, 손괴 여부를 남깁니다',
-        '들어간 뒤 범위를 위험 방지에 필요한 만큼으로 한정'
-      ]
+      check: ['들어가는 근거가 「위험 방지」인지 「수사」인지 먼저 정리',
+              '임박한 위해의 내용(소리·연기·목격)을 기록',
+              '문을 여는 방법과 시각, 손괴 여부를 남깁니다',
+              '들어간 뒤 범위를 위험 방지에 필요한 만큼으로 한정'],
+      next: ['주거침입 현행범 체포 요건', '현장 안전 점검']
     },
     {
-      id: 'stop',
-      keys: ['불심검문', '검문', '신분증', '정지', '질문', '동행'],
+      keys: ['불심검문', '검문', '신분증', '정지', '임의동행', '동행'],
       title: '불심검문과 임의동행',
-      sum: '의심할 만한 상당한 이유가 있을 때 정지시켜 질문할 수 있습니다. 동행은 어디까지나 임의이며, 상대가 거부하면 강제할 수 없습니다.',
+      sum: '의심할 만한 상당한 이유가 있을 때 정지시켜 질문할 수 있습니다. 동행은 임의이며 거부하면 강제할 수 없습니다.',
       laws: [
-        { n: '경찰관 직무집행법 제3조(불심검문)', t: '수상한 행동 등으로 죄를 범했거나 범하려 한다고 의심할 상당한 이유가 있는 사람을 정지시켜 질문할 수 있습니다.' },
-        { n: '같은 조 제2항·제4항', t: '동행 요구는 거절할 수 있고, 경찰관은 신분을 표시하는 증표를 제시하며 소속·성명과 목적·이유를 밝혀야 합니다.' },
+        { n: '경찰관 직무집행법 제3조(불심검문)', t: '죄를 범했거나 범하려 한다고 의심할 상당한 이유가 있는 사람을 정지시켜 질문할 수 있습니다.' },
+        { n: '같은 조 제2항·제4항', t: '동행 요구는 거절할 수 있고, 경찰관은 증표를 제시하며 소속·성명과 목적·이유를 밝혀야 합니다.' },
         { n: '같은 조 제6항', t: '동행한 경우 6시간을 초과하여 경찰관서에 머무르게 할 수 없습니다.' }
       ],
-      check: [
-        '증표 제시와 목적 고지를 먼저',
-        '흉기 소지 여부 조사는 가능하지만 일반적인 소지품 수색은 안 됩니다',
-        '동행은 거절할 수 있음을 고지',
-        '동행 시각과 6시간 한도를 기록'
-      ]
+      check: ['증표 제시와 목적 고지를 먼저', '흉기 소지 조사는 가능하나 일반 소지품 수색은 안 됩니다',
+              '동행은 거절할 수 있음을 고지', '동행 시각과 6시간 한도를 기록'],
+      next: ['현행범 체포 요건', '흉기 소지자 대응']
     },
     {
-      id: 'weapon',
-      keys: ['흉기', '칼', '위협', '물리력', '테이저', '무기', '총기', '진압'],
+      keys: ['흉기', '칼', '위협', '물리력', '테이저', '무기', '총기', '진압', '장구'],
       title: '흉기 소지자 대응과 물리력',
-      sum: '흉기로 위협하면 특수협박·특수상해가 됩니다. 물리력은 위해의 정도에 맞춰 필요한 최소한이어야 하고, 무기 사용에는 별도 요건이 있습니다.',
+      sum: '흉기로 위협하면 특수협박·특수상해가 됩니다. 물리력은 위해의 정도에 맞춘 필요 최소한이어야 합니다.',
       laws: [
         { n: '형법 제284조(특수협박)', t: '위험한 물건을 휴대하여 협박하면 7년 이하 징역 또는 1천만원 이하 벌금.' },
         { n: '형법 제258조의2(특수상해)', t: '위험한 물건을 휴대하여 상해하면 1년 이상 10년 이하 징역.' },
-        { n: '경찰관 직무집행법 제10조의4(무기의 사용)', t: '정당방위·긴급피난에 해당하거나, 중대한 죄를 범하고 저항하는 사람을 체포할 때 등 필요한 한도에서 사용할 수 있습니다.' },
-        { n: '경찰관 직무집행법 제10조의2(경찰장구의 사용)', t: '현행범 체포, 자기 또는 타인의 생명·신체 방어 등 필요한 한도에서 수갑·경찰봉 등을 쓸 수 있습니다.' }
+        { n: '경찰관 직무집행법 제10조의4(무기의 사용)', t: '정당방위·긴급피난에 해당하거나, 중대한 죄를 범하고 저항하는 사람을 체포할 때 등 필요한 한도에서.' },
+        { n: '경찰관 직무집행법 제10조의2(경찰장구의 사용)', t: '현행범 체포, 생명·신체 방어 등 필요한 한도에서 수갑·경찰봉을 쓸 수 있습니다.' }
       ],
-      check: [
-        '거리 확보와 차폐물 — 접근 전 대형을 먼저',
-        '주변 사람 대피가 우선입니다',
-        '경고 → 장구 → 무기 순서와 그 사유를 기록',
-        '사용 후 즉시 응급조치와 보고'
-      ]
+      check: ['거리 확보와 차폐물 — 접근 전 대형을 먼저', '주변 사람 대피가 우선입니다',
+              '경고 → 장구 → 무기 순서와 사유를 기록', '사용 후 즉시 응급조치와 보고'],
+      next: ['현장 안전 점검', '현행범 체포 요건']
     },
     {
-      id: 'domestic',
       keys: ['가정폭력', '가정', '배우자', '접근금지', '응급조치', '임시조치'],
       title: '가정폭력 현장 조치',
-      sum: '신고를 받으면 즉시 현장에 나가 폭력을 제지하고 분리해야 합니다. 재발 우려가 크면 긴급임시조치로 접근을 막을 수 있습니다.',
+      sum: '즉시 현장에 나가 폭력을 제지하고 분리해야 합니다. 재발 우려가 크면 긴급임시조치로 접근을 막을 수 있습니다.',
       laws: [
-        { n: '가정폭력처벌법 제5조(응급조치)', t: '폭력행위 제지, 행위자·피해자 분리, 현행범 체포, 피해자의 동의를 받아 상담소·의료기관 인도, 긴급치료 안내, 임시조치 신청 절차 안내.' },
-        { n: '같은 법 제8조의2(긴급임시조치)', t: '재발 우려가 있고 임시조치를 기다릴 수 없을 때 퇴거·100미터 이내 접근금지·전기통신 접근금지를 할 수 있습니다.' },
+        { n: '가정폭력처벌법 제5조(응급조치)', t: '폭력 제지, 행위자·피해자 분리, 현행범 체포, 동의를 받아 상담소·의료기관 인도, 긴급치료 안내, 임시조치 신청 절차 안내.' },
+        { n: '같은 법 제8조의2(긴급임시조치)', t: '재발 우려가 있고 임시조치를 기다릴 수 없을 때 퇴거·100미터 접근금지·전기통신 접근금지.' },
         { n: '같은 법 제8조의3', t: '긴급임시조치를 한 때에는 지체 없이 검사에게 임시조치를 신청해야 합니다.' }
       ],
-      check: [
-        '분리가 먼저입니다 — 같은 방에서 조사하지 않습니다',
-        '피해자에게 의료기관·상담소 안내',
-        '아동이 있으면 아동학대 여부도 함께 확인',
-        '긴급임시조치를 했다면 신청 기한을 놓치지 않기'
-      ]
+      check: ['분리가 먼저입니다 — 같은 방에서 조사하지 않습니다', '피해자에게 의료기관·상담소 안내',
+              '아동이 있으면 아동학대 여부도 확인', '긴급임시조치를 했다면 신청 기한 엄수'],
+      next: ['실종아동 초기 조치', '현장 안전 점검']
     },
     {
-      id: 'missing',
-      keys: ['실종', '아동', '미아', '가출', '위치추적', '수색'],
+      keys: ['실종', '아동', '미아', '가출', '위치추적'],
       title: '실종아동 — 초기 조치와 위치 확인',
-      sum: '실종아동 신고는 접수 즉시 수색이 원칙이고, 생명·신체 위험이 있으면 통신사에 위치정보를 요청할 수 있습니다.',
+      sum: '접수 즉시 수색이 원칙이고, 생명·신체 위험이 있으면 통신사에 위치정보를 요청할 수 있습니다.',
       laws: [
-        { n: '실종아동등의 보호 및 지원에 관한 법률 제9조', t: '경찰관서의 장은 실종아동등의 조속한 발견을 위해 개인위치정보 등의 제공을 요청할 수 있고, 요청받은 자는 정당한 사유 없이 거부할 수 없습니다.' },
+        { n: '실종아동등의 보호 및 지원에 관한 법률 제9조', t: '경찰관서의 장은 조속한 발견을 위해 개인위치정보 제공을 요청할 수 있고, 요청받은 자는 정당한 사유 없이 거부할 수 없습니다.' },
         { n: '같은 법 제7조의2', t: '보호시설 등에 대한 출입·조사가 가능합니다.' },
-        { n: '경찰관 직무집행법 제4조(보호조치)', t: '미아·정신착란·술취한 사람 등 응급구호가 필요한 사람을 보호할 수 있습니다.' }
+        { n: '경찰관 직무집행법 제4조(보호조치)', t: '미아·정신착란·주취자 등 응급구호가 필요한 사람을 보호할 수 있습니다.' }
       ],
-      check: [
-        '마지막 목격 시각·장소·복장을 먼저 확정',
-        '실종경보 발령 여부 검토',
-        '주변 CCTV 확보는 시간이 지날수록 어려워집니다 — 바로 요청',
-        '발견 시 보호자 인계 과정도 기록'
-      ]
+      check: ['마지막 목격 시각·장소·복장을 먼저 확정', '실종경보 발령 여부 검토',
+              '주변 CCTV는 시간이 지나면 사라집니다 — 바로 요청', '발견 시 보호자 인계 과정도 기록'],
+      next: ['CCTV 영상 확보 절차', '지금 상황 알려줘']
     },
     {
-      id: 'cctv',
       keys: ['cctv', '영상', '확보', '압수', '블랙박스', '녹화'],
       title: 'CCTV·영상 확보 절차',
-      sum: '임의제출을 받거나 영장을 받아야 합니다. 급한 경우 먼저 확보하고 사후 영장을 받는 길이 있습니다.',
+      sum: '임의제출을 받거나 영장을 받아야 합니다. 급하면 먼저 확보하고 사후 영장을 받는 길이 있습니다.',
       laws: [
         { n: '형사소송법 제218조(영장에 의하지 아니한 압수)', t: '소유자·소지자가 임의로 제출한 물건은 영장 없이 압수할 수 있습니다.' },
         { n: '형사소송법 제215조', t: '그 밖에는 지방법원판사가 발부한 영장이 필요합니다.' },
-        { n: '형사소송법 제217조', t: '긴급체포된 자의 소유물 등은 체포 후 24시간 이내에 영장 없이 압수·수색할 수 있고, 계속 압수하려면 지체 없이 영장을 청구해야 합니다.' }
+        { n: '형사소송법 제217조', t: '긴급체포된 자의 소유물은 24시간 이내 영장 없이 압수·수색할 수 있고, 계속 압수하려면 지체 없이 영장을 청구해야 합니다.' }
       ],
-      check: [
-        '제출자에게 임의제출 동의서를 받습니다',
-        '원본·사본 여부와 해시값을 기록',
-        '덮어쓰기 주기를 확인 — 며칠이면 사라집니다',
-        '관계없는 사람의 영상은 최소한으로'
-      ]
+      check: ['임의제출 동의서를 받습니다', '원본·사본 여부와 해시값을 기록',
+              '덮어쓰기 주기 확인 — 며칠이면 사라집니다', '관계없는 사람의 영상은 최소한으로'],
+      next: ['이 사건 CCTV 보여줘', '실종아동 초기 조치']
     },
     {
-      id: 'pursuit',
-      keys: ['도주', '추격', '차량', '뺑소니', '음주', '교통'],
+      keys: ['도주', '추격', '뺑소니', '음주', '교통', '차량'],
       title: '차량 도주·추격',
-      sum: '사고 후 조치 없이 달아나면 도주치상·사고후미조치가 됩니다. 추격은 2차 사고 위험이 크므로 중단 기준을 미리 정해 둡니다.',
+      sum: '사고 후 조치 없이 달아나면 도주치상·사고후미조치가 됩니다. 추격은 2차 사고 위험이 커서 중단 기준을 미리 정합니다.',
       laws: [
         { n: '특정범죄가중법 제5조의3(도주차량 운전자의 가중처벌)', t: '사고로 사람을 다치게 하고 구호조치 없이 도주하면 가중처벌됩니다.' },
         { n: '도로교통법 제54조(사고발생 시의 조치)', t: '즉시 정차하여 사상자를 구호하고 인적사항을 제공해야 합니다.' },
         { n: '도로교통법 제148조의2', t: '음주운전·측정거부의 처벌 근거입니다.' }
       ],
-      check: [
-        '차량 번호·색상·방향을 즉시 공유 — 추격보다 포위가 안전합니다',
-        '학교 앞·주택가·보행자 많은 구간은 추격 중단',
-        '중단했으면 중단 시각과 이유를 기록',
-        '부상자가 있으면 구호가 언제나 먼저입니다'
-      ]
+      check: ['차량 번호·색상·방향을 즉시 공유 — 추격보다 포위가 안전합니다',
+              '학교 앞·주택가·보행자 많은 구간은 추격 중단', '중단했으면 시각과 이유를 기록',
+              '부상자가 있으면 구호가 언제나 먼저입니다'],
+      next: ['지금 상황 알려줘', '무전 문구 만들어줘']
     },
     {
-      id: 'noise',
       keys: ['소음', '시끄', '인근소란', '층간'],
       title: '소음 신고 처리',
       sum: '인근소란은 경범죄로 처벌할 수 있지만, 현장에서는 중지 요청과 계도가 먼저입니다.',
@@ -8498,48 +8513,351 @@ window.PX = window.PX || {};
         { n: '경범죄 처벌법 제3조 제1항 제21호(인근소란 등)', t: '악기·라디오·큰 소리 등으로 이웃을 시끄럽게 하면 10만원 이하 벌금·구류·과료.' },
         { n: '경찰관 직무집행법 제6조', t: '위해가 절박한 경우에만 제지가 가능합니다.' }
       ],
-      check: [
-        '소음의 종류와 시각을 기록',
-        '반복 신고인지 확인 — 반복이면 계도 이력을 남깁니다',
-        '주거지 내부 진입은 별도의 근거가 필요합니다',
-        '분쟁조정·환경분쟁 절차 안내도 방법입니다'
-      ]
+      check: ['소음의 종류와 시각을 기록', '반복 신고인지 확인 — 계도 이력을 남깁니다',
+              '주거지 내부 진입은 별도 근거가 필요합니다', '분쟁조정 절차 안내도 방법입니다'],
+      next: ['지금 상황 알려줘']
     }
   ];
 
-  /* 어느 조문도 안 맞을 때 */
-  const FALLBACK = {
-    title: '가지고 있는 자료에서는 찾지 못했습니다',
-    sum: '이 도우미는 현장에서 자주 묻는 조문만 담고 있습니다. 아래 주제는 바로 답할 수 있습니다.',
-    laws: [],
-    check: LAWS.map(l => l.title)
-  };
+  // ══ 도움 함수 ═════════════════════════════════════════════
+  const norm = s => String(s || '').toLowerCase().replace(/\s+/g, '');
+  const has = (q, arr) => arr.some(k => q.indexOf(norm(k)) >= 0);
+  const P = t => ({ p: t });
+  const UL = a => ({ ul: a });
+  const KV = a => ({ kv: a });
+  const H = t => ({ h: t });
 
-  function pick(q) {
-    const s = String(q || '').toLowerCase().replace(/\s+/g, '');
-    let best = null, bestScore = 0;
-    LAWS.forEach(l => {
-      let sc = 0;
-      l.keys.forEach(k => { if (s.indexOf(k.toLowerCase().replace(/\s+/g, '')) >= 0) sc += k.length; });
-      if (sc > bestScore) { bestScore = sc; best = l; }
-    });
-    return bestScore > 0 ? best : FALLBACK;
+  function incidentFrom(q) {
+    const m = String(q).toUpperCase().match(/A-?\s?1\d{2}/);
+    if (m) {
+      const id = m[0].replace(/\s/g, '').replace(/^A-?/, 'A-');
+      const f = store.incidents.find(i => i.id === id);
+      if (f) return f;
+    }
+    const n = norm(q);
+    const byName = store.incidents.find(i => n.indexOf(norm(i.type)) >= 0 || n.indexOf(norm(i.place.split(' ')[0])) >= 0);
+    return byName || null;
+  }
+  function officerFrom(q) {
+    const n = norm(q);
+    return store.officers.find(o => n.indexOf(norm(o.call)) >= 0 || (o.name && n.indexOf(norm(o.name.replace(/\s.*$/, ''))) >= 0)) || null;
+  }
+  const dcounts = () => (PX.delivery ? PX.delivery.counts() : { unack: 0, hand: 0, queued: 0 });
+
+  /* ══ 답하는 재주들 ════════════════════════════════════════
+     위에서부터 보면서 맞는 것을 고른다. 점수가 아니라 차례다 —
+     「A-104 요약」처럼 두 재주에 걸리는 물음은 더 구체적인 쪽이 먼저 잡아야 한다. */
+  const SKILLS = [
+    // ── 인사 · 무엇을 할 수 있나 ──
+    {
+      id: 'hello',
+      test: q => has(q, ['안녕', '반가', '누구야', '뭐야너', '뭐할수', '뭘할수', '할수있', '도움말', '기능', '뭐물어', '무엇을']),
+      run() {
+        return {
+          title: 'PARALLAX 도우미입니다',
+          blocks: [
+            P('통제실에서 손을 멈추지 않고 물어볼 수 있게 만든 도우미입니다. 이런 것을 답합니다.'),
+            UL(['**법령·절차** — 주거침입, 현행범 체포, 미란다 고지, 영장 없는 출입 등 조문과 현장 확인 항목',
+                '**지금 상황** — 진행 중 사건, 투입 인원, 긴급 알림, 확인 안 된 지시',
+                '**사건 브리핑** — "A-104 요약해줘" 처럼 사건 하나를 정리',
+                '**인력** — "한들-2 어디 있어" 처럼 한 사람의 임무·상태·통신',
+                '**보고서·무전 문구 초안** — 상황일지와 전파 문구를 만들어 드립니다',
+                '**콘솔 사용법** — 창 합치기, 크기 조절, 단축키'])
+          ],
+          next: ['지금 상황 알려줘', 'A-102 요약해줘', '주거침입 현행범 체포 요건', '창 어떻게 합쳐?']
+        };
+      }
+    },
+    // ── 지금 상황 ──
+    {
+      id: 'status',
+      test: q => has(q, ['지금상황', '현황', '상황알려', '전체상황', '몇건', '브리핑해', '요약해줘전체', '어떻게돌아', '상황어때']),
+      run() {
+        const act = store.activeIncidents;
+        const urgent = act.filter(i => i.priority === '긴급');
+        const on = store.officers.filter(o => o.incidentID);
+        const bad = store.officers.filter(o => o.ar === '불안정' || o.ar === '두절' || o.ar === '미연결');
+        const c = dcounts();
+        return {
+          title: '지금 상황',
+          blocks: [
+            KV([['진행 중 사건', act.length + '건 (긴급 ' + urgent.length + '건)'],
+                ['투입 인원', on.length + '명 / 전체 ' + store.officers.length + '명'],
+                ['통신 이상', bad.length + '명'],
+                ['확인 안 된 지시', c.unack + '건' + (c.queued ? ' · 대기함 ' + c.queued + '건' : '')],
+                ['인계 대기', c.hand + '건']]),
+            H('긴급 사건'),
+            UL(urgent.length ? urgent.map(i => '**' + i.id + '** ' + i.type + ' · ' + i.place + ' · 접수 ' + i.reportedAt) : ['긴급 사건 없음']),
+            P(bad.length ? '통신이 불안한 인력이 ' + bad.length + '명입니다 — ' + bad.map(o => o.call).join(', ') + '. 지시를 보낼 때 다른 기기도 함께 생각하세요.'
+                         : '통신은 모두 정상입니다.')
+          ],
+          next: act.slice(0, 2).map(i => i.id + ' 요약해줘').concat(['확인 안 된 지시 뭐야', '보고서 초안 써줘'])
+        };
+      }
+    },
+    // ── 전달 상태 ──
+    {
+      id: 'delivery',
+      test: q => has(q, ['확인안된', '미확인', '전달', '수신상태', '답없', '읽었', '놓친', '대기함', '인계대기']),
+      run() {
+        const c = dcounts();
+        const rows = PX.delivery ? PX.delivery.rows() : [];
+        const bad = rows.filter(r => !r.ackAt);
+        return {
+          title: '전달 상태',
+          blocks: [
+            P(c.unack || c.hand
+              ? '아직 닫히지 않은 것이 ' + (c.unack + c.hand) + '건 있습니다.'
+              : '보낸 것은 모두 확인됐습니다. 미해결 없음.'),
+            bad.length ? UL(bad.map(r => {
+              const k = PX.delivery.look(r);
+              return '**' + r.call + '** · ' + (r.type === 'handover' ? '인계' : r.device) + ' — ' + k.text;
+            })) : P('대기 중인 줄이 없습니다.'),
+            bad.some(r => r.state === 'missed')
+              ? P('🔴 로 바뀐 줄은 현장 정보 전송 창에서 「무전으로」를 눌러 다음 기기로 넘길 수 있습니다.') : null
+          ],
+          acts: [{ t: '현장 정보 전송 창 열기', go: 'alerts' }],
+          next: ['지금 상황 알려줘', '무전 문구 만들어줘']
+        };
+      }
+    },
+    // ── 한 사람 ──
+    {
+      id: 'unit',
+      test: q => !!officerFrom(q) || has(q, ['인력현황', '누가어디', '인원현황', '배치현황']),
+      run(q) {
+        const o = officerFrom(q);
+        if (!o) {
+          const on = store.officers.filter(x => x.incidentID);
+          return {
+            title: '인력 배치',
+            blocks: [UL(on.map(x => '**' + x.call + '** ' + x.name + ' · ' + (x.incidentID || '미배정') + ' · ' + x.task + ' (' + x.state + ')'))],
+            next: on.slice(0, 2).map(x => x.call + ' 상태 어때')
+          };
+        }
+        const inc = store.incidents.find(i => i.id === o.incidentID);
+        const q2 = PX.delivery ? PX.delivery.queueCount(o.call) : 0;
+        return {
+          title: o.call + ' ' + o.name,
+          blocks: [
+            KV([['소속', o.team], ['사건', o.incidentID ? o.incidentID + ' ' + (inc ? inc.type : '') : '미배정'],
+                ['임무', o.task], ['상태', o.state],
+                ['AR 글래스', o.ar + (o.battery != null ? ' · 배터리 ' + o.battery + '%' : '')],
+                ['최근 통신', o.commAt || '-']]),
+            o.ar !== '연결' ? P('통신이 ' + o.ar + ' 상태입니다' + (q2 ? ' — 보낼 것 ' + q2 + '건이 대기함에 있습니다.' : '. 지시를 보낼 때 무전을 함께 쓰는 편이 안전합니다.')) : null,
+            inc ? P('이 인력이 붙은 사건은 **' + inc.id + ' ' + inc.type + '** 입니다.') : null
+          ],
+          acts: inc ? [{ t: inc.id + ' 브리핑 열기', pick: inc.id }] : [],
+          next: [(inc ? inc.id + ' 요약해줘' : '인력 현황'), '확인 안 된 지시 뭐야']
+        };
+      }
+    },
+    // ── 사건 브리핑 ──
+    {
+      id: 'incident',
+      test: q => !!incidentFrom(q) || has(q, ['이사건', '사건요약', '브리핑']),
+      run(q) {
+        const inc = incidentFrom(q) || store.selectedIncident;
+        if (!inc) return null;
+        const units = store.officersOf(inc.id);
+        const cars = store.vehiclesOf ? store.vehiclesOf(inc.id) : [];
+        const cams = store.camerasOf ? store.camerasOf(inc.id) : [];
+        const stage = store.stageOf ? store.stageOf(inc.id) : null;
+        const law = LAWS.find(l => has(norm(inc.type), l.keys));
+        return {
+          title: inc.id + ' ' + inc.type,
+          blocks: [
+            P(inc.summary),
+            KV([['우선순위', inc.priority + ' · 위험도 ' + inc.risk],
+                ['장소', inc.place], ['담당', inc.team],
+                ['접수 / 갱신', inc.reportedAt + ' / ' + inc.updatedAt],
+                ['단계', (stage != null && PX.data.stages[stage]) ? PX.data.stages[stage] : inc.status],
+                ['배치', units.length + '명 · 차량 ' + cars.length + '대 · CCTV ' + cams.length + '대']]),
+            inc.hazards && inc.hazards.length ? H('위험 요소') : null,
+            inc.hazards && inc.hazards.length ? UL(inc.hazards) : null,
+            units.length ? H('배치 인력') : null,
+            units.length ? UL(units.map(o => '**' + o.call + '** ' + o.task + ' · ' + o.state + ' · AR ' + o.ar)) : null,
+            inc.call ? P('신고 내용 — ' + inc.call) : null,
+            law ? P('이 사건에 걸리는 조문은 **' + law.title + '** 입니다. 「' + law.laws[0].n + '」부터 보세요.') : null
+          ],
+          acts: [{ t: '지도에서 이 사건 보기', pick: inc.id },
+                 { t: '상황 보고 초안', ask: inc.id + ' 보고서 초안' }],
+          next: [law ? law.title.split(' —')[0] + ' 조문' : '관련 법령', inc.id + ' 무전 문구', '지금 상황 알려줘']
+        };
+      }
+    },
+    // ── 보고서 초안 ──
+    {
+      id: 'report',
+      test: q => has(q, ['보고서', '초안', '상황일지', '일지', '보고문', '작성해', '써줘']),
+      run(q) {
+        const inc = incidentFrom(q) || store.selectedIncident;
+        const units = store.officersOf(inc.id);
+        const c = dcounts();
+        const text =
+          '[상황 보고] ' + inc.id + ' ' + inc.type + '\n' +
+          '1. 장소: ' + inc.place + '\n' +
+          '2. 접수: ' + inc.reportedAt + ' (최근 갱신 ' + inc.updatedAt + ')\n' +
+          '3. 개요: ' + inc.summary + '\n' +
+          '4. 투입: ' + (units.map(o => o.call + '(' + o.task + ')').join(', ') || '없음') + '\n' +
+          '5. 위험 요소: ' + ((inc.hazards || []).join(', ') || '특이사항 없음') + '\n' +
+          '6. 전달 상태: 확인 안 된 지시 ' + c.unack + '건, 인계 대기 ' + c.hand + '건\n' +
+          '7. 조치 의견: ';
+        return {
+          title: inc.id + ' 상황 보고 초안',
+          blocks: [P('아래 초안을 복사해 기록·회의록 창에 붙이시면 됩니다. 마지막 줄은 지휘 판단으로 채우세요.'),
+                   { code: text }],
+          acts: [{ t: '복사', copy: text }, { t: '기록·회의록 창 열기', go: 'handover' }],
+          next: [inc.id + ' 무전 문구', '지금 상황 알려줘']
+        };
+      }
+    },
+    // ── 무전 문구 ──
+    {
+      id: 'radio',
+      test: q => has(q, ['무전', '전파문구', '문구', '한문장', '전파해']),
+      run(q) {
+        const inc = incidentFrom(q) || store.selectedIncident;
+        const units = store.officersOf(inc.id);
+        const one = inc.id + ' ' + inc.type + ', ' + inc.place + '. ' +
+          (inc.hazards && inc.hazards[0] ? inc.hazards[0] + ' 주의. ' : '') +
+          '현재 ' + units.length + '명 투입, 진입 전 상황 보고 바람.';
+        return {
+          title: '무전 전파 문구',
+          blocks: [P('무전은 한 번에 한 문장이 원칙입니다. 이대로 읽으시면 됩니다.'),
+                   { code: one },
+                   P('AR 글래스로 보낼 때는 더 짧게 — 「' + (inc.hazards && inc.hazards[0] ? inc.hazards[0] : inc.type) + ' 주의」 정도가 눈에 들어옵니다.')],
+          acts: [{ t: '현장에 보내기', sendText: one }, { t: '복사', copy: one }],
+          next: [inc.id + ' 보고서 초안', '확인 안 된 지시 뭐야']
+        };
+      }
+    },
+    // ── 공간 3D ──
+    {
+      id: 'space',
+      test: q => has(q, ['남은곳', '안본곳', '스캔', '3d', '공간', '빈곳']),
+      run() {
+        const m = PX.__space;
+        const gaps = m ? (m.gaps || 0) : 0;
+        return {
+          title: '공간 기록',
+          blocks: [
+            m ? KV([['남은 곳', gaps + '곳'], ['덮인 정도', m.cover != null ? Math.round(m.cover * 100) + '%' : '계산 중'],
+                    ['보기', m.view === 'gap' ? '빈 곳 보기' : '전체 보기']])
+              : P('공간 3D 창을 한 번 열어야 스캔을 읽습니다.'),
+            gaps ? P('남은 곳이 ' + gaps + '곳 있습니다. 후속팀이 같은 곳을 또 보지 않도록 인계로 넘기는 편이 좋습니다.')
+                 : P('아직 남은 곳 정보가 없습니다.')
+          ],
+          acts: [{ t: '공간 3D 창 열기', go: 'space' }, gaps ? { t: '후속팀에 인계', handover: gaps } : null].filter(Boolean),
+          next: ['지금 상황 알려줘', '인계 어떻게 해?']
+        };
+      }
+    },
+    // ── 콘솔 사용법 ──
+    {
+      id: 'howto',
+      test: q => has(q, ['어떻게', '사용법', '단축키', '창합', '창나눠', '크기조절', '탭', '도크', '인계어떻게', '이거뭐']),
+      run(q) {
+        const n = norm(q);
+        const blocks = [];
+        if (has(n, ['창합', '탭', '합쳐', '나눠', '옮기'])) {
+          blocks.push(H('창 다루기'), UL([
+            '창 이름표를 끌어 **다른 창의 머리줄**에 놓으면 두 창이 탭으로 합쳐집니다',
+            '창의 위/아래나 도크 빈 자리에 놓으면 따로 섭니다',
+            '창 아래 가장자리를 끌면 세로 크기가 바뀝니다 (아래 띠는 오른쪽 가장자리 = 너비)',
+            '머리줄의 ⤢ 는 전면으로 크게, ⌄ 는 접기입니다',
+            '도크 가장자리를 두 번 누르면 도크 전체가 접힙니다']));
+        }
+        blocks.push(H('단축키'), KV([
+          ['⌘K / Ctrl+K', '이 도우미 열고 닫기 (/ 로도 열립니다)'],
+          ['Esc', '도우미·전면 보기 닫기'],
+          ['\\', '지도만 보기 (도크를 모두 접었다 폅니다)']
+        ]));
+        blocks.push(H('창 다섯 개'), UL([
+          '**작전 지도** — 사건·인력·CCTV 표시, 재생으로 이동 경로 보기',
+          '**전체 상황** — 사건 목록과 단계',
+          '**현장 정보 전송** — 지시 보내기 + 수신 상태(확인/지연/놓침/대기)',
+          '**공간 3D** — 현장 스캔과 남은 곳, 후속팀 인계',
+          '**기록·회의록** — 조치 기록과 인계 기록']));
+        return { title: '콘솔 사용법', blocks: blocks, next: ['지금 상황 알려줘', '인계 어떻게 해?'] };
+      }
+    },
+    // ── 인계 절차 ──
+    {
+      id: 'handover',
+      test: q => has(q, ['인계', '넘기', '후속팀', '교대']),
+      run() {
+        return {
+          title: '후속팀 인계',
+          blocks: [
+            P('인계는 **수락까지 와야** 끝납니다. 보내고 끝내면 2조가 같은 곳을 다시 봅니다.'),
+            UL(['공간 3D 창에서 「후속팀에 인계」를 누릅니다 — 남은 곳·위험 요소·보낸 지시가 자동으로 묶입니다',
+                '받는 기기에 맞게 줄어서 갑니다 (운전 중 차량 화면에는 한 줄, 도착 후 폴더블에는 전체)',
+                '2조가 수락하면 ⏳ 가 ✅ 로 바뀌고, 기록·회의록에 보냄·도착·수락 시각이 남습니다',
+                '차량이 끊겨 있으면 대기함에 들어갔다가 복구될 때 최신 내용만 갑니다'])
+          ],
+          acts: [{ t: '공간 3D 창 열기', go: 'space' }],
+          next: ['남은 곳 몇 곳이야', '확인 안 된 지시 뭐야']
+        };
+      }
+    },
+    // ── 법령 ──
+    {
+      id: 'law',
+      test: q => LAWS.some(l => has(q, l.keys)),
+      run(q) {
+        let best = null, score = 0;
+        LAWS.forEach(l => {
+          let sc = 0;
+          l.keys.forEach(k => { if (q.indexOf(norm(k)) >= 0) sc += k.length; });
+          if (sc > score) { score = sc; best = l; }
+        });
+        if (!best) return null;
+        return {
+          title: best.title,
+          blocks: [P(best.sum), H('관련 조문'), { laws: best.laws }, H('현장 확인'), UL(best.check)],
+          law: true,
+          acts: [{ t: '현장에 요지 보내기', sendText: '[법령 확인] ' + best.title + ' — ' + best.sum },
+                 { t: '기록에 남기기', log: best.title + ' — ' + best.laws[0].n }],
+          next: best.next || []
+        };
+      }
+    }
+  ];
+
+  function answer(q) {
+    const n = norm(q);
+    for (let i = 0; i < SKILLS.length; i++) {
+      if (!SKILLS[i].test(n)) continue;
+      const r = SKILLS[i].run(q, n);
+      if (r) return r;
+    }
+    return {
+      title: '아직 그건 못 배웠습니다',
+      blocks: [P('이 도우미는 통제실에서 쓰는 것만 답합니다. 이런 것을 물어보실 수 있습니다.'),
+               UL(['법령 — 주거침입, 현행범 체포, 미란다 고지, 영장 없는 출입, 흉기 대응, 가정폭력, 실종아동, CCTV 확보, 차량 도주, 소음',
+                   '현황 — 지금 상황, 확인 안 된 지시, 인력 배치',
+                   '사건 — "A-104 요약해줘"',
+                   '문서 — 보고서 초안, 무전 문구',
+                   '사용법 — 창 합치기, 단축키'])],
+      next: ['지금 상황 알려줘', 'A-102 요약해줘', '뭐 할 수 있어?']
+    };
   }
 
-  /** 실제 모델에 물어보는 자리.
-      설정(브라우저 저장)에 주소와 열쇠를 넣어 두면 그쪽으로 물어본다.
+  /** 실제 모델을 붙이는 자리 — 설정(브라우저 저장)에 주소·열쇠가 있으면 그쪽으로 묻는다.
       공개된 파일에 열쇠를 넣을 수 없으므로 기본값은 없다. */
   function callModel(q) {
     let cfg = null;
     try { cfg = JSON.parse(localStorage.getItem('px.ai.v1') || 'null'); } catch (e) { /* 저장소가 없을 수 있다 */ }
     if (!cfg || !cfg.url || !cfg.key) return null;
+    const inc = store.selectedIncident;
     return fetch(cfg.url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.key },
       body: JSON.stringify({
         model: cfg.model || 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: '너는 대한민국 경찰 지휘통제실의 법령·절차 도우미다. 조문 번호와 요지를 먼저 알려 주고, 현장 확인 항목을 3~5개로 짧게 제시한다. 확실하지 않으면 모른다고 말한다.' },
+          { role: 'system', content: '너는 대한민국 경찰 지휘통제실의 도우미다. 조문 번호와 요지를 먼저 주고 현장 확인 항목을 3~5개로 짧게 제시한다. 확실하지 않으면 모른다고 말한다. 지금 보고 있는 사건: ' + (inc ? inc.id + ' ' + inc.type + ' / ' + inc.place : '없음') },
           { role: 'user', content: q }
         ]
       })
@@ -8547,24 +8865,24 @@ window.PX = window.PX || {};
       .catch(() => null);
   }
 
-  // ══ 화면 ═══════════════════════════════════════════════════
+  // ══ 대화창 ═══════════════════════════════════════════════
   const wrap = PX.el(
     `<div id="ai-wrap">
        <div id="ai-scrim"></div>
-       <section id="ai-modal" role="dialog" aria-label="법령·절차 도우미">
+       <section id="ai-modal" role="dialog" aria-label="PARALLAX 도우미">
          <header class="ai-head">
-           ${PX.icon('search')}<b>법령·절차 도우미</b>
-           <span class="cap">조문 조회 · 법률 자문 아님</span>
+           <span class="ai-face">${PX.icon('orbit')}</span>
+           <b class="ai-tt">PARALLAX 도우미</b>
            <span class="sp"></span>
+           <button class="ai-new" type="button" title="새 대화">새 대화</button>
            <button class="ai-x" type="button" title="닫기 (Esc)">${PX.icon('close')}</button>
          </header>
          <div class="ai-body"></div>
          <div class="ai-foot">
            <div class="ai-inrow">
-             <textarea class="ai-in" rows="1" placeholder="예) 주거침입 현행범 체포 요건" spellcheck="false"></textarea>
+             <textarea class="ai-in" rows="1" placeholder="무엇이든 물어보세요 — 법령, 지금 상황, 보고서 초안" spellcheck="false"></textarea>
              <button class="ai-send" type="button" title="묻기 (Enter)">${PX.icon('arrow-up')}</button>
            </div>
-           <div class="ai-hint">Enter 로 묻기 · Shift+Enter 줄바꿈 · Esc 로 닫기</div>
          </div>
        </section>
      </div>`);
@@ -8575,107 +8893,119 @@ window.PX = window.PX || {};
   const sendEl = wrap.querySelector('.ai-send');
   let busy = false;
 
-  function quick() {
-    const inc = store.selectedIncident;
-    const base = [
-      { q: '주거침입 현행범 체포 요건', t: '주거침입 현행범' },
-      { q: '미란다 고지 문구', t: '미란다 고지' },
-      { q: '영장 없이 집에 들어갈 수 있나', t: '영장 없는 출입' },
-      { q: '불심검문 동행 요구', t: '불심검문' },
-      { q: 'CCTV 영상 확보 절차', t: 'CCTV 확보' }
-    ];
-    if (inc) base.unshift({ q: inc.type, t: '이 사건: ' + inc.id + ' ' + inc.type });
-    return base;
+  /* 굵게(**...**) 정도만 살린다 — 대화창에 서식이 많으면 되레 안 읽힌다 */
+  const rich = t => esc(String(t)).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+
+  function paint(blocks) {
+    return blocks.filter(Boolean).map(b => {
+      if (b.p) return '<p>' + rich(b.p) + '</p>';
+      if (b.h) return '<h4>' + esc(b.h) + '</h4>';
+      if (b.ul) return '<ul class="ai-list">' + b.ul.map(x => '<li>' + rich(x) + '</li>').join('') + '</ul>';
+      if (b.kv) return '<div class="ai-kv">' + b.kv.map(([k, v]) => '<span class="k">' + esc(k) + '</span><span class="v">' + rich(v) + '</span>').join('') + '</div>';
+      if (b.laws) return b.laws.map(l => '<div class="ai-law"><b>' + esc(l.n) + '</b><span>' + esc(l.t) + '</span></div>').join('');
+      if (b.code) return '<pre class="ai-code">' + esc(b.code) + '</pre>';
+      return '';
+    }).join('');
+  }
+
+  function msg(who) {
+    const el = PX.el(
+      who === 'me'
+        ? '<div class="ai-msg me"><div class="ai-bubble"></div></div>'
+        : `<div class="ai-msg bot"><span class="ai-face sm">${PX.icon('orbit')}</span><div class="ai-col"><div class="ai-meta">도우미 <span>${PX.now()}</span></div><div class="ai-bubble"></div></div></div>`);
+    bodyEl.appendChild(el);
+    bodyEl.scrollTop = bodyEl.scrollHeight;
+    return el.querySelector('.ai-bubble');
   }
 
   function greet() {
     const inc = store.selectedIncident;
-    bodyEl.innerHTML =
-      `<div class="ai-empty">
-         <div class="ai-empty-t">현장에서 자주 묻는 조문을 바로 찾아 드립니다.
-           ${inc ? '지금 보고 있는 사건은 <b>' + PX.esc(inc.id + ' ' + inc.type) + '</b> 입니다.' : ''}</div>
-         <div class="ai-chips">${quick().map(c =>
-            `<button class="ai-chip" type="button" data-q="${PX.esc(c.q)}">${PX.esc(c.t)}</button>`).join('')}</div>
-       </div>`;
+    bodyEl.innerHTML = '<div class="ai-hello">' + chips([
+      '지금 상황', (inc ? inc.id + ' 요약' : 'A-102 요약'), '주거침입 현행범 체포',
+      '미란다 고지', '보고서 초안', '뭐 할 수 있어?']) + '</div>';
   }
 
-  function addQ(text) {
-    const el = PX.el(`<div class="ai-q">${PX.esc(text)}</div>`);
-    bodyEl.appendChild(el);
-    bodyEl.scrollTop = bodyEl.scrollHeight;
+  const chips = list => list && list.length
+    ? '<div class="ai-chips">' + list.map(c => '<button class="ai-chip" type="button" data-q="' + esc(c) + '">' + esc(c) + '</button>').join('') + '</div>'
+    : '';
+
+  function actsHtml(acts) {
+    if (!acts || !acts.length) return '';
+    return '<div class="ai-acts">' + acts.map((a, i) =>
+      '<button class="ai-act" type="button" data-act="' + i + '">' + esc(a.t) + '</button>').join('') + '</div>';
   }
 
-  function render(hit, q) {
-    const laws = (hit.laws || []).map(l =>
-      `<div class="ai-law"><b>${PX.esc(l.n)}</b><span>${PX.esc(l.t)}</span></div>`).join('');
-    const check = (hit.check || []).map(c => `<li>${PX.esc(c)}</li>`).join('');
-    return `<div class="ai-sum"><b>${PX.esc(hit.title)}</b><br>${PX.esc(hit.sum)}</div>
-            ${laws ? '<h4>관련 조문</h4>' + laws : ''}
-            ${check ? '<h4>' + (hit.laws && hit.laws.length ? '현장 확인' : '물어볼 수 있는 것') + '</h4><ul class="ai-list">' + check + '</ul>' : ''}
-            <div class="ai-acts">
-              ${hit.laws && hit.laws.length ? `<button class="ai-act" type="button" data-toField="${PX.esc(hit.title)}">현장에 요지 보내기</button>` : ''}
-              ${hit.laws && hit.laws.length ? `<button class="ai-act" type="button" data-toLog="${PX.esc(hit.title)}">기록에 남기기</button>` : ''}
-            </div>
-            <div class="ai-note">조문은 요지만 옮긴 것입니다. 적용 전에 원문과 최신 개정을 확인하세요.
-              이 도우미는 법률 자문이 아니며, 판단과 책임은 현장 지휘에 있습니다.</div>`;
-  }
+  let lastActs = [];
 
   function ask(q) {
-    if (busy || !q.trim()) return;
+    q = String(q || '').trim();
+    if (busy || !q) return;
     busy = true;
-    if (bodyEl.querySelector('.ai-empty')) bodyEl.innerHTML = '';
-    addQ(q);
-    const a = PX.el('<div class="ai-a"><span class="ai-typing"></span></div>');
-    bodyEl.appendChild(a);
-    bodyEl.scrollTop = bodyEl.scrollHeight;
+    sendEl.disabled = true;
+    if (bodyEl.querySelector('.ai-hello')) bodyEl.innerHTML = '';
+    msg('me').textContent = q;
+
+    const b = msg('bot');
+    b.innerHTML = '<span class="ai-dots"><i></i><i></i><i></i></span>';
 
     const done = html => {
-      a.innerHTML = html;
+      b.innerHTML = html;
       bodyEl.scrollTop = bodyEl.scrollHeight;
       busy = false;
       sendEl.disabled = false;
+      inEl.focus();
     };
     const local = () => {
-      const hit = pick(q);
-      /* 곧바로 다 뱉으면 찾아본 티가 안 난다 — 잠깐 생각하는 시늉을 한다 */
-      setTimeout(() => done(render(hit, q)), 420 + Math.random() * 380);
+      const r = answer(q);
+      lastActs = r.acts || [];
+      const html =
+        '<p class="ai-t"><b>' + esc(r.title) + '</b></p>' + paint(r.blocks) +
+        actsHtml(r.acts) +
+        (r.law ? '<div class="ai-note">조문 요지입니다 — 적용 전 원문 확인</div>' : '') +
+        chips(r.next);
+      // 곧바로 다 뱉으면 찾아본 티가 안 난다 — 길이에 맞춰 잠깐 생각하는 시늉
+      setTimeout(() => done(html), 380 + Math.min(html.length / 6, 520));
     };
     const p = callModel(q);
-    if (p && p.then) {
-      p.then(text => { if (text) done(`<div class="ai-sum">${PX.esc(text).replace(/\n/g, '<br>')}</div>`); else local(); });
-    } else local();
+    if (p && p.then) p.then(text => { if (text) done('<p>' + rich(text).replace(/\n/g, '<br>') + '</p>'); else local(); });
+    else local();
   }
 
-  // ── 단추들 ──
+  // ── 누름 처리 ──
   bodyEl.addEventListener('click', e => {
     const chip = e.target.closest('[data-q]');
     if (chip) { ask(chip.dataset.q); return; }
-
-    const toField = e.target.closest('[data-tofield]');
-    if (toField) {
-      const hit = pick(toField.dataset.tofield);
-      const g = (store.chatTargets.find(x => x.title === '현장팀') || { targets: [] }).targets[0];
-      if (g) {
-        store.send(g, '[법령 확인] ' + hit.title + ' — ' + hit.sum, '중요');
-        toField.textContent = '현장에 보냈습니다';
-        toField.classList.add('done');
-        if (PX.panels) PX.panels.reveal('alerts');
-      }
+    const act = e.target.closest('[data-act]');
+    if (!act) return;
+    const a = lastActs[+act.dataset.act];
+    if (!a) return;
+    if (a.go && PX.panels) { PX.panels.reveal(a.go); close(); return; }
+    if (a.pick) { store.select(a.pick); act.textContent = '지도에서 열었습니다'; act.classList.add('done'); return; }
+    if (a.ask) { ask(a.ask); return; }
+    if (a.copy) {
+      try { navigator.clipboard.writeText(a.copy); act.textContent = '복사했습니다'; act.classList.add('done'); }
+      catch (err) { act.textContent = '복사가 막혀 있습니다'; }
       return;
     }
-    const toLog = e.target.closest('[data-tolog]');
-    if (toLog) {
-      const hit = pick(toLog.dataset.tolog);
+    if (a.handover && PX.delivery) {
+      PX.delivery.handover({ gaps: a.handover });
+      act.textContent = '인계를 보냈습니다';
+      act.classList.add('done');
+      return;
+    }
+    if (a.sendText) {
+      const g = (store.chatTargets.find(x => x.title === '현장팀') || { targets: [] }).targets[0];
+      if (g) { store.send(g, a.sendText, '중요'); act.textContent = '현장에 보냈습니다'; act.classList.add('done'); }
+      return;
+    }
+    if (a.log) {
       store.alerts.unshift({
-        id: 'a' + Math.random().toString(36).slice(2, 9),
-        level: '일반', title: '법령 확인 기록',
-        detail: hit.title + ' — ' + (hit.laws[0] ? hit.laws[0].n : ''),
-        time: PX.now(true), incidentID: store.selectedIncidentID, seen: true, isMine: true
+        id: 'a' + Math.random().toString(36).slice(2, 9), level: '일반', title: '법령 확인 기록',
+        detail: a.log, time: PX.now(true), incidentID: store.selectedIncidentID, seen: true, isMine: true
       });
       store.emit('alerts');
-      toLog.textContent = '기록했습니다';
-      toLog.classList.add('done');
-      return;
+      act.textContent = '기록했습니다';
+      act.classList.add('done');
     }
   });
 
@@ -8691,11 +9021,12 @@ window.PX = window.PX || {};
   }
 
   wrap.querySelector('.ai-x').onclick = close;
+  wrap.querySelector('.ai-new').onclick = () => { greet(); inEl.focus(); };
   wrap.querySelector('#ai-scrim').onclick = close;
 
   function open(q) {
     wrap.classList.add('on');
-    if (!bodyEl.childElementCount || bodyEl.querySelector('.ai-empty')) greet();
+    if (!bodyEl.childElementCount) greet();
     setTimeout(() => inEl.focus(), 30);
     if (q) ask(q);
   }
@@ -8709,13 +9040,12 @@ window.PX = window.PX || {};
   window.addEventListener('keydown', e => {
     if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); toggle(); return; }
     if (e.key === 'Escape' && wrap.classList.contains('on')) { e.preventDefault(); close(); }
-    /* 글자 하나로 여는 길 — 입력칸에 있을 때는 건드리지 않는다 */
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'textarea') return;
     if (e.key === '/' && !wrap.classList.contains('on')) { e.preventDefault(); open(); }
   });
 
-  PX.assist = { open: open, close: close, toggle: toggle, ask: ask, laws: LAWS };
+  PX.assist = { open: open, close: close, toggle: toggle, ask: ask, answer: answer, laws: LAWS, skills: SKILLS };
   greet();
 })(window.PX);
 </script>
