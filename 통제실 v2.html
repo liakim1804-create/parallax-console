@@ -2149,11 +2149,15 @@ body.show-void #dk-void { display: block; }
   display: flex;
   flex-direction: column;
   gap: 8px;
-  overflow: hidden;
+  /* 넘치면 조용히 잘리는 대신 스크롤한다 — 창 하나가 커도 위아래가 사라지지 않게 */
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
   padding: 0;
   flex: 1;
   min-height: 0;
 }
+.dk-body.row { overflow: hidden; }
 /* 아래 도크는 창을 가로로 늘어놓는다 — 지도를 가로지르는 띠라 세로로 쌓으면 답답하다 */
 .dk-body.row { flex-direction: row; }
 .dk.off .dk-body { display: none; }
@@ -7848,7 +7852,13 @@ window.PX = window.PX || {};
 
       const folded = !!saved.off[st.k];
       const fill = ids.some(id => live[id].def.fill);
-      const h = saved.h[st.k];
+      let h = saved.h[st.k];
+      /* 지난번에 끌어 둔 높이가 지금 도크보다 크면 버린다 —
+         창이 도크 밖으로 나가 머리줄이 보이지 않는 일이 생긴다 */
+      if (h) {
+        const room = (dock === 'bottom' ? host.clientWidth : host.clientHeight) - 24;
+        if (room > 80 && h > room) { h = 0; delete saved.h[st.k]; }
+      }
       el.classList.toggle('folded', folded);
       el.classList.toggle('fill', !folded && !h && fill);
       el.classList.toggle('sized', !folded && !!h);
@@ -8762,6 +8772,20 @@ window.PX = window.PX || {};
         };
       }
     },
+    // ── 배치 되돌리기 ──
+    {
+      id: 'reset',
+      test: q => has(q, ['초기화', '원래대로', '기본배치', '되돌려', '리셋', '창이상', '창깨']),
+      run() {
+        return {
+          title: '창 배치를 처음 상태로',
+          blocks: [P('창의 자리·크기·탭·켜고 끔을 모두 지우고 처음 배치로 돌아갑니다. 사건 자료는 그대로입니다.'),
+                   P('창이 잘리거나 이상하게 남아 있을 때 이걸로 고쳐집니다.')],
+          acts: [{ t: '배치 초기화', reset: true }],
+          next: ['창 어떻게 합쳐?', '지금 상황']
+        };
+      }
+    },
     // ── 콘솔 사용법 ──
     {
       id: 'howto',
@@ -8988,6 +9012,12 @@ window.PX = window.PX || {};
     if (!act) return;
     const a = lastActs[+act.dataset.act];
     if (!a) return;
+    if (a.reset) {
+      try { if (PX.dock && PX.dock.reset) PX.dock.reset(); } catch (err) { /* 그만 */ }
+      try { localStorage.removeItem('px.rail.v2'); } catch (err) { /* 그만 */ }
+      if (PX.panels) PX.panels.reset();        // 지우고 새로 읽는다
+      return;
+    }
     if (a.go && PX.panels) { PX.panels.reveal(a.go); close(); return; }
     if (a.pick) { store.select(a.pick); act.textContent = '지도에서 열었습니다'; act.classList.add('done'); return; }
     if (a.ask) { ask(a.ask); return; }
