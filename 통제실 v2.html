@@ -8121,6 +8121,25 @@ window.PX = window.PX || {};
     if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
+  /** 지금 눈에 보이는 창인가 — 도크가 펴져 있고, 창이 펴져 있고, 그 탭이 앞에 있어야 한다 */
+  function visible(id) {
+    const f = stackOf(id);
+    if (!f) return false;
+    if (PX.dock.state[f.dock]) return false;
+    if (saved.off[f.st.k]) return false;
+    return f.st.a === id;
+  }
+
+  /** 레일에서 같은 메뉴를 다시 누르면 그 창을 접는다 — 껐다 켰다가 되어야 한다 */
+  function toggle(id) {
+    const f = stackOf(id);
+    if (!f) return;
+    if (!visible(id)) { reveal(id); return; }
+    saved.off[f.st.k] = true;
+    render(f.dock);
+    resizeAll();
+  }
+
   function resizeAll() {
     Object.keys(live).forEach(id => {
       const L = live[id];
@@ -8135,6 +8154,8 @@ window.PX = window.PX || {};
     live(id) { return live[id] || null; },
     refresh(dock) { render(dock || null); },
     reveal: reveal,
+    toggle: toggle,
+    visible: visible,
     reset() {
       try { localStorage.removeItem(KEY); } catch (e) { /* 그만 */ }
       location.reload();
@@ -8284,26 +8305,29 @@ window.PX = window.PX || {};
 
   /* 이름은 원래 탭 메뉴 그대로 둔다. 하는 일이 달라졌다고 이름을 바꾸면
      쓰던 사람이 매번 다시 읽어야 한다 — 설명은 풍선말에만 붙인다. */
+  /* pn = 그 메뉴가 여는 창. 누르면 켜지고, 보고 있는 것을 다시 누르면 접힌다 */
   const ITEMS = [
-    { id: 'overview', name: '전체 상황', icon: 'grid', tip: '왼쪽 도크에서 보기',
-      act: () => PX.panels.reveal('overview') },
-    { id: 'map', name: '작전 지도', icon: 'map', tip: '왼쪽 도크에서 보기',
-      act: () => PX.panels.reveal('mapctl') },
-    { id: 'space', name: '공간 3D', icon: 'cube', tip: '오른쪽 도크에서 보기',
-      act: () => PX.panels.reveal('space') },
-    { id: 'transmit', name: '현장 정보 전송', icon: 'message', tip: '오른쪽 도크에서 보기',
-      act: () => PX.panels.reveal('alerts') },
-    { id: 'handover', name: '기록·회의록', icon: 'doc', tip: '오른쪽 도크에서 보기',
-      act: () => PX.panels.reveal('handover') },
+    { id: 'overview', pn: 'overview', name: '전체 상황', icon: 'grid', tip: '눌러서 켜고 끄기' },
+    { id: 'map', pn: 'mapctl', name: '작전 지도', icon: 'map', tip: '눌러서 켜고 끄기' },
+    { id: 'space', pn: 'space', name: '공간 3D', icon: 'cube', tip: '눌러서 켜고 끄기' },
+    { id: 'transmit', pn: 'alerts', name: '현장 정보 전송', icon: 'message', tip: '눌러서 켜고 끄기' },
+    { id: 'handover', pn: 'handover', name: '기록·회의록', icon: 'doc', tip: '눌러서 켜고 끄기' },
     /* 「지도만 보기」는 따로 둔다. 예전에는 「작전 지도」 단추가 이 일을 했는데,
        그 바람에 작전 지도 탭을 닫으면 되살릴 길이 없었다. */
     { id: 'solo', name: '지도만 보기', icon: 'expand', tip: '도크를 모두 접는다 (\\)',
       act: () => PX.soloMap(), sep: true }
   ];
 
+  /** 그 메뉴의 창이 지금 눈에 보이는가 — 레일에 불이 들어온다 */
+  function lit(t) {
+    if (t.id === 'solo') return !!PX.__solo;
+    if (PX.takeover && PX.takeover.current === t.pn) return true;
+    return !!(PX.panels && PX.panels.visible && PX.panels.visible(t.pn));
+  }
+
   function draw() {
     rail.innerHTML = ITEMS.map(t =>
-      `<button class="rail-item${PX.takeover && PX.takeover.current === t.id ? ' on' : ''}${t.id === 'solo' && PX.__solo ? ' on' : ''}${t.sep ? ' sep' : ''}"
+      `<button class="rail-item${lit(t) ? ' on' : ''}${t.sep ? ' sep' : ''}"
         data-nav="${t.id}" title="${PX.esc(t.name)} — ${PX.esc(t.tip)}">${PX.icon(t.icon)}<span>${PX.esc(t.name)}</span></button>`
     ).join('');
     rail.classList.toggle('wide', railW >= 130);
@@ -8312,7 +8336,10 @@ window.PX = window.PX || {};
     const b = e.target.closest('[data-nav]');
     if (!b) return;
     const it = ITEMS.find(x => x.id === b.dataset.nav);
-    if (it) { it.act(); draw(); }
+    if (!it) return;
+    if (it.act) it.act();
+    else if (PX.panels) PX.panels.toggle(it.pn);
+    draw();
   });
 
   /* 지도만 보기 — 도크를 전부 접었다 편다. 접기 전 상태를 기억해 그대로 되돌린다 */
@@ -8337,6 +8364,13 @@ window.PX = window.PX || {};
 
   setRail(railW, false);
   draw();
+  /* 창을 도크에서 직접 접거나 탭을 바꿔도 레일 불이 따라와야 한다.
+     바뀐 때만 다시 그린다 — 마우스가 올라가 있는 동안 계속 새로 그리면 글자가 떤다. */
+  let sig = '';
+  setInterval(() => {
+    const now = ITEMS.map(t => (lit(t) ? 1 : 0)).join('');
+    if (now !== sig) { sig = now; draw(); }
+  }, 500);
 })(window.PX);
 </script>
 <script>
