@@ -2009,12 +2009,12 @@ body.stage #desk { overflow: hidden; }
   height: var(--dk-b);
   border-radius: 16px;
 }
+/* 안의 창을 모두 접었으면 띠도 머리줄 높이만 남는다 — 빈 자리가 지도를 가리지 않게 */
+#dk-bottom.allfold { height: auto; }
 /* 좌·우가 접히면 아래 도크가 그만큼 넓어진다 */
-#root.l-off #dk-bottom { left: calc(var(--dk-rail) + 16px); }
-#root.r-off #dk-bottom { right: calc(var(--dk-rail) + 16px); }
-#root.l-off #dk-left { width: var(--dk-rail); }
-#root.r-off #dk-right { width: var(--dk-rail); }
-#root.b-off #dk-bottom { height: var(--dk-rail); }
+/* 접힌 도크는 사라지므로 아래 띠는 가장자리까지 늘어난다 */
+#root.l-off #dk-bottom { left: 16px; }
+#root.r-off #dk-bottom { right: 16px; }
 
 /* 도크 머리 — 이름과 접기 단추 */
 .dk-head {
@@ -2038,43 +2038,10 @@ body.stage #desk { overflow: hidden; }
 .dk-fold:hover { background: var(--fill-1); color: var(--ink); }
 .dk-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
 
-/* 접힌 도크 — 아이콘 레일만 남는다 */
-/* 접힌 도크 — **아이콘만 세로로 남는다.**
-   예전에는 몸통만 감추고 도크 높이는 그대로 두어 흰 기둥이 남았고,
-   탭 칩과 접기 단추가 한 줄에 겹쳐 있었다. 세로로 세우고 높이를 내용에 맞춘다. */
-/* 높이를 푸는 규칙은 #dk-left / #dk-right 의 bottom 보다 세야 한다 (ID 가 더 세다) */
-#dk-left.off, #dk-right.off, #dk-bottom.off {
-  cursor: pointer;
-  height: auto;
-  bottom: auto;
-  padding: 4px;
-  background: var(--dk-bg);
-  -webkit-backdrop-filter: var(--dk-blur);
-  backdrop-filter: var(--dk-blur);
-  border: 1px solid var(--dk-edge);
-  box-shadow: var(--dk-shadow);
-  border-radius: 16px;
-}
-.dk.off .dk-head {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
-  height: auto;
-  padding: 0;
-  border-bottom: 0;
-}
-.dk.off .dk-tabs { flex-direction: column; overflow: visible; gap: 4px; order: 2; }
-.dk.off .dk-fold { order: 1; width: 40px; height: 28px; margin: 0 auto; }
-.dk.off .dk-tab {
-  width: 40px; height: 40px;
-  max-width: none;
-  padding: 0;
-  justify-content: center;
-}
-.dk.off .dk-tab .t, .dk.off .dk-tab .x { display: none; }
-.dk.off .dk-tab .ic { font-size: 17px; }
-.dk.off .dk-body { display: none; }
-#dk-left.off .dk-fold .ic, #dk-right.off .dk-fold .ic { transform: rotate(180deg); }
+/* 접힌 도크 — **아예 사라진다.**
+   예전에는 아이콘 줄을 남겼는데, 창을 껐는데도 아이콘과 여백이 지도를 가려
+   「끈 것 같지 않다」는 말이 나왔다. 되살리는 길은 왼쪽 레일 메뉴다. */
+#dk-left.off, #dk-right.off, #dk-bottom.off { display: none; }
 
 /* 빈 도크 안내 (1단계) */
 .dk-empty {
@@ -2146,21 +2113,9 @@ body.show-void #dk-void { display: block; }
    위쪽 탭 줄로 넘나든다 — 세로로 쌓으면 둘이 합쳐진 것처럼 보이고
    아래쪽 것을 보려면 늘 스크롤해야 했다. */
 
-/* ── 접힌 도크의 아이콘 줄 ─────────────────────────
-   펼친 도크에서는 창마다 제 이름표를 달고 있어 도크 머리가 필요 없다.
-   접었을 때만 어떤 창이 들었는지 알려 주는 아이콘 줄로 남는다. */
+/* 창마다 제 머리줄을 달고 있어 도크 머리는 쓰지 않는다.
+   접힌 도크도 아이콘을 남기지 않는다 — 껐으면 깨끗이 사라져야 한다. */
 .dk-head { display: none; }
-.dk.off .dk-head {
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: 4px;
-  padding: 4px;
-  flex: none;
-  height: auto;
-  border: 0;
-  background: transparent;
-}
 .dk-tabs { display: contents; }
 .dk-tab {
   display: inline-flex;
@@ -2229,6 +2184,8 @@ body.show-void #dk-void { display: block; }
 .dk-body.row > .stk { min-width: 200px; height: auto; max-height: none; }
 .dk-body.row > .stk.sized { height: auto; width: var(--stk-h); flex: none; }
 .dk-body.row > .stk:not(.sized) { flex: 1 1 0; }
+/* 접은 창은 머리줄 높이만 차지한다 — stretch 로 늘어나면 빈 상자로 보인다 */
+.dk-body.row > .stk.folded { align-self: flex-start; flex: none; }
 .stk.folded { flex: none !important; height: auto !important; }
 .stk.folded > .stk-body { display: none; }
 .stk.folded > .stk-head { border-bottom: 0; }
@@ -7143,9 +7100,13 @@ window.PX = window.PX || {};
   function thickness(id) {
     const d = DOCKS.find(x => x.id === id);
     if (d && d.el && d.el.classList.contains('empty')) return 0;
-    const open = !state[id];
-    if (id === 'bottom') return open ? cssPx('--dk-b') : RAIL;
-    return open ? cssPx(id === 'left' ? '--dk-l' : '--dk-r') : RAIL;
+    if (state[id]) return 0;                       // 접힌 도크는 아예 사라진다
+    if (id === 'bottom') {
+      // 창을 모두 접었으면 CSS 변수(180)가 아니라 실제 높이를 쓴다
+      if (d && d.el && d.el.classList.contains('allfold')) return Math.round(d.el.getBoundingClientRect().height);
+      return cssPx('--dk-b');
+    }
+    return cssPx(id === 'left' ? '--dk-l' : '--dk-r');
   }
   function cssPx(name) {
     const v = getComputedStyle(root).getPropertyValue(name).trim();
@@ -7729,7 +7690,7 @@ window.PX = window.PX || {};
   let saved = load();
 
   function load() {
-    const base = { stacks: null, h: {}, off: {} };
+    const base = { stacks: null, h: {}, off: {}, hide: {} };
     let got = null;
     try {
       const raw = localStorage.getItem(KEY);
@@ -7738,6 +7699,7 @@ window.PX = window.PX || {};
     const out = Object.assign(base, got || {});
     out.h = out.h || {};
     out.off = out.off || {};
+    out.hide = out.hide || {};
     out.stacks = fix(out.stacks);
     return out;
   }
@@ -7859,14 +7821,17 @@ window.PX = window.PX || {};
        세로로 쌓으면 띠 높이(180px)를 넘겨 잘린다 */
     host.classList.toggle('row', dock === 'bottom');
 
+    const live_ = [];          // 지금 그릴 창 (끈 것은 빼고)
     stacks.forEach(st => {
+      const ids = st.ids.filter(id => !saved.hide[id]);
+      if (!ids.length) return;           // 이 창의 탭이 모두 꺼졌다 — 아예 그리지 않는다
       const el = stackEl(st);
       const head = el.querySelector('.stk-tabs');
       const body = el.querySelector('.stk-body');
-      if (st.ids.indexOf(st.a) < 0) st.a = st.ids[0];
+      if (ids.indexOf(st.a) < 0) st.a = ids[0];
 
-      head.classList.toggle('one', st.ids.length === 1);
-      head.innerHTML = st.ids.map(id => {
+      head.classList.toggle('one', ids.length === 1);
+      head.innerHTML = ids.map(id => {
         const d = live[id].def;
         return `<button class="stk-tab${id === st.a ? ' on' : ''}" data-stab="${id}" draggable="true"
                   title="${PX.esc(d.title)} — 끌어서 옮기기 · 두 번 누르면 전면">
@@ -7877,40 +7842,45 @@ window.PX = window.PX || {};
       ensureMounted(st.a);
       st.ids.forEach(id => { live[id].def.dock = dock; });
       // 전면으로 나가 있는 창은 건드리지 않는다 — 끌어오면 3층에서 사라진다
-      const want = st.ids.filter(id => !(PX.takeover && PX.takeover.current === id)).map(id => live[id].el);
+      const want = ids.filter(id => !(PX.takeover && PX.takeover.current === id)).map(id => live[id].el);
       reconcile(body, want);
-      st.ids.forEach(id => live[id].el.classList.toggle('on', id === st.a));
+      st.ids.forEach(id => live[id].el.classList.toggle('on', id === st.a && !saved.hide[id]));
 
       const folded = !!saved.off[st.k];
-      const fill = st.ids.some(id => live[id].def.fill);
+      const fill = ids.some(id => live[id].def.fill);
       const h = saved.h[st.k];
       el.classList.toggle('folded', folded);
       el.classList.toggle('fill', !folded && !h && fill);
       el.classList.toggle('sized', !folded && !!h);
       if (h) el.style.setProperty('--stk-h', h + 'px');
       else el.style.removeProperty('--stk-h');
+      live_.push(el);
     });
 
-    reconcile(host, stacks.map(stackEl));
-
-    /* 접힌 도크에는 아이콘 줄만 남는다 — 눌러 그 창을 펴고 보러 간다 */
-    const bar = document.querySelector(`[data-tabs="${dock}"]`);
-    if (bar) {
-      const ids = [];
-      stacks.forEach(st => st.ids.forEach(id => ids.push(id)));
-      bar.innerHTML = ids.map(id => {
-        const d = live[id].def;
-        return `<button class="dk-tab" data-tab="${id}" title="${PX.esc(d.title)}">${PX.icon(d.icon)}<span class="t">${PX.esc(d.title)}</span></button>`;
-      }).join('');
+    reconcile(host, live_);
+    /* 안의 창이 모두 접혔으면 도크도 그만큼만 차지한다 (dock.js 가 두께를 다시 잰다) */
+    const dk = document.getElementById('dk-' + dock);
+    if (dk) {
+      const all = live_.length > 0 && stacks.every(st =>
+        !st.ids.some(id => !saved.hide[id]) || saved.off[st.k]);
+      if (all !== dk.classList.contains('allfold')) {
+        dk.classList.toggle('allfold', all);
+        // 두께가 달라졌으니 지도에게 다시 알려 준다 (그리는 중에 부르면 꼬인다 — 한 박자 뒤)
+        setTimeout(() => PX.dock.apply(true), 0);
+      }
     }
     save();
   }
 
-  /** 창이 하나도 없는 도크는 사라진다 — 지도가 그만큼 넓어진다 */
+  /** 보이는 창이 하나도 없는 도크는 사라진다 — 지도가 그만큼 넓어진다.
+      끈 창은 여백도 아이콘도 남기지 않는다. */
+  function shown(dock) {
+    return saved.stacks[dock].some(st => st.ids.some(id => !saved.hide[id]));
+  }
   function syncEmpty() {
     DOCK_IDS.forEach(dock => {
       const dk = document.getElementById('dk-' + dock);
-      if (dk) dk.classList.toggle('empty', saved.stacks[dock].length === 0);
+      if (dk) dk.classList.toggle('empty', !shown(dock));
     });
     PX.dock.apply(false);
   }
@@ -8058,6 +8028,7 @@ window.PX = window.PX || {};
         list.splice(at < 0 ? list.length : (s.before ? at : at + 1), 0, st);
       } else list.push(st);
     }
+    saved.hide[id] = false;
     if (PX.dock.state[s.dock]) PX.dock.toggle(s.dock);      // 접혀 있던 도크면 펴 준다
     live[id].def.dock = s.dock;
     render(from.dock);
@@ -8113,30 +8084,34 @@ window.PX = window.PX || {};
     const f = stackOf(id);
     if (!f) return;
     if (PX.dock.state[f.dock]) PX.dock.toggle(f.dock);      // 접혀 있으면 편다
+    saved.hide[id] = false;                                  // 꺼 뒀으면 되살린다
     f.st.a = id;
     saved.off[f.st.k] = false;
     render(f.dock);
+    syncEmpty();
     resizeAll();
     const el = stackEls[f.st.k];
     if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
-  /** 지금 눈에 보이는 창인가 — 도크가 펴져 있고, 창이 펴져 있고, 그 탭이 앞에 있어야 한다 */
+  /** 지금 눈에 보이는 창인가 */
   function visible(id) {
     const f = stackOf(id);
-    if (!f) return false;
+    if (!f || saved.hide[id]) return false;
     if (PX.dock.state[f.dock]) return false;
     if (saved.off[f.st.k]) return false;
     return f.st.a === id;
   }
 
-  /** 레일에서 같은 메뉴를 다시 누르면 그 창을 접는다 — 껐다 켰다가 되어야 한다 */
+  /** 레일에서 같은 메뉴를 다시 누르면 그 창을 **아예 끈다** —
+      머리줄도 아이콘도 여백도 남기지 않는다. 다시 누르면 제자리에 돌아온다. */
   function toggle(id) {
     const f = stackOf(id);
     if (!f) return;
     if (!visible(id)) { reveal(id); return; }
-    saved.off[f.st.k] = true;
+    saved.hide[id] = true;
     render(f.dock);
+    syncEmpty();
     resizeAll();
   }
 
