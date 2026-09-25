@@ -2106,6 +2106,14 @@ body.stage #mapbg .maplibregl-ctrl-bottom-left {
   display: none;
 }
 body.show-void #dk-void { display: block; }
+
+/* ── 애니메이션 잠깐 끄기 ─────────────────────────
+   「위치 초기화」처럼 **제자리로 돌려놓는** 동작은 미끄러지면 안 된다.
+   전환이 도중에 멈추면 변수는 돌아왔는데 화면만 옛 크기로 남는 일도 있었다. */
+body.dk-noanim .dk,
+body.dk-noanim .stk,
+body.dk-noanim #rail,
+body.dk-noanim #mapbg { transition: none !important; }
 </style>
 <style>
 /* ===== panels.css =====
@@ -2799,6 +2807,254 @@ body.show-void #dk-void { display: block; }
   display: grid; place-items: center; cursor: pointer;
 }
 .ai-send:disabled { opacity: .4; cursor: default; }
+</style>
+<style>
+/* ===== grid.css =====
+   격자 모드. 「지도 모드」가 **어디서 무슨 일이 나는지** 보는 자리라면
+   격자 모드는 **여러 정보를 맞대 보는** 자리다 — 현장 도착 뒤에 쓴다.
+
+   ★ 재질은 그대로 유리다. 모드가 달라도 창은 같은 창이고, 같은 단추를 단다.
+     달라지는 것은 **자리 잡는 방법**뿐이라 새 색·새 글꼴·새 모서리를 만들지 않았다.
+     .stk / .stk-head / .stk-tab / var(--dk-bg) / var(--dk-ease) 를 그대로 쓴다. */
+
+#grid {
+  position: absolute;
+  inset: 8px;
+  z-index: 20;
+  display: none;
+  pointer-events: none;      /* 빈 자리는 지도에게 넘긴다 */
+}
+body.grid-on #grid { display: block; }
+/* 격자 모드에서는 도크가 사라진다 — 창은 그대로 두고 자리만 옮긴 것이다 */
+body.grid-on .dk { display: none !important; }
+body.grid-on #dk-void { display: none !important; }
+
+/* 칸에 앉은 창. 유리·머리줄·탭은 지도 모드와 한 글자도 다르지 않다 */
+#grid > .stk {
+  position: absolute;
+  pointer-events: auto;
+  margin: 0;
+  flex: none;
+  max-height: none;
+  transition: left var(--dk-ease), top var(--dk-ease),
+              width var(--dk-ease), height var(--dk-ease);
+}
+/* 격자에서는 접기·손수 정한 크기를 쓰지 않는다 — 칸이 크기를 정한다 */
+#grid > .stk.folded { height: auto; }
+#grid > .stk.folded > .stk-body { display: flex; }
+#grid > .stk > .stk-grip { display: none; }
+
+/* 지도 칸 — 지도는 유리가 아니라 지도다. 이름표만 유리로 얹어 다른 창과 같은 손잡이를 준다 */
+body.grid-on #mapbg {
+  z-index: 19;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--dk-edge);
+  box-shadow: var(--dk-shadow);
+  transition: left var(--dk-ease), top var(--dk-ease),
+              width var(--dk-ease), height var(--dk-ease);
+}
+#grid > .stk.gmap {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-color: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+#grid > .stk.gmap > .stk-head {
+  pointer-events: auto;
+  align-self: flex-start;
+  margin: 6px;
+  height: 30px;
+  padding: 0 3px 0 5px;
+  border: 1px solid var(--dk-edge);
+  border-radius: 10px;
+  background: var(--dk-bg);
+  -webkit-backdrop-filter: var(--dk-blur);
+  backdrop-filter: var(--dk-blur);
+  box-shadow: var(--dk-shadow);
+}
+#grid > .stk.gmap > .stk-head .stk-tabs { flex: none; }
+
+/* 칸 사이 경계 — 끌어서 비율을 바꾼다. 손잡이 모양은 도크·창 것과 같다 */
+.gdiv {
+  position: absolute;
+  z-index: 24;
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+}
+.gdiv.v { width: 12px; cursor: col-resize; }
+.gdiv.h { height: 12px; cursor: row-resize; }
+.gdiv::after {
+  content: "";
+  border-radius: 3px;
+  background: transparent;
+  transition: background .15s ease;
+}
+.gdiv.v::after { width: 3px; height: 46px; }
+.gdiv.h::after { width: 46px; height: 3px; }
+.gdiv:hover::after, .gdiv.on::after { background: color-mix(in srgb, var(--accent) 60%, transparent); }
+
+/* 놓을 자리 미리보기 */
+#grid .gdrop {
+  position: absolute;
+  z-index: 23;
+  border-radius: 14px;
+  border: 2px dashed var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  pointer-events: none;
+  display: none;
+}
+#grid .gdrop.on { display: block; }
+
+/* 프리셋 고르기 — 작업표시줄(#dock)의 단추와 같은 모양을 쓴다 */
+#dock .dock-sep { width: 1px; height: 18px; background: var(--dk-line); margin: 0 2px; flex: none; }
+#dock .dock-btn.on { background: var(--accent-soft); color: var(--accent); }
+
+/* ===== layout.css =====
+   알림 한 줄과 작업 세트 목록. 새 재질을 만들지 않고
+   유리 토큰(--dk-bg/--dk-blur/--dk-edge)과 .stk-head/.dock-btn 을 그대로 쓴다. */
+#lay-toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--dk-bh, 0px) + 74px);
+  transform: translate(-50%, 6px);
+  z-index: 58;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--dk-bg);
+  -webkit-backdrop-filter: var(--dk-blur);
+  backdrop-filter: var(--dk-blur);
+  border: 1px solid var(--dk-edge);
+  box-shadow: var(--dk-shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .16s ease, transform .16s ease;
+}
+#lay-toast.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+#lay-toast { display: flex; align-items: center; gap: 10px; }
+#lay-toast .dock-btn { height: 24px; padding: 0 10px; font-size: 12px; }
+
+#sets-wrap { position: absolute; inset: 0; z-index: 70; display: none; }
+#sets-wrap.on { display: block; }
+#sets-scrim { position: absolute; inset: 0; background: color-mix(in srgb, #000 22%, transparent); }
+#sets-panel {
+  position: absolute;
+  top: 54px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(460px, 92vw);
+  max-height: calc(100% - 100px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--dk-bg);
+  -webkit-backdrop-filter: var(--dk-blur);
+  backdrop-filter: var(--dk-blur);
+  border: 1px solid var(--dk-edge);
+  box-shadow: var(--dk-shadow);
+}
+.sets-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 6px; }
+.sets-row { display: flex; align-items: center; gap: 4px; }
+.sets-open {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 10px;
+  border: 0; border-radius: 10px;
+  background: transparent; color: inherit;
+  text-align: left; cursor: pointer;
+}
+.sets-open:hover { background: var(--fill-1); }
+.sets-open b { font-size: 13px; font-weight: 600; }
+.sets-open .cap { font-size: 11.5px; }
+.sets-kbd { flex: none; font-size: 10.5px; color: var(--ink-3); font-weight: 600; }
+.sets-foot { flex: none; display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--dk-line); }
+.sets-in {
+  flex: 1; min-width: 0; height: 32px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid var(--dk-edge);
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  color: var(--ink);
+  font: inherit; font-size: 12.5px;
+}
+.sets-in:focus { outline: none; border-color: var(--accent); }
+
+/* ===== float.css =====
+   떼어낸 창(자유 카드)과 창 메뉴. 둘 다 이미 있는 유리·단추 모양을 그대로 쓴다. */
+#free { position: absolute; inset: 0; z-index: 30; pointer-events: none; }
+#free > .stk {
+  position: absolute;
+  pointer-events: auto;
+  flex: none;
+  max-height: none;
+}
+/* 떠 있는 창은 그림자를 한 겹 더 준다 — 도크에 박힌 창과 구별되어야 손이 헷갈리지 않는다 */
+#free > .stk { box-shadow: 0 24px 64px rgba(0, 0, 0, .28), var(--dk-shadow); }
+#free > .stk > .stk-head { cursor: grab; }
+#free > .stk.moving > .stk-head { cursor: grabbing; }
+#free > .stk > .stk-grip {
+  left: auto; top: auto; right: -2px; bottom: -2px;
+  width: 18px; height: 18px;
+  cursor: nwse-resize;
+}
+#free > .stk > .stk-grip::after { width: 10px; height: 10px; border-radius: 0 0 4px 0; }
+#free > .stk > .stk-grip:hover::after,
+#free > .stk > .stk-grip.on::after {
+  background: transparent;
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+}
+
+#win-menu {
+  position: absolute;
+  z-index: 72;
+  min-width: 190px;
+  padding: 5px;
+  border-radius: 12px;
+  background: var(--dk-bg);
+  -webkit-backdrop-filter: var(--dk-blur);
+  backdrop-filter: var(--dk-blur);
+  border: 1px solid var(--dk-edge);
+  box-shadow: var(--dk-shadow);
+  display: none;
+}
+#win-menu.on { display: block; }
+#win-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  height: 30px;
+  padding: 0 9px;
+  border: 0; border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit; font-size: 12.5px;
+  text-align: left; cursor: pointer;
+}
+#win-menu button:hover { background: var(--fill-1); }
+#win-menu button .ic { font-size: 13px; color: var(--ink-2); flex: none; }
+#win-menu .wm-sep { height: 1px; margin: 4px 6px; background: var(--dk-line); }
+#win-menu .wm-note { padding: 4px 9px 6px; font-size: 11px; color: var(--ink-3); line-height: 1.5; }
+
+/* 사건이 못 박힌 창은 이름표에 표를 남긴다 — 왜 저 창만 다른 사건을 보고 있는지 알아야 한다 */
+.stk-tab .t .pinned {
+  margin-left: 5px;
+  padding: 0 5px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 </style>
 </head>
 <body>
@@ -7102,6 +7358,8 @@ window.PX = window.PX || {};
   /** 도크 두께 (px). 접혀 있으면 레일 너비, 창이 하나도 없으면 0 이다
       (창을 모두 다른 도크로 옮기면 그 도크는 사라지고 지도가 그만큼 넓어진다) */
   function thickness(id) {
+    // 격자 모드에는 도크가 없다 — 지도도 한 칸일 뿐이라 가려진 몫이 0 이다
+    if (document.body.classList.contains('grid-on')) return 0;
     const d = DOCKS.find(x => x.id === id);
     if (d && d.el && d.el.classList.contains('empty')) return 0;
     if (state[id]) return 0;                       // 접힌 도크는 아예 사라진다
@@ -7178,6 +7436,11 @@ window.PX = window.PX || {};
     applyPadding(animate !== false);
     PX.dock.voidRect = v;
     if (PX.stage) PX.stage.resize();
+    /* 도크가 움직였으면 안의 창도 제 칸을 다시 재야 한다.
+       예전에는 PX.dock.apply 를 바깥에서 감싸 두었는데, 손잡이 끌기·toggle·창 크기 변경은
+       이 **지역 apply** 를 직접 불러 감싼 함수를 지나가지 않았다 — 폭이 520(isNarrow)을
+       넘나들 때 패널 속이 안 바뀌던 까닭이다. 이제 여기서 직접 알린다. */
+    if (PX.dock.onApply) { try { PX.dock.onApply(animate); } catch (e) { /* 듣는 쪽 사정이다 */ } }
   }
 
   PX.dock = {
@@ -7188,15 +7451,46 @@ window.PX = window.PX || {};
     apply: apply,
     rect: voidRect,
     body(id) { const d = DOCKS.find(x => x.id === id); return d && d.el.querySelector('.dk-body'); },
+    snapshot() { return JSON.parse(JSON.stringify(state)); },
+    /** 접힘과 너비를 한꺼번에 돌려놓는다 (되돌리기·작업 세트가 쓴다) */
+    restore(s) {
+      if (!s) return;
+      document.body.classList.add('dk-noanim');
+      state.left = !!s.left; state.right = !!s.right; state.bottom = !!s.bottom;
+      state.w = Object.assign({}, s.w || {});
+      root.style.removeProperty('--dk-l');
+      root.style.removeProperty('--dk-r');
+      root.style.removeProperty('--dk-b');
+      restoreWidths();
+      save();
+      apply(false);
+      void document.body.offsetHeight;
+      document.body.classList.remove('dk-noanim');
+    },
     reset() {
+      /* 초기화는 미끄러지듯 움직일 일이 아니다 — 그리고 **전환 중에는 값이 안 돌아온다.**
+         끌어 놓은 400px 에서 180px 로 되돌릴 때 height 전환이 중간에 멈춰
+         변수는 180 인데 화면은 400 으로 남는 일이 있었다. 한 박자만 애니메이션을 끈다. */
+      document.body.classList.add('dk-noanim');
       state.left = state.right = state.bottom = false;
       state.w = {};
       root.style.removeProperty('--dk-l');
       root.style.removeProperty('--dk-r');
+      root.style.removeProperty('--dk-b');   // 아래 도크도 기본 높이로 (빠져 있어 400px 로 끌어 두면 그대로였다)
       save();
-      apply();
+      apply(false);
+      unfreeze();
     }
   };
+
+  /* 애니메이션을 껐으면 **반드시** 돌려놓는다. rAF 에 맡기면 화면을 안 그리는 동안
+     (배경 탭 등) 영영 안 돌아와 이후 모든 움직임이 뚝뚝 끊긴다.
+     레이아웃을 한 번 강제로 밀어 새 값이 자리 잡게 한 뒤 바로 푼다. */
+  function unfreeze() {
+    void document.body.offsetHeight;
+    document.body.classList.remove('dk-noanim');
+  }
+  PX.dock.unfreeze = unfreeze;
 
   window.addEventListener('resize', () => apply(false));
 
@@ -7694,7 +7988,7 @@ window.PX = window.PX || {};
   let saved = load();
 
   function load() {
-    const base = { stacks: null, h: {}, off: {}, hide: {} };
+    const base = { stacks: null, h: {}, off: {}, hide: {}, pin: {} };
     let got = null;
     try {
       const raw = localStorage.getItem(KEY);
@@ -7704,8 +7998,52 @@ window.PX = window.PX || {};
     out.h = out.h || {};
     out.off = out.off || {};
     out.hide = out.hide || {};
+    out.pin = out.pin || {};      // 창 id → 그 창만 보고 있을 사건
     out.stacks = fix(out.stacks);
     return out;
+  }
+
+  /* ── 창 복제 ──────────────────────────────────────
+     예전에는 id 하나에 인스턴스 하나였다. 그래서 CCTV 두 대를 나란히 못 보고,
+     지도도 「전체」와 「현장 확대」를 같이 둘 수 없었다.
+     이제 열쇠를 id#2 처럼 늘려 같은 화면을 여러 벌 세운다. */
+  function base(id) { const i = String(id).indexOf('#'); return i < 0 ? String(id) : String(id).slice(0, i); }
+  function defOf(id) {
+    const b = base(id), d = defs.find(x => x.id === b);
+    if (!d) return null;
+    if (b === id) return d;
+    // 복제본은 이름 뒤에 번호를 붙인다 — 탭이 둘 다 「공간 3D」면 어느 쪽인지 모른다
+    return Object.assign({}, d, { id: id, title: d.title + ' ' + id.slice(id.indexOf('#') + 1), dup: true });
+  }
+  function ensurePanel(id) {
+    if (live[id]) return live[id];
+    const d = defOf(id);
+    if (!d) return null;
+    makePanel(d);
+    return live[id];
+  }
+
+  /* 복제본은 **다른 것을 비춰야** 의미가 있다.
+     화면 모듈은 store.selectedIncidentID 를 그대로 읽는데, 모듈을 고치지 않고도
+     창마다 다른 사건을 보게 하는 길이 있다 — store 를 원본으로 삼는 얇은 그릇을 하나 만들어
+     그 창에만 건네주면, 안의 메서드는 모두 this 를 거치므로 고정된 사건으로 답한다. */
+  function storeFor(id) {
+    const pin = saved.pin[id];
+    if (!pin) return store;
+    const L = live[id];
+    if (!L.store) {
+      const own = Object.create(store);
+      own.select = function (to) {
+        if (this.selectedIncidentID === to) return;
+        this.selectedIncidentID = to;
+        saved.pin[id] = to;
+        save();
+        store.emit('incident');
+      };
+      L.store = own;
+    }
+    L.store.selectedIncidentID = pin;
+    return L.store;
   }
 
   /** 저장된 값이 헐거워도 화면은 서야 한다 — 모르는 이름은 버리고, 빠진 창은 제자리에 채운다 */
@@ -7717,7 +8055,7 @@ window.PX = window.PX || {};
     DOCK_IDS.forEach(dock => {
       out[dock] = [];
       ((stacks && stacks[dock]) || []).forEach(st => {
-        const ids = (st.ids || []).filter(id => known[id] && !seen[id]);
+        const ids = (st.ids || []).filter(id => known[base(id)] && !seen[id]);
         ids.forEach(id => { seen[id] = true; });
         if (!ids.length) return;
         const k = st.k || ('s' + (seq++));
@@ -7767,7 +8105,7 @@ window.PX = window.PX || {};
     const d = L.def;
     try {
       if (d.screen && PX.screens[d.screen]) {
-        L.inst = PX.screens[d.screen].mount(L.body, { store: store, wm: PX.wm, tile: tileOf(L.body) });
+        L.inst = PX.screens[d.screen].mount(L.body, { store: storeFor(id), wm: PX.wm, tile: tileOf(L.body) });
       } else if (d.mount) {
         L.inst = d.mount(L.body) || null;
       }
@@ -7777,6 +8115,16 @@ window.PX = window.PX || {};
     }
   }
 
+  /** 창 이름표 하나. 지도 모드와 격자 모드가 **같은 것을 쓴다** —
+      두 군데서 따로 적으면 한쪽만 고쳐져 모드마다 다른 이름표가 뜬다. */
+  function tabHTML(id, on) {
+    const d = (live[id] && live[id].def) || defOf(id) || { title: id, icon: 'doc' };
+    const pin = saved.pin[id];
+    return `<button class="stk-tab${on ? ' on' : ''}" data-stab="${id}" draggable="true"
+              title="${PX.esc(d.title)}${pin ? ' — ' + PX.esc(pin) + ' 에 고정됨' : ''} — 끌어서 옮기기 · 두 번 누르면 전면 · 오른쪽 누르면 메뉴">
+              ${PX.icon(d.icon)}<span class="t">${PX.esc(d.title)}${pin ? `<span class="pinned">${PX.esc(pin)}</span>` : ''}</span></button>`;
+  }
+
   function makePanel(d) {
     const el = PX.el(`<section class="pn${d.fill ? ' fill' : ''}" data-pn="${d.id}"><div class="pn-body"></div></section>`);
     live[d.id] = { el: el, body: el.querySelector('.pn-body'), inst: null, def: d };
@@ -7784,12 +8132,23 @@ window.PX = window.PX || {};
   }
 
   // ── 그리기 ───────────────────────────────────────
-  /** 이미 있는 노드는 그대로 두고 자리만 맞춘다 — 옮기면 iframe 이 다시 뜬다 */
+  /** 이미 있는 노드는 그대로 두고 자리만 맞춘다.
+      옮길 때는 moveBefore 를 쓴다 — insertBefore 는 노드를 **뽑았다 다시 꽂는** 것이라
+      안에 iframe 이 있으면 28MB 스캔을 처음부터 다시 받는다. moveBefore 는 문서에서 떼지 않고
+      자리만 바꿔 iframe·스크롤·입력 중이던 내용이 그대로 남는다 (같은 문서 안에서만 쓸 수 있다). */
+  function place(parent, el, ref) {
+    if (el.isConnected && parent.moveBefore) {
+      try { parent.moveBefore(el, ref); return; } catch (e) { /* 아래로 물러난다 */ }
+    }
+    parent.insertBefore(el, ref);
+  }
+  PX.place = place;
+
   function reconcile(parent, want) {
     let node = parent.firstChild;
     want.forEach(el => {
       if (node === el) { node = node.nextSibling; return; }
-      parent.insertBefore(el, node);
+      place(parent, el, node);
     });
     while (node) {
       const next = node.nextSibling;
@@ -7798,26 +8157,71 @@ window.PX = window.PX || {};
     }
   }
 
-  function stackEl(st) {
+  /* 새 껍데기는 만들자마자 **도크에 붙인다.**
+     moveBefore 는 문서에 붙어 있는 것끼리만 쓸 수 있어, 떨어져 있는 껍데기에 패널을 옮기면
+     예전 방식(insertBefore)으로 물러나 iframe 이 다시 뜬다. 자리는 아래 reconcile 이 맞춘다. */
+  function stackEl(st, host) {
     let el = stackEls[st.k];
     if (!el) {
       el = PX.el(
         `<section class="stk" data-stk="${st.k}">
            <header class="stk-head">
              <div class="stk-tabs"></div>
+             <button class="pn-btn" data-menu="${st.k}" title="이 창으로 할 수 있는 일">${PX.icon('list')}</button>
              <button class="pn-btn" data-full="" title="전면으로 크게 보기">${PX.icon('expand')}</button>
-             <button class="pn-btn" data-foldstk="${st.k}" title="접기/펴기">${PX.icon('chev-ud')}</button>
+             <button class="pn-btn" data-closestk="${st.k}" title="이 창 끄기 — 왼쪽 레일에서 다시 켤 수 있습니다">${PX.icon('close')}</button>
            </header>
            <div class="stk-body"></div>
            <div class="stk-grip" data-gripstk="${st.k}" title="끌어서 크기 조절"></div>
          </section>`);
       stackEls[st.k] = el;
     }
+    if (host && !el.isConnected) host.appendChild(el);
     return el;
   }
 
+  /** 창 하나의 **속을 채운다** — 이름표·활성 탭·화면 붙이기.
+      지도 모드(render)와 격자 모드(grid.drawHeads)가 이 하나를 같이 쓴다.
+      따로 적어 두었더니 격자에서 복제본을 만들면 이름표만 생기고 화면이 안 붙었다. */
+  function fillStack(st, ids) {
+    const el = stackEls[st.k];
+    if (!el) return;
+    ids = ids || st.ids.filter(id => !saved.hide[id]);
+    if (!ids.length) return;
+    ids.forEach(ensurePanel);            // 복제본(id#2)은 여기서 처음 만들어진다
+    if (ids.indexOf(st.a) < 0) st.a = ids[0];
+    const head = el.querySelector('.stk-tabs');
+    head.classList.toggle('one', ids.length === 1);
+    head.innerHTML = ids.map(id => tabHTML(id, id === st.a)).join('');
+    const full = el.querySelector('[data-full]');
+    if (full) full.dataset.full = st.a;
+    ensureMounted(st.a);
+    // 전면으로 나가 있는 창은 건드리지 않는다 — 끌어오면 3층에서 사라진다
+    const want = ids.filter(id => !(PX.takeover && PX.takeover.current === id))
+                    .map(id => live[id] && live[id].el).filter(Boolean);
+    reconcile(el.querySelector('.stk-body'), want);
+    st.ids.forEach(id => { if (live[id]) live[id].el.classList.toggle('on', id === st.a && !saved.hide[id]); });
+  }
+
+  /** 아무 창도 담고 있지 않게 된 껍데기를 치운다.
+      **반드시 render 뒤에** 부른다 — 먼저 치우면 안에 있던 패널이 문서에서 떨어져
+      다음에 옮길 때 iframe 이 다시 뜬다. */
+  function prune() {
+    const keep = {};
+    DOCK_IDS.forEach(d => saved.stacks[d].forEach(st => { keep[st.k] = true; }));
+    Object.keys(stackEls).forEach(k => {
+      if (keep[k]) return;
+      if (stackEls[k].querySelector('.pn')) return;   // 아직 안에 뭔가 있으면 그대로 둔다
+      stackEls[k].remove();
+      delete stackEls[k];
+    });
+  }
+
   function render(dock) {
-    if (!dock) { DOCK_IDS.forEach(render); syncEmpty(); return; }
+    /* 격자 모드에서는 창이 도크가 아니라 격자에 산다 — 그리는 일을 통째로 넘긴다.
+       배치(saved)는 두 모드가 같이 쓰고, **자리 잡는 방법만** 다르다. */
+    if (PX.grid && PX.grid.owns && PX.grid.owns()) { PX.grid.render(); return; }
+    if (!dock) { DOCK_IDS.forEach(render); prune(); syncEmpty(); return; }
     const host = PX.dock.body(dock);
     if (!host) return;
     const stacks = saved.stacks[dock];
@@ -7825,30 +8229,14 @@ window.PX = window.PX || {};
        세로로 쌓으면 띠 높이(180px)를 넘겨 잘린다 */
     host.classList.toggle('row', dock === 'bottom');
 
-    const live_ = [];          // 지금 그릴 창 (끈 것은 빼고)
+    const live_ = [];          // 지금 그릴 창 (끈 것과 떼어낸 것은 빼고)
     stacks.forEach(st => {
+      if (PX.free && PX.free.has(st.k)) return;   // 자유 카드로 떠 있는 창은 도크가 맡지 않는다
       const ids = st.ids.filter(id => !saved.hide[id]);
       if (!ids.length) return;           // 이 창의 탭이 모두 꺼졌다 — 아예 그리지 않는다
-      const el = stackEl(st);
-      const head = el.querySelector('.stk-tabs');
-      const body = el.querySelector('.stk-body');
-      if (ids.indexOf(st.a) < 0) st.a = ids[0];
-
-      head.classList.toggle('one', ids.length === 1);
-      head.innerHTML = ids.map(id => {
-        const d = live[id].def;
-        return `<button class="stk-tab${id === st.a ? ' on' : ''}" data-stab="${id}" draggable="true"
-                  title="${PX.esc(d.title)} — 끌어서 옮기기 · 두 번 누르면 전면">
-                  ${PX.icon(d.icon)}<span class="t">${PX.esc(d.title)}</span></button>`;
-      }).join('');
-      el.querySelector('[data-full]').dataset.full = st.a;
-
-      ensureMounted(st.a);
-      st.ids.forEach(id => { live[id].def.dock = dock; });
-      // 전면으로 나가 있는 창은 건드리지 않는다 — 끌어오면 3층에서 사라진다
-      const want = ids.filter(id => !(PX.takeover && PX.takeover.current === id)).map(id => live[id].el);
-      reconcile(body, want);
-      st.ids.forEach(id => live[id].el.classList.toggle('on', id === st.a && !saved.hide[id]));
+      const el = stackEl(st, host);
+      fillStack(st, ids);
+      st.ids.forEach(id => { if (live[id]) live[id].def.dock = dock; });
 
       const folded = !!saved.off[st.k];
       const fill = ids.some(id => live[id].def.fill);
@@ -7916,6 +8304,19 @@ window.PX = window.PX || {};
     resizeAll();
   }
 
+  /** 창(탭) 하나를 끈다. toggle 과 달리 **끄기만** 한다 — 단추를 두 번 눌러도 다시 켜지지 않는다 */
+  function closeTab(id) {
+    const f = stackOf(id);
+    if (!f || saved.hide[id]) return;
+    if (PX.layout) PX.layout.mark();
+    saved.hide[id] = true;
+    render(f.dock);
+    syncEmpty();
+    resizeAll();
+    if (PX.layout) PX.layout.toast('「' + ((live[id] && live[id].def.title) || id) + '」 을(를) 껐습니다 — ⌘Z 로 되돌리기');
+    if (PX.nav && PX.nav.redraw) PX.nav.redraw();
+  }
+
   function foldStack(k) {
     const f = stackByKey(k);
     if (!f) return;
@@ -7929,6 +8330,16 @@ window.PX = window.PX || {};
     if (full && full.dataset.full) { e.stopPropagation(); if (PX.takeover) PX.takeover.open(full.dataset.full); return; }
     const fold = e.target.closest('[data-foldstk]');
     if (fold) { e.stopPropagation(); foldStack(fold.dataset.foldstk); return; }
+    /* 머리줄 맨 오른쪽은 **이 창 끄기**다. 보고 있던 탭을 끄고,
+       그 창에 탭이 더 없으면 창째 사라진다 (여백도 아이콘도 남기지 않는다).
+       접기는 보고 있는 탭을 한 번 더 누르면 된다 — 단추를 넷으로 늘리지 않았다. */
+    const shut = e.target.closest('[data-closestk]');
+    if (shut) {
+      e.stopPropagation();
+      const f = stackByKey(shut.dataset.closestk);
+      if (f) closeTab(f.st.a);
+      return;
+    }
     const rail = e.target.closest('.dk-tab[data-tab]');
     if (rail) { e.stopPropagation(); reveal(rail.dataset.tab); return; }
     const tab = e.target.closest('[data-stab]');
@@ -8024,7 +8435,7 @@ window.PX = window.PX || {};
       saved.stacks[from.dock] = saved.stacks[from.dock].filter(x => x !== from.st);
       delete saved.h[from.st.k];
       delete saved.off[from.st.k];
-      if (stackEls[from.st.k]) { stackEls[from.st.k].remove(); delete stackEls[from.st.k]; }
+      // 껍데기는 여기서 치우지 않는다 — 안에 든 패널이 아직 옮겨 가기 전이다 (아래 prune)
     }
     const list = saved.stacks[s.dock];
     if (s.mode === 'join') {
@@ -8039,10 +8450,12 @@ window.PX = window.PX || {};
       } else list.push(st);
     }
     saved.hide[id] = false;
-    if (PX.dock.state[s.dock]) PX.dock.toggle(s.dock);      // 접혀 있던 도크면 펴 준다
+    // 접혀 있던 도크면 펴 준다 (격자 모드에는 도크가 없으므로 건드리지 않는다)
+    if (!document.body.classList.contains('grid-on') && PX.dock.state[s.dock]) PX.dock.toggle(s.dock);
     live[id].def.dock = s.dock;
     render(from.dock);
     if (s.dock !== from.dock) render(s.dock);
+    prune();
     syncEmpty();
     resizeAll();
   }
@@ -8137,22 +8550,104 @@ window.PX = window.PX || {};
     build: build,
     resizeAll: resizeAll,
     live(id) { return live[id] || null; },
+    defs() { return defs.slice(); },
+    tabHTML: tabHTML,
+    fillStack: fillStack,
     refresh(dock) { render(dock || null); },
     reveal: reveal,
     toggle: toggle,
+    close: closeTab,
     visible: visible,
+    save: save,
+    prune: prune,
+    /* 배치를 통째로 읽고 쓰는 문 — 모드·작업 세트·되돌리기(layout.js)가 쓴다.
+       여기서 배치를 갈아 끼워도 **창은 다시 만들지 않는다**: 껍데기 cache 와
+       moveBefore 가 있어 안에 든 화면은 그대로 자리만 옮긴다. */
+    snapshot() { return JSON.parse(JSON.stringify(saved)); },
+    apply(next) {
+      if (!next) return;
+      saved = { stacks: fix(next.stacks), h: next.h || {}, off: next.off || {},
+                hide: next.hide || {}, pin: next.pin || {} };
+      render();
+      resizeAll();
+    },
+    stacks() { return saved.stacks; },
+    stackEl(k) { return stackEls[k] || null; },
+    keyOf(id) { const f = stackOf(id); return f ? f.st.k : null; },
+    dockOf(id) { const f = stackOf(id); return f ? f.dock : null; },
+    hidden(id) { return !!saved.hide[id]; },
+    base: base,
+    /** 같은 화면을 한 벌 더 세운다. 복제본은 **지금 사건에 못 박아** 내보낸다 —
+        원본은 계속 「지금 보는 사건」을 따라가므로, 사건을 바꾸면 둘이 갈라져 맞대 볼 수 있다 */
+    duplicate(id) {
+      const b = base(id), f = stackOf(id);
+      if (!f) return null;
+      const used = {};
+      DOCK_IDS.forEach(d => saved.stacks[d].forEach(st => st.ids.forEach(x => { used[x] = true; })));
+      let n = 2;
+      while (used[b + '#' + n] || live[b + '#' + n]) n++;
+      const key = b + '#' + n;
+      ensurePanel(key);
+      saved.pin[key] = store.selectedIncidentID;
+      const list = saved.stacks[f.dock];
+      list.splice(list.indexOf(f.st) + 1, 0, mk([key]));
+      render(f.dock);
+      syncEmpty();
+      resizeAll();
+      return key;
+    },
+    incidentOf(id) { return saved.pin[id] || store.selectedIncidentID; },
+    isPinned(id) { return !!saved.pin[id]; },
+    /** 이 창만 볼 사건을 정한다 (null 이면 다시 「지금 사건」을 따라간다) */
+    pinIncident(id, inc) {
+      const was = !!saved.pin[id];
+      if (inc) saved.pin[id] = inc; else delete saved.pin[id];
+      save();
+      const L = live[id];
+      /* 붙을 때 건네준 그릇이 바뀌는 때(고정 ↔ 풀기)만 화면을 다시 붙인다.
+         고정한 채 사건만 바꾸는 때는 그릇 속 값만 갈면 되므로 3D 를 다시 받지 않는다. */
+      if (L && was === !!inc) { if (L.store && inc) L.store.selectedIncidentID = inc; store.emit('incident'); return; }
+      if (L) {
+        if (L.inst && L.inst.destroy) { try { L.inst.destroy(); } catch (e) { /* 화면마다 다르다 */ } }
+        L.inst = null; L.tried = false; L.store = null; L.body.innerHTML = '';
+        ensureMounted(id);
+      }
+      store.emit('incident');
+      resizeAll();
+    },
+    /** 창 하나를 다른 창과 합치거나 옆에 세운다 (격자 모드도 같은 문을 쓴다) */
+    move(id, s) { if (id && s) moveTo(id, s); },
+    mk: mk,
+    /** 위치 초기화 — **새로고침하지 않는다.**
+        예전에는 location.reload() 를 걸어 지도 타일·3D 스캔을 다시 받고,
+        보던 사건·확대 상태·치던 무전 내용까지 날렸다. 배치만 기본값으로 돌린다. */
     reset() {
       try { localStorage.removeItem(KEY); } catch (e) { /* 그만 */ }
-      location.reload();
+      saved = { stacks: defaults(), h: {}, off: {}, hide: {}, pin: {} };
+      render();
+      syncEmpty();
+      resizeAll();
     }
   };
 
-  // 도크가 접히고 펴질 때 창도 크기를 다시 잰다
-  const dockApply = PX.dock.apply;
-  PX.dock.apply = function (animate) {
-    dockApply(animate);
-    setTimeout(resizeAll, 280);
-  };
+  /* 도크가 접히고 펴지고 끌릴 때 창도 제 칸을 다시 잰다.
+     dock.js 안쪽에서 부르는 apply 까지 여기로 온다 (지역 apply 가 이 고리를 부른다). */
+  let rzTimer = null;
+  function laterResize(ms) {
+    clearTimeout(rzTimer);
+    rzTimer = setTimeout(resizeAll, ms == null ? 280 : ms);
+  }
+  PX.dock.onApply = function (animate) { laterResize(animate === false ? 60 : 280); };
+
+  /* 창 크기가 **창 크기 말고 다른 이유로** 바뀌는 때 — 탭 전환, 창 접기, 3D 로딩,
+     레일 펼침. window.resize 만으로는 이 모두를 놓친다. 칸을 직접 지켜본다. */
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(() => laterResize(80));
+    DOCK_IDS.forEach(d => { const b = PX.dock.body(d); if (b) ro.observe(b); });
+    PX.panels.watch = el => { try { ro.observe(el); } catch (e) { /* 그만 */ } };
+  } else {
+    PX.panels.watch = function () { /* 이 브라우저에는 없다 */ };
+  }
 
   build();
   window.addEventListener('resize', () => setTimeout(resizeAll, 100));
@@ -8190,7 +8685,8 @@ window.PX = window.PX || {};
     const L = PX.panels.live(id);
     if (!L) return;
     home = { parent: L.el.parentNode, next: L.el.nextSibling };
-    bodyEl.appendChild(L.el);
+    // 옮기되 문서에서 떼지는 않는다 — 떼면 공간 3D 가 스캔을 다시 받는다 (PX.place)
+    PX.place(bodyEl, L.el, null);
     L.el.classList.add('on', 'takeover');
     titleEl.textContent = L.def.title;
     root.classList.add('on');
@@ -8204,7 +8700,7 @@ window.PX = window.PX || {};
     const L = PX.panels.live(current);
     if (L && home) {
       L.el.classList.remove('takeover');
-      home.parent.insertBefore(L.el, home.next);
+      PX.place(home.parent, L.el, home.next);
     }
     root.classList.remove('on');
     const was = current;
@@ -8300,23 +8796,42 @@ window.PX = window.PX || {};
     /* 「지도만 보기」는 따로 둔다. 예전에는 「작전 지도」 단추가 이 일을 했는데,
        그 바람에 작전 지도 탭을 닫으면 되살릴 길이 없었다. */
     { id: 'solo', name: '지도만 보기', icon: 'expand', tip: '도크를 모두 접는다 (\\)',
-      act: () => PX.soloMap(), sep: true }
+      act: () => PX.soloMap(), sep: true },
+    /* 모드는 취향이 아니라 일의 단계라 늘 보이는 자리에 둔다.
+       이름은 **지금 켜져 있는 모드**가 아니라 「눌렀을 때 가는 곳」으로 적는다 —
+       불이 들어와 있는지로 지금 어디인지는 이미 보인다. */
+    { id: 'mode', name: '격자 모드', icon: 'split4', tip: '여러 정보를 맞대 본다 (⌘2 · ⌘1 로 지도)',
+      act: () => PX.mode && PX.mode.toggle() },
+    { id: 'sets', name: '작업 세트', icon: 'doc', tip: '배치·창·사건을 통째로 저장하고 부른다 (⌘⇧S)',
+      act: () => PX.sets && PX.sets.open() }
   ];
 
   /** 그 메뉴의 창이 지금 눈에 보이는가 — 레일에 불이 들어온다 */
   function lit(t) {
     if (t.id === 'solo') return !!PX.__solo;
+    if (t.id === 'mode') return !!(PX.mode && PX.mode.now === 'grid');
+    if (t.id === 'sets') return false;
     if (PX.takeover && PX.takeover.current === t.pn) return true;
     return !!(PX.panels && PX.panels.visible && PX.panels.visible(t.pn));
+  }
+  /** 격자 모드에서는 이 단추가 「지도 모드로」가 된다 — 하는 일이 뒤집히면 이름도 뒤집는다 */
+  function label(t) {
+    if (t.id !== 'mode') return t.name;
+    return (PX.mode && PX.mode.now === 'grid') ? '지도 모드' : '격자 모드';
+  }
+  function ico(t) {
+    if (t.id !== 'mode') return t.icon;
+    return (PX.mode && PX.mode.now === 'grid') ? 'map' : 'split4';
   }
 
   function draw() {
     rail.innerHTML = ITEMS.map(t =>
       `<button class="rail-item${lit(t) ? ' on' : ''}${t.sep ? ' sep' : ''}"
-        data-nav="${t.id}" title="${PX.esc(t.name)} — ${PX.esc(t.tip)}">${PX.icon(t.icon)}<span>${PX.esc(t.name)}</span></button>`
+        data-nav="${t.id}" title="${PX.esc(label(t))} — ${PX.esc(t.tip)}">${PX.icon(ico(t))}<span>${PX.esc(label(t))}</span></button>`
     ).join('');
     rail.classList.toggle('wide', railW >= 130);
   }
+  PX.nav = { redraw: draw };
   rail.addEventListener('click', e => {
     const b = e.target.closest('[data-nav]');
     if (!b) return;
@@ -9013,9 +9528,13 @@ window.PX = window.PX || {};
     const a = lastActs[+act.dataset.act];
     if (!a) return;
     if (a.reset) {
-      try { if (PX.dock && PX.dock.reset) PX.dock.reset(); } catch (err) { /* 그만 */ }
-      try { localStorage.removeItem('px.rail.v2'); } catch (err) { /* 그만 */ }
-      if (PX.panels) PX.panels.reset();        // 지우고 새로 읽는다
+      // 초기화는 layout.js 가 한곳에서 맡는다 (도크·창·격자·레일을 같이, 새로고침 없이)
+      if (PX.layout) PX.layout.reset();
+      else {
+        try { if (PX.dock && PX.dock.reset) PX.dock.reset(); } catch (err) { /* 그만 */ }
+        try { localStorage.removeItem('px.rail.v2'); } catch (err) { /* 그만 */ }
+        if (PX.panels) PX.panels.reset();
+      }
       return;
     }
     if (a.go && PX.panels) { PX.panels.reveal(a.go); close(); return; }
@@ -9086,6 +9605,1090 @@ window.PX = window.PX || {};
 
   PX.assist = { open: open, close: close, toggle: toggle, ask: ask, answer: answer, laws: LAWS, skills: SKILLS };
   greet();
+})(window.PX);
+</script>
+<script>
+/* ===== grid.js =====
+   모드 두 개. 취향이 아니라 **일의 단계**다.
+     지도 모드 — 어디서 무슨 일이 나는지. 접수·출동 지령. 지도가 주인공.
+     격자 모드 — 여러 정보를 맞대 봄. 현장 도착 뒤. 지도는 그중 한 칸.
+
+   ★ 모드를 바꿀 때 창을 **다시 만들지 않는다.** 껍데기(.stk)를 통째로 옮기되
+     PX.place(=moveBefore) 로 옮겨 문서에서 떼지 않는다 — 떼는 순간 공간 3D 가
+     28MB 스캔을 다시 받고, 스크롤·치던 무전 내용·지도 확대가 날아간다.
+
+   ★ 자리 계산은 tiling.js 의 wm 을 되살려 쓴다.
+     칸 = wm.windows 의 한 줄(frac 0~1), 경계 = wm.dividers, 끌기 = wm.moveDivider,
+     2·4분할 = wm.tile. **되살리지 않은 것은 shell.js 의 떠 있는 .win 층뿐이다** —
+     그쪽은 화면을 한 벌 더 만들어(makeWindow→screen.mount) 지도와 3D 가 두 번 뜬다.
+     stage-off.js 가 끈 것이 바로 그것이라 그대로 꺼 둔다. */
+(function (PX) {
+  'use strict';
+
+  const wm = PX.wm, desk = PX.$('#desk'), mapbg = PX.$('#mapbg');
+  const MODE_KEY = 'px.mode.v1', GRID_KEY = 'px.grid.v1';
+  const MAP = 'map';                      // 지도 칸의 열쇠
+  const GAP = 8;
+
+  /* shell.js 는 wm 이 바뀔 때마다 떠 있는 창을 다시 만들고 레일을 옛 탭으로 덮는다.
+     이제 wm 을 우리가 쓰므로 그 구독을 떼어 낸다 (레일은 nav.js 가 맡은 지 오래다). */
+  wm._subs.clear();
+  wm.open = function () { /* 떠 있는 창은 쓰지 않는다 — 화면이 두 벌 생긴다 */ };
+  wm.close = function () { };
+
+  // ── 껍데기 ───────────────────────────────────────
+  const gridEl = PX.el('<div id="grid"></div>');
+  desk.appendChild(gridEl);
+  const dropEl = PX.el('<div class="gdrop"></div>');
+  gridEl.appendChild(dropEl);
+
+  /* 지도 칸의 이름표. 다른 창과 같은 머리줄·같은 탭을 쓴다 —
+     모드가 달라도 손이 찾는 자리가 같아야 한다. */
+  const mapStk = PX.el(
+    `<section class="stk gmap" data-stk="${MAP}">
+       <header class="stk-head">
+         <div class="stk-tabs one">
+           <button class="stk-tab on" data-gmap="1" draggable="true" title="작전 지도 — 끌어서 칸 옮기기">
+             ${PX.icon('map')}<span class="t">작전 지도</span></button>
+         </div>
+       </header>
+     </section>`);
+
+  // ── 프리셋 ───────────────────────────────────────
+  /* 5분할 고정이 아니라 12열 격자 + span 이다. 프리셋은 **시작점일 뿐**이고,
+     경계를 끌어 비율을, 창을 끌어 칸을 바꾼다. */
+  /* 「하나만 크게」는 프리셋으로 두지 않았다. 이미 두 가지 길이 있어서다 —
+     창 이름표를 두 번 누르면 전면(ESC 로 닫기), 지도는 레일의 「지도만 보기」.
+     같은 일을 하는 단추를 셋으로 늘리면 손이 헷갈린다. */
+  const PRESETS = {
+    '2+3': { name: '2+3', rows: [[6, 6], [4, 4, 4]], h: [0.56, 0.44] },
+    '1+2': { name: '1+2', rows: [[12], [6, 6]], h: [0.60, 0.40] },
+    '2+2': { name: '2+2', rows: [[6, 6], [6, 6]], h: [0.5, 0.5] },
+    '3+3': { name: '3+3', rows: [[4, 4, 4], [4, 4, 4]], h: [0.5, 0.5] }
+  };
+
+  /** 프리셋 모양을 창 수(n)에 맞춰 늘리거나 줄인 뒤 frac 목록으로 편다.
+      늘고 줄어드는 것은 **아래 줄**이다 — 「1+2」의 뜻은 위 한 칸이 크다는 것이라
+      창이 하나 늘었다고 위가 둘로 쪼개지면 프리셋을 고른 뜻이 사라진다. */
+  function shape(preset, n) {
+    const p = PRESETS[preset] || PRESETS['2+3'];
+    const rows = p.rows.map(r => r.slice());
+    const hs = p.h.slice();
+    const count = () => rows.reduce((a, r) => a + r.length, 0);
+    let guard = 0;
+    while (count() < n && guard++ < 24) {
+      const last = rows.length - 1;
+      if (rows[last].length < 4) rows[last].push(12);
+      else { rows.push([12]); hs.push(hs[last]); }
+    }
+    guard = 0;
+    while (count() > n && guard++ < 24) {
+      let at = rows.length - 1;
+      rows.forEach((r, i) => { if (r.length >= rows[at].length) at = i; });   // 뒤쪽 줄을 먼저 줄인다
+      rows[at].pop();
+      if (!rows[at].length) { rows.splice(at, 1); hs.splice(at, 1); }
+    }
+    const hsum = hs.reduce((a, b) => a + b, 0) || 1;
+    const out = [];
+    let y = 0;
+    rows.forEach((r, i) => {
+      const h = hs[i] / hsum;
+      /* 한 줄 안의 칸은 고르게 나눈다. 프리셋의 span 은 **칸이 몇 개인지**를 적어 둔 것이고,
+         고르지 않은 비율은 경계를 끌어 만드는 것이다 — 늘어난 칸만 두 배로 넓으면
+         「1+2」를 골랐는데 아래가 17·17·33·33 처럼 들쭉날쭉해진다. */
+      const w = 1 / r.length;
+      r.forEach((s, j) => { out.push({ x: j * w, y: y, w: w, h: h }); });
+      y += h;
+    });
+    return out;
+  }
+
+  // ── 상태 ─────────────────────────────────────────
+  let mode = 'map', preset = '2+3';
+  let saved = {};                 // 열쇠 → frac (모드별 배치는 여기에 남는다)
+  let cells_sig = '';             // 그 자리들을 저장할 때의 창 구성
+  try {
+    mode = localStorage.getItem(MODE_KEY) === 'grid' ? 'grid' : 'map';
+    const raw = JSON.parse(localStorage.getItem(GRID_KEY) || 'null');
+    if (raw) { preset = raw.preset || preset; saved = raw.cells || {}; cells_sig = raw.sig || ''; }
+  } catch (e) { /* 저장소가 없을 수 있다 */ }
+
+  function store() {
+    /* 지금 서 있는 칸만 덮어쓰고 나머지는 남겨 둔다 —
+       창을 잠깐 껐다 켜면 자리를 잃던 까닭이 통째로 갈아엎기였다 */
+    wm.windows.forEach(w => { saved[w.id] = w.frac; });
+    const cells = saved;
+    try { localStorage.setItem(GRID_KEY, JSON.stringify({ preset: preset, cells: cells, sig: cells_sig })); } catch (e) { /* 그만 */ }
+    try { localStorage.setItem(MODE_KEY, mode); } catch (e) { /* 그만 */ }
+  }
+
+  /** 지금 격자에 설 것들 — 지도 한 칸 + 꺼지지 않은 창들.
+      차례가 곧 프리셋 칸의 차례라, **위 줄에 지도와 공간 3D**가 오도록 앞으로 당긴다.
+      (현장에 닿은 뒤 맞대 보는 것은 「어디인가」와 「안이 어떻게 생겼나」라서 둘을 크게 둔다.
+       칸을 바꾸고 싶으면 창 이름표를 끌어 맞바꾸면 된다 — 차례는 첫 배치에만 쓰인다) */
+  const FIRST = 'space';
+  function owners() {
+    const rest = [];
+    let head = null;
+    const st = PX.panels.stacks();
+    ['left', 'right', 'bottom'].forEach(d => {
+      st[d].forEach(s => {
+        if (PX.free && PX.free.has(s.k)) return;   // 떼어낸 창은 칸을 차지하지 않는다
+        if (!s.ids.some(id => !PX.panels.hidden(id))) return;
+        const mine = s.ids.some(id => PX.panels.base(id) === FIRST && !PX.panels.hidden(id));
+        if (mine && !head) head = s.k; else rest.push(s.k);
+      });
+    });
+    return [MAP].concat(head ? [head] : [], rest);
+  }
+
+  // ── 자리 잡기 ────────────────────────────────────
+  /** 창 구성을 한 줄로 적은 것 — 저장해 둔 자리를 다시 써도 되는지 가리는 열쇠다 */
+  function sig(list) { return list.slice().sort().join('|'); }
+
+  /** 지금 칸들이 **서로 겹치지 않고 빈 곳도 없이** 화면을 덮고 있는가 */
+  function tiles() {
+    const ws = wm.windows;
+    for (let i = 0; i < ws.length; i++) {
+      for (let j = i + 1; j < ws.length; j++) {
+        const a = ws[i].frac, b = ws[j].frac;
+        const ow = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+        const oh = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+        if (ow > 0.004 && oh > 0.004) return false;          // 겹쳤다
+      }
+    }
+    return ws.reduce((t, w) => t + w.frac.w * w.frac.h, 0) > 0.9;   // 큰 구멍이 남았다
+  }
+
+  function syncWindows(relayout) {
+    const want = owners();
+    const spots = shape(preset, want.length);
+    const cur = {};
+    wm.windows.forEach(w => { cur[w.id] = w.frac; });
+
+    /* 저장해 둔 자리는 **그때와 창 구성이 똑같을 때만** 쓴다.
+       창을 하나 끄면 남은 창들이 새로 깔리는데, 그 창이 돌아올 때 혼자만
+       끄기 전 자리를 집어 오면 남들과 어긋나 겹친다 (덮은 면적이 115% 가 되던 일).
+       구성이 달라졌으면 프리셋으로 처음부터 다시 깐다 — 손으로 끌어 둔 비율은
+       그때 한 번 풀리지만, 창이 서로 포개지는 것보다는 낫다 (⌘Z 로 되돌릴 수 있다). */
+    const keep = !relayout && sig(want) === cells_sig;
+    wm.windows = want.map((k, i) => ({
+      id: k,
+      frac: Object.assign({}, keep ? (cur[k] || saved[k] || spots[i]) : spots[i]),
+      z: 11 + i, minimized: false, maximized: false
+    }));
+    wm.noteDeskSize(Math.max(gridEl.clientWidth, 1), Math.max(gridEl.clientHeight, 1));
+    wm._clampAll();
+    /* 마지막 그물 — 저장소가 헐거웠든 무슨 까닭이든 칸이 겹치면 프리셋으로 되돌린다.
+       격자 모드에서 창이 포개져 보이는 일은 어떤 경로로도 없어야 한다. */
+    if (!tiles()) wm.windows.forEach((w, i) => { w.frac = Object.assign({}, spots[i]); });
+    cells_sig = sig(want);
+    wm.focused = want[0] || MAP;
+  }
+
+  function place() {
+    const box = gridEl.getBoundingClientRect();
+    wm.noteDeskSize(box.width, box.height);
+    const half = GAP / 2;
+    wm.windows.forEach(w => {
+      const f = w.frac;
+      const x = f.x * box.width + half, y = f.y * box.height + half;
+      const cw = Math.max(f.w * box.width - GAP, 80), ch = Math.max(f.h * box.height - GAP, 60);
+      const el = (w.id === MAP) ? mapStk : PX.panels.stackEl(w.id);
+      if (el) {
+        el.style.left = Math.round(x) + 'px';
+        el.style.top = Math.round(y) + 'px';
+        el.style.width = Math.round(cw) + 'px';
+        el.style.height = Math.round(ch) + 'px';
+      }
+      if (w.id === MAP) {
+        // 지도는 격자 안이 아니라 0층에 있다 — 같은 사각형으로 맞춰 준다
+        const g = gridEl.offsetLeft, t = gridEl.offsetTop;
+        mapbg.style.left = Math.round(g + x) + 'px';
+        mapbg.style.top = Math.round(t + y) + 'px';
+        mapbg.style.width = Math.round(cw) + 'px';
+        mapbg.style.height = Math.round(ch) + 'px';
+        mapbg.style.right = 'auto';
+        mapbg.style.bottom = 'auto';
+      }
+    });
+    drawDividers();
+    if (PX.stage) PX.stage.resize();
+    if (PX.__map && PX.__map.resize) { try { PX.__map.resize(); } catch (e) { /* 아직 준비 전 */ } }
+    PX.panels.resizeAll();
+  }
+
+  /** 창 머리줄(탭)을 지금 상태에 맞춰 다시 적는다 — 지도 모드의 render 와 같은 규칙 */
+  function drawHeads() {
+    const st = PX.panels.stacks();
+    ['left', 'right', 'bottom'].forEach(d => st[d].forEach(s => {
+      const el = PX.panels.stackEl(s.k);
+      if (!el) return;
+      const ids = s.ids.filter(id => !PX.panels.hidden(id));
+      if (!ids.length) return;
+      PX.panels.fillStack(s, ids);       // 이름표·활성 탭·화면 붙이기는 지도 모드와 같은 코드를 쓴다
+      el.classList.remove('folded', 'sized', 'fill');
+    }));
+  }
+
+  function render() {
+    if (mode !== 'grid') return;
+    syncWindows(false);
+    // 창 껍데기를 격자로 데려온다 (떼지 않고 옮긴다 — 3D 가 살아남는다)
+    wm.windows.forEach(w => {
+      const el = (w.id === MAP) ? mapStk : PX.panels.stackEl(w.id);
+      if (el && el.parentNode !== gridEl) PX.place(gridEl, el, null);
+    });
+    // 격자에 있어서는 안 될 것(꺼진 창)은 도크로 돌려보낸다
+    PX.$$('#grid > .stk').forEach(el => {
+      const k = el.dataset.stk;
+      if (k === MAP) return;
+      if (!wm.windows.some(w => w.id === k)) el.remove();
+    });
+    drawHeads();
+    PX.panels.prune();
+    place();
+    store();
+    if (PX.nav && PX.nav.redraw) PX.nav.redraw();
+  }
+
+  // ── 칸 사이 경계 끌기 (tiling.js 의 dividers 를 그대로 쓴다) ──
+  let divDrag = false;
+  function drawDividers() {
+    if (divDrag) return;
+    PX.$$('.gdiv', gridEl).forEach(d => d.remove());
+    const box = gridEl.getBoundingClientRect();
+    wm.dividers.forEach(d => {
+      const v = d.axis === 'v';
+      const el = PX.el(`<div class="gdiv ${v ? 'v' : 'h'}"></div>`);
+      const len = (d.end - d.start) * (v ? box.height : box.width);
+      if (v) {
+        el.style.left = (d.position * box.width - 6) + 'px';
+        el.style.top = (d.start * box.height + 6) + 'px';
+        el.style.height = Math.max(len - 12, 24) + 'px';
+      } else {
+        el.style.top = (d.position * box.height - 6) + 'px';
+        el.style.left = (d.start * box.width + 6) + 'px';
+        el.style.width = Math.max(len - 12, 24) + 'px';
+      }
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        el.classList.add('on');
+        divDrag = true;
+        document.body.classList.add('resizing', 'dk-noanim');
+        const move = ev => {
+          const b = gridEl.getBoundingClientRect();
+          let raw = v ? (ev.clientX - b.left) / b.width : (ev.clientY - b.top) / b.height;
+          // 12열 격자에 살짝 붙는다 — 억지로 맞추지는 않는다
+          const step = Math.round(raw * 12) / 12;
+          if (Math.abs(step - raw) < 0.012) raw = step;
+          wm.moveDivider(d, raw);
+          place();
+        };
+        const up = () => {
+          document.removeEventListener('mousemove', move);
+          document.removeEventListener('mouseup', up);
+          document.body.classList.remove('resizing', 'dk-noanim');
+          el.classList.remove('on');
+          divDrag = false;
+          store();
+          drawDividers();
+        };
+        document.addEventListener('mousemove', move);
+        document.addEventListener('mouseup', up);
+      });
+      gridEl.appendChild(el);
+    });
+  }
+
+  // ── 창을 끌어 칸 바꾸기 ──────────────────────────
+  /* 규칙은 지도 모드와 같다.
+       다른 창의 머리줄에 놓으면 → 탭으로 합쳐진다
+       칸 안쪽에 놓으면        → 혼자 있는 창이면 자리를 맞바꾸고, 아니면 그 칸을 반으로 나눠 들어간다 */
+  let gdrag = null;
+  document.addEventListener('dragstart', e => {
+    if (mode !== 'grid') return;
+    const t = e.target.closest && e.target.closest('[data-stab],[data-gmap]');
+    if (!t) return;
+    gdrag = t.dataset.gmap ? MAP : t.dataset.stab;
+    try { e.dataTransfer.setData('text/plain', gdrag); e.dataTransfer.effectAllowed = 'move'; } catch (err) { /* 브라우저마다 다르다 */ }
+  });
+  document.addEventListener('dragend', () => { gdrag = null; dropEl.classList.remove('on'); });
+
+  function target(e) {
+    if (!gdrag || mode !== 'grid') return null;
+    const stk = e.target.closest && e.target.closest('.stk');
+    let key = stk && stk.dataset.stk;
+    if (!key) {
+      // 칸 바깥(격자의 빈 틈)이면 손끝이 어느 칸 위인지로 찾는다
+      const b = gridEl.getBoundingClientRect();
+      const px = (e.clientX - b.left) / b.width, py = (e.clientY - b.top) / b.height;
+      const hit = wm.windows.find(w => px >= w.frac.x && px <= w.frac.x + w.frac.w &&
+                                       py >= w.frac.y && py <= w.frac.y + w.frac.h);
+      if (!hit) return null;
+      key = hit.id;
+    }
+    const fromKey = (gdrag === MAP) ? MAP : PX.panels.keyOf(gdrag);
+    if (key === fromKey) return null;
+    const head = e.target.closest('.stk-head');
+    if (head && gdrag !== MAP && key !== MAP) return { mode: 'join', key: key };
+    return { mode: 'cell', key: key };
+  }
+
+  function hint(t) {
+    if (!t) { dropEl.classList.remove('on'); return; }
+    const w = wm.windows.find(x => x.id === t.key);
+    if (!w) { dropEl.classList.remove('on'); return; }
+    const box = gridEl.getBoundingClientRect();
+    dropEl.style.left = (w.frac.x * box.width + 4) + 'px';
+    dropEl.style.top = (w.frac.y * box.height + 4) + 'px';
+    dropEl.style.width = Math.max(w.frac.w * box.width - 8, 20) + 'px';
+    dropEl.style.height = Math.max(w.frac.h * box.height - 8, 20) + 'px';
+    dropEl.classList.add('on');
+  }
+
+  document.addEventListener('dragover', e => {
+    if (mode !== 'grid') return;
+    const t = target(e);
+    if (!t) { dropEl.classList.remove('on'); return; }
+    e.preventDefault();
+    try { e.dataTransfer.dropEffect = 'move'; } catch (err) { /* 그만 */ }
+    hint(t);
+  });
+  document.addEventListener('drop', e => {
+    if (mode !== 'grid') return;
+    const t = target(e);
+    dropEl.classList.remove('on');
+    if (!t) return;
+    e.preventDefault(); e.stopPropagation();
+    drop(gdrag, t);
+    gdrag = null;
+  });
+
+  /** 창 열쇠가 어느 도크 소속인지 (격자에서도 소속은 그대로 남아 있다 — 지도 모드로 돌아갈 자리다) */
+  function dockOfKey(k) {
+    const st = PX.panels.stacks();
+    let out = null;
+    ['left', 'right', 'bottom'].forEach(d => { if (st[d].some(s => s.k === k)) out = d; });
+    return out;
+  }
+
+  function drop(id, t) {
+    if (PX.layout) PX.layout.mark();
+    if (id === MAP) {                         // 지도 칸은 언제나 자리 맞바꾸기다
+      const from = wm.windows.find(w => w.id === MAP);
+      const to = wm.windows.find(w => w.id === t.key);
+      if (from && to) { const tmp = from.frac; from.frac = to.frac; to.frac = tmp; place(); store(); }
+      return;
+    }
+    const fromKey = PX.panels.keyOf(id);
+    if (t.mode === 'join') {
+      PX.panels.move(id, { dock: dockOfKey(t.key) || PX.panels.dockOf(id) || 'left', mode: 'join', key: t.key });
+      render();
+      return;
+    }
+    const from = wm.windows.find(w => w.id === fromKey);
+    const to = wm.windows.find(w => w.id === t.key);
+    if (!to) return;
+    const st = PX.panels.stacks()[PX.panels.dockOf(id)] || [];
+    const alone = st.some(s => s.k === fromKey && s.ids.filter(x => !PX.panels.hidden(x)).length === 1);
+    if (from && alone) {                      // 혼자 있는 창 → 칸을 맞바꾼다
+      const tmp = from.frac; from.frac = to.frac; to.frac = tmp;
+      place(); store();
+      return;
+    }
+    /* 탭 하나를 떼어 냈다 → 그 칸을 **반으로 나눠** 들어간다.
+       넓은 칸은 좌우로, 높은 칸은 위아래로 가른다 (칸이 납작해지지 않게) */
+    const f = Object.assign({}, to.frac);
+    const vertical = f.w * wm.deskSize.w >= f.h * wm.deskSize.h;
+    const mine = vertical ? { x: f.x + f.w / 2, y: f.y, w: f.w / 2, h: f.h }
+                          : { x: f.x, y: f.y + f.h / 2, w: f.w, h: f.h / 2 };
+    to.frac = vertical ? { x: f.x, y: f.y, w: f.w / 2, h: f.h }
+                       : { x: f.x, y: f.y, w: f.w, h: f.h / 2 };
+    PX.panels.move(id, { dock: dockOfKey(t.key) || PX.panels.dockOf(id) || 'left', mode: 'end' });
+    const newKey = PX.panels.keyOf(id);
+    saved[newKey] = mine;                     // syncWindows 가 이 자리를 집어 간다
+    render();
+    const w = wm.windows.find(x => x.id === newKey);
+    if (w) { w.frac = mine; place(); store(); }
+  }
+
+  // ── 모드 바꾸기 ──────────────────────────────────
+  function enter(next) {
+    if (next === mode) return;
+    mode = next;
+    document.body.classList.add('dk-noanim');
+    if (mode === 'grid') {
+      document.body.classList.add('grid-on');
+      if (!mapStk.isConnected) gridEl.appendChild(mapStk);
+      syncWindows(false);
+      render();
+      /* 지도가 한 칸이 되었으니 가려진 몫(padding)은 없다 —
+         이걸 안 알려 주면 사건을 고를 때 표식이 칸 한쪽으로 치우쳐 잡힌다.
+         그리는 중에 부르면 꼬이므로 한 박자 뒤에 알린다. */
+      setTimeout(() => PX.dock.apply(false), 0);
+    } else {
+      document.body.classList.remove('grid-on');
+      // 격자에서 「지도만 보기」로 꺼 둔 창들은 모드를 나갈 때 돌려놓는다
+      if (soloBack) { const back = soloBack; soloBack = null; PX.__solo = false; PX.panels.apply(back); }
+      // 지도를 다시 바탕으로 — 격자에서 잡아 둔 자리를 모두 푼다
+      ['left', 'top', 'width', 'height', 'right', 'bottom'].forEach(p => mapbg.style.removeProperty(p));
+      PX.$$('#grid > .stk').forEach(el => { if (el !== mapStk) ['left', 'top', 'width', 'height'].forEach(p => el.style.removeProperty(p)); });
+      mapStk.remove();
+      PX.panels.refresh();          // 창을 도크로 돌려보낸다 (PX.place 라 3D 는 그대로)
+      PX.dock.apply(false);
+    }
+    store();
+    void document.body.offsetHeight;          // 새 자리를 먼저 굳히고
+    document.body.classList.remove('dk-noanim');
+    if (PX.__map && PX.__map.resize) { try { PX.__map.resize(); } catch (e) { /* 그만 */ } }
+    PX.panels.resizeAll();
+    if (PX.nav && PX.nav.redraw) PX.nav.redraw();
+  }
+
+  function usePreset(name) {
+    if (!PRESETS[name]) return;
+    if (PX.layout) PX.layout.mark();
+    preset = name;
+    if (mode !== 'grid') enter('grid');
+    syncWindows(true);
+    place();
+    store();
+    drawBar();
+  }
+
+  // ── 작업표시줄 ───────────────────────────────────
+  /* shell.js 가 그려 둔 「2분할 / 4분할 / 위치 초기화」는 죽어 있었다
+     (stage-off.js 가 defaultLayout 을 비워 wm.tile·resetLayout 이 아무 일도 안 했다).
+     같은 자리·같은 모양을 그대로 쓰고 하는 일만 이어 붙인다. */
+  const dockEl = PX.$('#dock');
+  function drawBar() {
+    dockEl.innerHTML =
+      `<button class="dock-btn${mode === 'map' ? ' on' : ''}" data-mode="map" title="지도 모드 (⌘1)">${PX.icon('map')}지도</button>
+       <button class="dock-btn${mode === 'grid' ? ' on' : ''}" data-mode="grid" title="격자 모드 (⌘2)">${PX.icon('split4')}격자</button>
+       <span class="dock-sep"></span>` +
+      Object.keys(PRESETS).map(k =>
+        `<button class="dock-btn${mode === 'grid' && preset === k ? ' on' : ''}" data-preset="${k}"
+           title="${PX.esc(PRESETS[k].name)} 배치">${PX.esc(PRESETS[k].name)}</button>`).join('') +
+      `<span class="dock-sep"></span>
+       <button class="dock-btn" data-reset="1" title="자리·크기·탭을 처음 상태로 (⌃⌘R)">${PX.icon('reset')}위치 초기화</button>`;
+  }
+  dockEl.onclick = e => {
+    const m = e.target.closest('[data-mode]');
+    if (m) { enter(m.dataset.mode); drawBar(); return; }
+    const p = e.target.closest('[data-preset]');
+    if (p) { usePreset(p.dataset.preset); return; }
+    if (e.target.closest('[data-reset]')) PX.layout.reset();
+  };
+  drawBar();
+
+  /* 예전 단축키를 이어 준다 — shell.js 의 ⌃⌘2 / ⌃⌘4 / ⌃⌘R 은 wm 을 부르는데
+     stage-off.js 가 창 목록을 비워 둔 뒤로 아무 일도 하지 않고 있었다.
+     2분할은 「지도 크게 + 아래 둘」, 4분할은 「2+2」로 뜻을 잇는다. */
+  wm.tile = function (n) { usePreset(n === 2 ? '1+2' : '2+2'); };
+  wm.resetLayout = function () { PX.layout.reset(); };
+
+  window.addEventListener('keydown', e => {
+    if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') return;
+    if (e.ctrlKey && e.metaKey) return;            // ⌃⌘2/4/R 은 위에서 맡는다
+    if (e.key === '1') { e.preventDefault(); enter('map'); drawBar(); }
+    else if (e.key === '2') { e.preventDefault(); enter('grid'); drawBar(); }
+  });
+
+  window.addEventListener('resize', () => { if (mode === 'grid') place(); });
+
+  /* 「지도만 보기」 — 지도 모드에서는 도크를 모두 접고, 격자 모드에서는 **지도 칸만 남긴다.**
+     모드마다 기능이 달라지면 안 되므로 이름도 하는 일도 같게 두고 자리만 다르게 한다.
+     (「창 하나만 크게」는 창 이름표를 두 번 누르는 전면이 맡는다 — 같은 일을 둘로 만들지 않는다) */
+  let soloBack = null, soloCells = null;
+  const navSolo = PX.soloMap;
+  PX.soloMap = function () {
+    if (mode !== 'grid') { if (navSolo) navSolo(); return; }
+    if (soloBack) {
+      const back = soloBack, cells = soloCells;
+      soloBack = null; soloCells = null; PX.__solo = false;
+      PX.panels.apply(back);
+      /* 크게 하기 전 **칸 전체**를 되돌린다. 지도 하나만 돌려놓으면
+         나머지는 프리셋 자리에 서 있어 서로 어긋난다. */
+      if (cells) { cells.forEach(c => { const w = wm.windows.find(x => x.id === c.k); if (w) w.frac = c.frac; }); place(); store(); }
+    } else {
+      soloBack = PX.panels.snapshot();
+      soloCells = wm.windows.map(w => ({ k: w.id, frac: Object.assign({}, w.frac) }));
+      const next = PX.panels.snapshot();
+      ['left', 'right', 'bottom'].forEach(d => next.stacks[d].forEach(s => s.ids.forEach(id => { next.hide[id] = true; })));
+      PX.__solo = true;
+      PX.panels.apply(next);
+    }
+    render();
+    if (PX.nav && PX.nav.redraw) PX.nav.redraw();
+  };
+
+  PX.grid = {
+    owns() { return mode === 'grid'; },
+    render: render,
+    place: place,
+    preset(name) { usePreset(name); },
+    presets: PRESETS,
+    get name() { return preset; },
+    cells() { return wm.windows.map(w => ({ k: w.id, frac: Object.assign({}, w.frac) })); },
+    setCells(list) {
+      if (!list) return;
+      list.forEach(c => { const w = wm.windows.find(x => x.id === c.k); if (w) w.frac = Object.assign({}, c.frac); });
+      place(); store();
+    },
+    reset() { if (mode === 'grid') { syncWindows(true); place(); store(); } else { saved = {}; store(); } }
+  };
+  PX.mode = {
+    get now() { return mode; },
+    set(m) { enter(m); drawBar(); },
+    toggle() { enter(mode === 'grid' ? 'map' : 'grid'); drawBar(); }
+  };
+
+  // 저장돼 있던 모드로 들어간다 (창은 이미 도크에 서 있으므로 옮기기만 한다)
+  if (mode === 'grid') { mode = 'map'; enter('grid'); drawBar(); }
+})(window.PX);
+</script>
+<script>
+/* ===== layout.js =====
+   배치 한 벌을 통째로 **뜨고 · 되돌리고 · 초기화한다.**
+
+   초기화(기본값으로)와 되돌리기(방금 전으로)는 다른 기능이다.
+     위치 초기화 — 처음 배치로. 작업표시줄 단추와 ⌃⌘R.
+     ⌘Z        — 방금 닫은 창·망친 배치를 한 걸음 전으로. 20단계.
+   둘 다 **새로고침하지 않는다** — 지도 타일·3D 스캔·치던 무전 내용이 살아 있어야 한다. */
+(function (PX) {
+  'use strict';
+
+  const MAX = 20;
+  const past = [];
+  let busy = false;             // 되돌리는 중에는 새 걸음을 쌓지 않는다
+
+  function snapshot() {
+    return {
+      panels: PX.panels.snapshot(),
+      dock: PX.dock.snapshot(),
+      mode: PX.mode ? PX.mode.now : 'map',
+      preset: PX.grid ? PX.grid.name : '2+3',
+      cells: PX.grid ? PX.grid.cells() : [],
+      incident: PX.store.selectedIncidentID
+    };
+  }
+
+  function restore(s, withIncident) {
+    if (!s) return;
+    busy = true;
+    try {
+      if (PX.mode && s.mode && s.mode !== PX.mode.now) PX.mode.set(s.mode);
+      PX.dock.restore(s.dock);
+      PX.panels.apply(s.panels);
+      if (s.mode === 'grid' && PX.grid) {
+        if (s.preset) PX.grid.preset(s.preset);
+        PX.grid.setCells(s.cells);
+      }
+      if (withIncident && s.incident) PX.store.select(s.incident);
+    } finally { busy = false; }
+  }
+
+  /** 배치를 바꾸기 **직전에** 부른다 — 그래야 ⌘Z 가 「방금 전」으로 간다 */
+  function mark() {
+    if (busy) return;
+    past.push(snapshot());
+    if (past.length > MAX) past.shift();
+  }
+
+  function undo() {
+    const s = past.pop();
+    if (!s) { toast('되돌릴 배치가 없습니다'); return false; }
+    restore(s, false);
+    toast('배치를 한 걸음 되돌렸습니다');
+    return true;
+  }
+
+  /** 진짜 초기화 — 자리·크기·탭·켜고 끔·도크 폭을 모두 처음 상태로 */
+  function reset() {
+    mark();
+    busy = true;
+    try {
+      PX.dock.reset();
+      PX.panels.reset();
+      if (PX.grid) PX.grid.reset();
+      try { localStorage.removeItem('px.rail.v2'); } catch (e) { /* 그만 */ }
+    } finally { busy = false; }
+    toast('배치를 처음 상태로 되돌렸습니다 (⌘Z 로 취소)');
+  }
+
+  /* 무엇이 일어났는지 한 줄로 알린다. 새 모양을 만들지 않고
+     이미 있는 유리 토큰(--dk-bg/--dk-edge)을 그대로 쓴다. */
+  let tEl = null, tTimer = null, tAct = null;
+  /** text 만 주면 알리고 사라진다. act 를 주면 **누를 수 있는 한 줄**이 되어 오래 머문다 —
+      긴급 사건이 들어왔다고 화면을 제멋대로 바꾸지 않고 사람이 누르게 하는 자리다. */
+  function toast(text, act) {
+    if (!tEl) {
+      tEl = PX.el('<div id="lay-toast"></div>');
+      PX.$('#desk').appendChild(tEl);
+      tEl.addEventListener('click', e => {
+        if (!e.target.closest('[data-toast-act]')) return;
+        const f = tAct; tAct = null;
+        tEl.classList.remove('on');
+        if (f) f();
+      });
+    }
+    tAct = act && act.run;
+    tEl.innerHTML = `<span>${PX.esc(text)}</span>` +
+      (act ? `<button class="dock-btn" data-toast-act="1">${PX.esc(act.label)}</button>` : '');
+    tEl.classList.add('on');
+    clearTimeout(tTimer);
+    tTimer = setTimeout(() => { tEl.classList.remove('on'); tAct = null; }, act ? 9000 : 2200);
+  }
+
+  /* 배치를 바꾸는 문 앞에 걸음을 하나씩 쌓아 둔다.
+     여기서 감싸 두면 레일·탭·도크 어느 쪽으로 바꾸든 ⌘Z 가 듣는다. */
+  function wrap(obj, name) {
+    const fn = obj[name];
+    if (typeof fn !== 'function') return;
+    obj[name] = function () { mark(); return fn.apply(obj, arguments); };
+  }
+  ['toggle', 'move', 'reveal', 'duplicate', 'pinIncident'].forEach(n => wrap(PX.panels, n));
+  if (PX.mode) { wrap(PX.mode, 'set'); wrap(PX.mode, 'toggle'); }
+  /* 「지도만 보기」는 도크 셋을 한꺼번에 접는다 — 도크 toggle 을 감싸면
+     ⌘Z 를 세 번 눌러야 돌아온다. 한 동작이니 걸음도 하나다. */
+  if (PX.soloMap) {
+    const solo = PX.soloMap;
+    PX.soloMap = function () { mark(); return solo.apply(null, arguments); };
+  }
+
+  window.addEventListener('keydown', e => {
+    if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
+    if (e.key.toLowerCase() !== 'z') return;
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+    e.preventDefault();
+    undo();
+  });
+
+  PX.layout = {
+    snapshot: snapshot, restore: restore,
+    mark: mark, undo: undo, reset: reset, toast: toast,
+    get depth() { return past.length; }
+  };
+})(window.PX);
+</script>
+<script>
+/* ===== sets.js =====
+   작업 세트 — 배치 + 열린 창 + 사건 문맥을 통째로 저장하고 불러온다.
+     예) 「침입 사건」 = 격자 2+3 · 지도·CCTV·3D·기록·무전 · A-102 문맥
+
+   통제실은 사건 유형이 반복된다. 매번 창을 다시 여는 대신 세트 하나 부르면 끝나는 것이
+   멀티태스킹에서 체감이 가장 크다. 교대 인계도 이걸로 푼다 —
+   지금 세트를 넘기면 다음 사람이 **같은 화면에서** 시작한다. */
+(function (PX) {
+  'use strict';
+
+  const KEY = 'px.sets.v1';
+  let sets = [];
+  try { sets = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch (e) { sets = []; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(sets)); } catch (e) { /* 그만 */ } }
+
+  function incTitle(id) {
+    const inc = PX.store.incidents.find(i => i.id === id);
+    return inc ? inc.id + ' ' + inc.type : (id || '');
+  }
+
+  function add(name) {
+    const n = String(name || '').trim();
+    if (!n) return null;
+    const s = Object.assign({ name: n, at: PX.now() }, PX.layout.snapshot());
+    const at = sets.findIndex(x => x.name === n);
+    if (at >= 0) sets[at] = s; else sets.push(s);
+    if (sets.length > 12) sets.length = 12;
+    save();
+    PX.layout.toast('「' + n + '」 세트를 저장했습니다');
+    draw();
+    return s;
+  }
+  function load(name) {
+    const s = sets.find(x => x.name === name);
+    if (!s) return;
+    PX.layout.mark();
+    PX.layout.restore(s, true);             // 사건 문맥까지 같이 맞춘다
+    PX.layout.toast('「' + s.name + '」 세트를 불렀습니다 — ' + incTitle(s.incident));
+    draw();
+  }
+  function remove(name) {
+    sets = sets.filter(x => x.name !== name);
+    save(); draw();
+  }
+
+  // ── 목록 ─────────────────────────────────────────
+  const wrap = PX.el(
+    `<div id="sets-wrap">
+       <div id="sets-scrim"></div>
+       <div id="sets-panel">
+         <header class="stk-head">
+           <div class="stk-tabs one"><span class="stk-tab on">${PX.icon('grid')}<span class="t">작업 세트</span></span></div>
+           <button class="pn-btn" data-sx="1" title="닫기">${PX.icon('close')}</button>
+         </header>
+         <div class="sets-body"></div>
+         <div class="sets-foot">
+           <input class="sets-in" type="text" placeholder="지금 화면을 이름 붙여 저장 (예: 침입 사건)" maxlength="24">
+           <button class="dock-btn" data-ssave="1">${PX.icon('reset')}저장</button>
+         </div>
+       </div>
+     </div>`);
+  PX.$('#desk').appendChild(wrap);
+  const bodyEl = wrap.querySelector('.sets-body');
+  const inEl = wrap.querySelector('.sets-in');
+
+  function draw() {
+    bodyEl.innerHTML = sets.length ? sets.map((s, i) =>
+      `<div class="sets-row">
+         <button class="sets-open" data-sload="${PX.esc(s.name)}">
+           <b>${PX.esc(s.name)}</b>
+           <span class="cap sec">${s.mode === 'grid' ? '격자 ' + PX.esc(s.preset || '') : '지도'} · ${PX.esc(incTitle(s.incident))} · ${PX.esc(s.at || '')}</span>
+         </button>
+         <span class="sets-kbd">${i < 5 ? '⌘⇧' + (i + 1) : ''}</span>
+         <button class="pn-btn" data-sdel="${PX.esc(s.name)}" title="지우기">${PX.icon('close')}</button>
+       </div>`).join('')
+      : '<div class="dk-empty">저장된 세트가 없습니다.<br>지금 화면을 이름 붙여 저장해 두면 ⌘⇧1~5 로 바로 부릅니다.</div>';
+  }
+  draw();
+
+  function open() { wrap.classList.add('on'); draw(); setTimeout(() => inEl.focus(), 30); }
+  function close() { wrap.classList.remove('on'); }
+
+  wrap.addEventListener('click', e => {
+    if (e.target.id === 'sets-scrim' || e.target.closest('[data-sx]')) { close(); return; }
+    const o = e.target.closest('[data-sload]');
+    if (o) { load(o.dataset.sload); close(); return; }
+    const d = e.target.closest('[data-sdel]');
+    if (d) { remove(d.dataset.sdel); return; }
+    if (e.target.closest('[data-ssave]')) { if (add(inEl.value)) inEl.value = ''; return; }
+  });
+  inEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); if (add(inEl.value)) inEl.value = ''; }
+    if (e.key === 'Escape') { e.preventDefault(); close(); }
+  });
+
+  // ── 내보내기 · 가져오기 (교대 인계) ───────────────
+  function exportJSON() { return JSON.stringify({ px: 'sets.v1', sets: sets }, null, 1); }
+  function importJSON(text) {
+    try {
+      const o = JSON.parse(text);
+      const list = (o && o.sets) || (Array.isArray(o) ? o : null);
+      if (!list) return false;
+      list.forEach(s => { if (s && s.name) { const at = sets.findIndex(x => x.name === s.name); if (at >= 0) sets[at] = s; else sets.push(s); } });
+      save(); draw();
+      PX.layout.toast(list.length + '개 세트를 가져왔습니다');
+      return true;
+    } catch (e) { return false; }
+  }
+
+  window.addEventListener('keydown', e => {
+    if (!(e.metaKey || e.ctrlKey)) return;
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') return;
+    if (e.shiftKey && /^[1-5]$/.test(e.key)) {
+      e.preventDefault();
+      const s = sets[+e.key - 1];
+      if (s) load(s.name); else PX.layout.toast((+e.key) + '번 자리에 저장된 세트가 없습니다');
+      return;
+    }
+    if (e.shiftKey && e.key.toLowerCase() === 's') { e.preventDefault(); open(); }
+  });
+
+  PX.sets = {
+    list() { return sets.slice(); },
+    add: add, load: load, remove: remove,
+    open: open, close: close,
+    exportJSON: exportJSON, importJSON: importJSON
+  };
+})(window.PX);
+</script>
+<script>
+/* ===== float.js =====
+   ③ 창 떼어내기(자유 카드) · 고정 · 창 메뉴.
+
+   지금까지 창이 있을 수 있는 곳은 도크(1층) 아니면 전면(3층)뿐이라 **중간이 없었다.**
+   떼어낸 창은 어느 쪽에도 속하지 않는 층에 떠 있어서
+   모드를 바꿔도, 사건을 바꿔도 **그 자리 그대로** 남는다 — 무전 창처럼
+   손이 자리를 기억해야 하는 창을 위한 것이다.
+
+   떠 있는 카드는 dock.js 가 이미 계산해 두고 쓰는 데가 없던 voidRect().free 안에서만 논다. */
+(function (PX) {
+  'use strict';
+
+  const KEY = 'px.free.v1';
+  const desk = PX.$('#desk');
+  const layer = PX.el('<div id="free"></div>');
+  desk.appendChild(layer);
+
+  let spots = {};                 // 창 열쇠 → {x,y,w,h}
+  try { spots = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { spots = {}; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(spots)); } catch (e) { /* 그만 */ } }
+
+  function has(k) { return !!spots[k]; }
+
+  /** 떠 있는 카드가 놀 수 있는 자리 — 도크를 뺀 나머지 */
+  function bounds() {
+    const r = (PX.dock.rect && PX.dock.rect()) || null;
+    const box = desk.getBoundingClientRect();
+    const f = (r && r.free) || { x: 8, y: 8, w: box.width - 16, h: box.height - 16 };
+    return { x: Math.max(f.x, 4), y: Math.max(f.y, 4), w: Math.max(f.w, 160), h: Math.max(f.h, 120) };
+  }
+
+  function clampTo(sp) {
+    const b = bounds();
+    sp.w = Math.min(Math.max(sp.w, 240), b.w);
+    sp.h = Math.min(Math.max(sp.h, 140), b.h);
+    sp.x = Math.min(Math.max(sp.x, b.x), b.x + b.w - sp.w);
+    sp.y = Math.min(Math.max(sp.y, b.y), b.y + b.h - sp.h);
+    return sp;
+  }
+
+  function apply(k) {
+    const el = PX.panels.stackEl(k), sp = spots[k];
+    if (!el || !sp) return;
+    if (el.parentNode !== layer) PX.place(layer, el, null);
+    el.classList.remove('folded', 'sized', 'fill');
+    el.style.left = Math.round(sp.x) + 'px';
+    el.style.top = Math.round(sp.y) + 'px';
+    el.style.width = Math.round(sp.w) + 'px';
+    el.style.height = Math.round(sp.h) + 'px';
+  }
+  function applyAll() { Object.keys(spots).forEach(apply); }
+
+  /** 도크·칸에 박힌 창을 떼어낸다. 그 탭 하나만 떼어 제 카드로 세운다 */
+  function pop(id) {
+    if (PX.layout) PX.layout.mark();
+    const dock = PX.panels.dockOf(id);
+    const before = PX.panels.keyOf(id);
+    const st = PX.panels.stacks()[dock] || [];
+    const alone = st.some(s => s.k === before && s.ids.length === 1);
+    let key = before;
+    if (!alone) {                       // 탭이 여럿이면 저만 떼어 새 창으로 세운다
+      PX.panels.move(id, { dock: dock, mode: 'end' });
+      key = PX.panels.keyOf(id);
+    }
+    const el = PX.panels.stackEl(key);
+    const r = el ? el.getBoundingClientRect() : null;
+    const box = desk.getBoundingClientRect();
+    const b = bounds();
+    spots[key] = clampTo(r && r.width > 40
+      ? { x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height }
+      : { x: b.x + 40, y: b.y + 40, w: 380, h: 300 });
+    save();
+    refresh();
+    return key;
+  }
+
+  /** 떠 있던 창을 제자리(도크·칸)로 돌려보낸다 */
+  function dock(k) {
+    if (!spots[k]) return;
+    if (PX.layout) PX.layout.mark();
+    delete spots[k];
+    save();
+    const el = PX.panels.stackEl(k);
+    if (el) ['left', 'top', 'width', 'height'].forEach(p => el.style.removeProperty(p));
+    refresh();
+  }
+
+  function refresh() {
+    PX.panels.refresh();
+    applyAll();
+    PX.panels.resizeAll();
+  }
+
+  // ── 끌어 옮기기 · 크기 바꾸기 ────────────────────
+  layer.addEventListener('mousedown', e => {
+    const el = e.target.closest('.stk');
+    if (!el) return;
+    const k = el.dataset.stk;
+    if (!spots[k]) return;
+    const grip = e.target.closest('.stk-grip');
+    const head = e.target.closest('.stk-head');
+    if (!grip && !head) return;
+    if (head && e.target.closest('button')) return;      // 탭·단추는 제 일을 한다
+    e.preventDefault();
+    const sp = spots[k], x0 = e.clientX, y0 = e.clientY;
+    const s0 = { x: sp.x, y: sp.y, w: sp.w, h: sp.h };
+    el.classList.add('moving');
+    document.body.classList.add('dk-noanim');
+    const move = ev => {
+      const dx = ev.clientX - x0, dy = ev.clientY - y0;
+      if (grip) { sp.w = s0.w + dx; sp.h = s0.h + dy; }
+      else { sp.x = s0.x + dx; sp.y = s0.y + dy; }
+      clampTo(sp);
+      apply(k);
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      el.classList.remove('moving');
+      document.body.classList.remove('dk-noanim');
+      save();
+      PX.panels.resizeAll();
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  });
+
+  window.addEventListener('resize', () => { Object.keys(spots).forEach(k => { clampTo(spots[k]); apply(k); }); });
+
+  PX.free = { has: has, pop: pop, dock: dock, applyAll: applyAll, spots() { return spots; } };
+  applyAll();
+
+  /* ── 창 메뉴 ──────────────────────────────────────
+     머리줄의 단추와 이름표 오른쪽 누름으로 연다. 창마다 할 수 있는 일을 한자리에 모았다 —
+     단추를 넷 다섯으로 늘리면 34px 머리줄이 이름을 잃는다. */
+  const menu = PX.el('<div id="win-menu"></div>');
+  desk.appendChild(menu);
+  let forId = null;
+
+  function openMenu(id, x, y) {
+    forId = id;
+    const L = PX.panels.live(id);
+    if (!L) return;
+    const k = PX.panels.keyOf(id);
+    const pinned = PX.panels.isPinned(id);
+    const nowInc = PX.store.selectedIncidentID;
+    const mine = PX.panels.incidentOf(id);
+    const free = has(k);
+    menu.innerHTML =
+      `<button data-wm="dup">${PX.icon('plus')}창 복제</button>
+       <button data-wm="pin">${PX.icon('pushpin')}${pinned ? '사건 고정 풀기' : '이 창을 ' + PX.esc(nowInc) + ' 에 고정'}</button>
+       <div class="wm-sep"></div>
+       <button data-wm="free">${free ? PX.icon('to-bottom') + '도크로 되돌리기' : PX.icon('front') + '떼어내어 띄우기'}</button>
+       <button data-wm="full">${PX.icon('expand')}전면으로 보기</button>
+       <div class="wm-sep"></div>
+       <button data-wm="off">${PX.icon('close')}이 창 끄기</button>
+       <div class="wm-note">${PX.esc(L.def.title)} · 보고 있는 사건 ${PX.esc(mine)}${pinned ? ' (고정)' : ''}</div>`;
+    menu.classList.add('on');
+    const box = desk.getBoundingClientRect(), r = menu.getBoundingClientRect();
+    menu.style.left = Math.round(Math.min(Math.max(x - box.left, 6), box.width - r.width - 6)) + 'px';
+    menu.style.top = Math.round(Math.min(Math.max(y - box.top, 6), box.height - r.height - 6)) + 'px';
+  }
+  function closeMenu() { menu.classList.remove('on'); forId = null; }
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('#win-menu [data-wm]');
+    if (b) {
+      e.stopPropagation();
+      const id = forId, k = PX.panels.keyOf(id);
+      closeMenu();
+      if (!id) return;
+      switch (b.dataset.wm) {
+        case 'dup': {
+          const made = PX.panels.duplicate(id);
+          if (made) PX.layout.toast('「' + PX.panels.live(made).def.title + '」 을(를) 하나 더 열었습니다 — ' + PX.panels.incidentOf(made) + ' 에 고정');
+          break;
+        }
+        case 'pin':
+          PX.panels.pinIncident(id, PX.panels.isPinned(id) ? null : PX.store.selectedIncidentID);
+          PX.panels.refresh();
+          PX.layout.toast(PX.panels.isPinned(id)
+            ? '이 창은 ' + PX.panels.incidentOf(id) + ' 만 봅니다'
+            : '이 창이 다시 「지금 사건」을 따라갑니다');
+          break;
+        case 'free': has(k) ? dock(k) : pop(id); break;
+        case 'full': if (PX.takeover) PX.takeover.open(id); break;
+        case 'off': PX.panels.close(id); break;
+      }
+      return;
+    }
+    const open = e.target.closest('[data-menu]');
+    if (open) {
+      e.stopPropagation(); e.preventDefault();
+      const stk = open.closest('.stk');
+      const tab = stk && stk.querySelector('.stk-tab.on');
+      const id = tab && tab.dataset.stab;
+      const r = open.getBoundingClientRect();
+      if (id) openMenu(id, r.left, r.bottom + 4); else closeMenu();
+      return;
+    }
+    if (!e.target.closest('#win-menu')) closeMenu();
+  }, true);
+
+  document.addEventListener('contextmenu', e => {
+    const tab = e.target.closest('[data-stab]');
+    if (!tab) return;
+    e.preventDefault();
+    openMenu(tab.dataset.stab, e.clientX, e.clientY);
+  });
+  window.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+})(window.PX);
+</script>
+<script>
+/* ===== context.js =====
+   ⑤ 사건 문맥. 어느 모드에서든 「지금 보는 사건」은 하나다.
+   지도에서 표식을 고르면 모든 창이 따라오고(이미 store 가 그렇게 돌아간다),
+   모드를 바꿔도 그대로다 — 모드 전환은 자리만 옮기지 store 를 건드리지 않는다.
+
+   여기서 하는 일은 **그것을 늘 보이게 적어 두는 것**이다.
+   화면 다섯이 서로 다른 것을 비추고 있으면 무엇을 보고 있는지 잊는다 —
+   따로 도는 창이 있으면 그 수까지 상태바에 남긴다. */
+(function (PX) {
+  'use strict';
+
+  const store = PX.store;
+
+  function apart() {
+    let n = 0;
+    ['left', 'right', 'bottom'].forEach(d => PX.panels.stacks()[d].forEach(s =>
+      s.ids.forEach(id => { if (PX.panels.isPinned(id) && PX.panels.incidentOf(id) !== store.selectedIncidentID) n++; })));
+    return n;
+  }
+
+  function line() {
+    const inc = store.selectedIncident;
+    if (!inc) return '';
+    const n = apart();
+    return inc.id + '|' + inc.type + '|' + (PX.mode ? PX.mode.now : 'map') + '|' + n;
+  }
+
+  let sig = '';
+  function draw(force) {
+    const now = line();
+    if (!force && now === sig) return;
+    sig = now;
+    const host = PX.$('.sb-inc');
+    if (!host) return;
+    const inc = store.selectedIncident;
+    const n = apart();
+    const mode = (PX.mode && PX.mode.now === 'grid') ? '격자 모드' : '지도 모드';
+    host.innerHTML =
+      `<b>${PX.esc(inc.id)}</b><span class="cap">${PX.esc(inc.type)}</span>` +
+      `<span class="cap sec">· ${PX.esc(mode)}</span>` +
+      (n ? `<span class="cap sec" title="이 창들은 다른 사건에 고정돼 있습니다">· 따로 보는 창 ${n}</span>` : '');
+    host.title = '지금 보고 있는 사건 — ' + inc.id + ' ' + inc.type + ' (' + inc.place + ')';
+  }
+
+  /* shell.js 가 상태바를 통째로 다시 그린 **뒤에** 덧쓴다.
+     구독은 넣은 차례대로 불리므로 여기가 늘 나중이다. */
+  store.subscribe(what => { if (what === 'incident' || what === 'messages' || what === 'alerts') draw(true); });
+  setInterval(() => draw(false), 500);
+  draw(true);
+
+  /* ── 긴급 알림 ────────────────────────────────────
+     **화면을 저절로 바꾸지 않는다.** 하던 일을 잃기 때문이다.
+     대신 누를 수 있는 한 줄을 띄워 사람이 고르게 한다 —
+     그 사건으로 맞춰 둔 작업 세트가 있으면 세트째, 없으면 사건만 옮긴다. */
+  let seenAt = store.alerts.length;
+  store.subscribe(what => {
+    if (what !== 'alerts') return;
+    const fresh = store.alerts.slice(0, Math.max(0, store.alerts.length - seenAt));
+    seenAt = store.alerts.length;
+    const hot = fresh.find(a => a && a.level === '긴급' && !a.isMine && a.incidentID);
+    if (!hot) return;
+    const set = (PX.sets ? PX.sets.list() : []).find(x => x.incident === hot.incidentID);
+    PX.layout.toast('긴급 · ' + hot.title + ' (' + hot.incidentID + ')', {
+      label: set ? '「' + set.name + '」 세트 열기' : '이 사건 보기',
+      run() { if (set) PX.sets.load(set.name); else store.select(hot.incidentID); }
+    });
+  });
+
+  PX.context = { line: line, redraw: () => draw(true) };
 })(window.PX);
 </script>
 </body>
