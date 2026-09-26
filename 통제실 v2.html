@@ -7906,28 +7906,10 @@ window.PX = window.PX || {};
     PX.delivery.subscribe(draw);
   }
 
-  /* ④ 사이드바 맨 아래 — 미해결 한 줄 */
-  function unresolvedLine() {
-    const L = PX.panels && PX.panels.live && PX.panels.live('mapctl');
-    if (!L || !L.body) return setTimeout(unresolvedLine, 500);
-    if (L.body.querySelector('.dv-unres')) return;
-    const el = PX.el('<button class="dv-unres" type="button" title="현장 정보 전송 창에서 보기"></button>');
-    L.body.appendChild(el);
-    el.onclick = () => { if (PX.panels) PX.panels.reveal('alerts'); };
-    function draw() {
-      const c = counts();
-      el.classList.toggle('none', !c.unack && !c.hand);
-      const parts = [];
-      if (c.unack) parts.push('확인 안 된 지시 ' + c.unack);
-      if (c.hand) parts.push('인계 대기 ' + c.hand);
-      el.innerHTML = parts.length
-        ? `${PX.icon('warning')}<span>${parts.join(' · ')}</span>`
-        : `${PX.icon('check')}<span>미해결 없음</span>`;
-    }
-    draw();
-    PX.delivery.subscribe(draw);
-  }
-  unresolvedLine();
+  /* ④ 사이드바 맨 아래 「미해결 없음」 한 줄은 **뺐다.**
+     position:sticky 로 목록 위에 겹쳐 떠서 「인력·차량」 줄을 가렸다.
+     같은 것을 현장 정보 전송 창 머리에서 이미 보여 주고 있어 두 번 적을 까닭도 없었다.
+     (.dv-unres 의 CSS 는 지우지 않았다 — 다시 쓸 자리가 생기면 그대로 살아난다) */
 })(window.PX);
 </script>
 <script>
@@ -8239,7 +8221,11 @@ window.PX = window.PX || {};
       st.ids.forEach(id => { if (live[id]) live[id].def.dock = dock; });
 
       const folded = !!saved.off[st.k];
-      const fill = ids.some(id => live[id].def.fill);
+      /* 창은 도크 높이를 **나눠 갖는다.** 예전에는 def.fill 인 창(현장 정보 전송·공간 3D)만
+         늘어나서, 왼쪽 창은 내용만큼 서고 오른쪽 창들은 바닥까지 내려가
+         두 도크의 아래 끝이 어긋나 보였다. 이제 어느 쪽이든 끝이 맞는다.
+         (손으로 크기를 정해 둔 창과 접은 창은 그대로 둔다) */
+      const fill = true;
       let h = saved.h[st.k];
       /* 지난번에 끌어 둔 높이가 지금 도크보다 크면 버린다 —
          창이 도크 밖으로 나가 머리줄이 보이지 않는 일이 생긴다 */
