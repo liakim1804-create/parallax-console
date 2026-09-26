@@ -2,6 +2,7 @@ PARALLAX 지휘통제 콘솔 · 통제실 v2
 
 공개 주소 (인터넷에서 바로 열기)
   콘솔 실행:   https://liakim1804-create.github.io/parallax-console/
+               (루트로 들어오면 아래 「단일 파일」로 바로 넘어갑니다)
   단일 파일:   https://liakim1804-create.github.io/parallax-console/통제실%20v2.html
   압축본:      https://liakim1804-create.github.io/parallax-console/통제실%20v2.zip
   코드 저장소: https://github.com/liakim1804-create/parallax-console
